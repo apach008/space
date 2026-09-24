@@ -695,14 +695,20 @@ function groupSpec(by, sel, ctx) {
 /* ---- Sound engine ---------------------------------------------------
    The same code sits in index.html and dashboard.html so
    each page runs on its own; change both together.
-   Graph: every voice -> bus (+ reverb send) -> high-pass -> compressor
-   -> limiter -> soft clip -> mute -> speakers. A pad of detuned saws holds
-   one chord per section, with a bass under it and an air layer over it;
-   one-shot voices (FM bells, filtered noise grains, booms) answer the
-   page's orbit:* events. Nothing is a sample: every sound is built here.
+   Graph: the bed (pad, sheen, bass, air) -> duck (dips under hits)
+   -> rest (settles when the reader stops) -> bus; one-shot voices go
+   straight to the bus. bus (+ reverb send) -> high-pass -> compressor
+   -> limiter -> soft clip -> mute -> speakers. The pad is two banks of
+   detuned saws spread left and right; a new chord is tuned on the silent
+   bank and crossfaded in, so chords change without bending. One-shot
+   voices (FM bells, filtered noise grains, booms, the Sputnik beacon)
+   answer the page's orbit:* events. Bells take the oldest bell's place
+   when the pool is full, and the low bodies of hits have a pool of their
+   own, so a busy moment never swallows a boom. Nothing is a sample:
+   every sound is built here.
    --------------------------------------------------------------------- */
 function orbitSound(opt = {}) {
-  const PAD = opt.pad ?? 1;
+  const PAD = opt.pad ?? 1, LEVEL = opt.level ?? 1;
   const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const PENTA = [0, 2, 4, 7, 9];
   const penta = (k, base = 62) => hz(base + PENTA[((k % 5) + 5) % 5] + 12 * Math.floor(k / 5));
@@ -714,24 +720,27 @@ function orbitSound(opt = {}) {
     age: [40, 50, 55, 59, 62, 67], reentry: [33, 45, 52, 57, 62, 64], beyond: [31, 57, 62, 64, 69, 76],
     notes: [43, 55, 59, 62, 66, 69], close: [38, 50, 57, 62, 66, 69],
   };
-  const E = { ctx: null, on: false, voices: 0, grains: 0, boost: 0, cur: CHORDS.hero, hz, penta, CHORDS };
-  let ctx, bus, send, mute, noiseBuf, padLP, padG, bassO, bassT, bassG, airG, windBP, windG, rewBP, rewG, verbRet;
-  const padOsc = [], airO = [];
-  let suspendT = 0, acc = 0, burnAcc = 0;
+  const BELLS = 22, BODIES = 10;
+  const E = { ctx: null, on: false, voices: 0, bodies: 0, grains: 0, stolen: 0, boost: 0, cur: CHORDS.hero, hz, penta, CHORDS };
+  let ctx, bus, send, mute, noiseBuf, padLP, padG, sheenG, bassO, bassT, bassG, pulseD, airG, windBP, windG, rewBP, rewG, verbRet;
+  let duck, duckW, rest, restW;
+  const banks = [[], []], bankG = [[], []], airO = [], bells = [];
+  let bank = 0, suspendT = 0, acc = 0, burnRate = 0, burnUntil = 0, lastPoke = 0, resting = false;
   const T = () => ctx.currentTime;
   const tgt = (p, v, tc) => p.setTargetAtTime(v, ctx.currentTime, tc);
   const R = Math.random;
   const pan = (x) => Math.max(-1, Math.min(1, x));
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
   function makeIR(sr) {
     // decaying noise that darkens as it fades, like a large hall
-    const len = (sr * 3.4) | 0, ir = ctx.createBuffer(2, len, sr);
+    const len = (sr * 2.4) | 0, ir = ctx.createBuffer(2, len, sr);
     for (let c = 0; c < 2; c++) {
       const d = ir.getChannelData(c); let lp = 0;
       for (let i = 0; i < len; i++) {
         const t = i / len, k = 0.62 - 0.57 * Math.sqrt(t);
         lp += (R() * 2 - 1 - lp) * k;
-        d[i] = lp * Math.pow(1 - t, 2.4) * Math.min(1, i / (sr * 0.006));
+        d[i] = lp * Math.pow(1 - t, 2.0) * Math.min(1, i / (sr * 0.006));
       }
     }
     return ir;
@@ -740,9 +749,11 @@ function orbitSound(opt = {}) {
   function filt(type, f, q = 0.7) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; }
   function gain(v = 0) { const g = ctx.createGain(); g.gain.value = v; return g; }
   function panner(x) { const p = ctx.createStereoPanner(); p.pan.value = pan(x); return p; }
+  function shaper(k) { const w = ctx.createWaveShaper(), c = new Float32Array(1025); for (let i = 0; i < c.length; i++) c[i] = Math.tanh(k * (i / 512 - 1)) / Math.tanh(k); w.curve = c; return w; }
 
   function init() {
     ctx = E.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    ctx.onstatechange = () => opt.onState?.(ctx.state);
     const sr = ctx.sampleRate;
     noiseBuf = ctx.createBuffer(1, sr * 2, sr);
     const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = R() * 2 - 1;
@@ -751,7 +762,7 @@ function orbitSound(opt = {}) {
     const hp = filt('highpass', 34, 0.6);
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 2.2; comp.attack.value = 0.01; comp.release.value = 0.3;
-    const makeup = gain(1);
+    const makeup = gain(LEVEL);
     const lim = ctx.createDynamicsCompressor();
     lim.threshold.value = -5; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.12;
     const clip = ctx.createWaveShaper(), cv = new Float32Array(2049);
@@ -767,29 +778,43 @@ function orbitSound(opt = {}) {
     verbRet = gain(0.5);
     const vhp = filt('highpass', 170), vlp = filt('lowpass', 5200);
     send.connect(pre); pre.connect(verb); verb.connect(vhp); vhp.connect(vlp); vlp.connect(verbRet); verbRet.connect(bus);
-    // pad: five notes, two detuned saws each, one slowly breathing low-pass
-    padLP = filt('lowpass', 300, 0.9); padG = gain(0);
-    padLP.connect(padG); padG.connect(bus); const ps = gain(0.8); padG.connect(ps); ps.connect(send);
-    for (let j = 0; j < 10; j++) {
-      const o = ctx.createOscillator(); o.type = 'sawtooth';
-      o.frequency.value = hz(E.cur[1 + (j >> 1)]); o.detune.value = (j & 1 ? 7 : -7) + (R() - 0.5) * 4;
-      const og = gain(0.045); o.connect(og); og.connect(padLP); o.start(); padOsc.push(o);
+    // the bed's dry and wet paths both pass a duck and a rest stage
+    duck = gain(1); rest = gain(1); duck.connect(rest); rest.connect(bus);
+    duckW = gain(1); restW = gain(1); duckW.connect(restW); restW.connect(send);
+    // pad: two banks of five notes, two detuned saws each, one left and one right; one slowly breathing low-pass,
+    // a dip at 190 Hz against mud, and a sheen band from the same saws for small speakers
+    const padIn = gain(1), panL = panner(-0.55), panR = panner(0.55); panL.connect(padIn); panR.connect(padIn);
+    padLP = filt('lowpass', 500, 0.9); const padEQ = filt('peaking', 190, 0.8); padEQ.gain.value = -5;
+    const padMix = gain(1); padG = gain(0);
+    padIn.connect(padLP); padLP.connect(padEQ); padEQ.connect(padMix);
+    const sheenBP = filt('bandpass', 1500, 0.55); sheenG = gain(0); padIn.connect(sheenBP); sheenBP.connect(sheenG); sheenG.connect(padMix);
+    padMix.connect(padG); padG.connect(duck); const ps = gain(0.8); padG.connect(ps); ps.connect(duckW);
+    for (let b = 0; b < 2; b++) {
+      const gl = gain(b ? 0 : 1), gr = gain(b ? 0 : 1); gl.connect(panL); gr.connect(panR); bankG[b] = [gl, gr];
+      for (let j = 0; j < 10; j++) {
+        const o = ctx.createOscillator(); o.type = 'sawtooth';
+        o.frequency.value = hz(E.cur[1 + (j >> 1)]); o.detune.value = (j & 1 ? 7 : -7) + (R() - 0.5) * 4;
+        const og = gain(0.045); o.connect(og); og.connect(j & 1 ? gr : gl); o.start(); banks[b].push(o);
+      }
     }
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.047; const lg = gain(140); lfo.connect(lg); lg.connect(padLP.frequency); lfo.start();
-    // bass: a sine and a soft triangle an octave up, so small speakers still get the note
-    bassG = gain(0); bassG.connect(bus);
+    // bass: a sine, lightly saturated so its upper harmonics carry the note on small speakers, and a soft triangle
+    // an octave up; a slow pulse can move its level in the busier sections
+    bassG = gain(0); const pulseG = gain(1); bassG.connect(pulseG); pulseG.connect(duck);
+    const pl = ctx.createOscillator(); pl.frequency.value = 0.8; pulseD = gain(0); pl.connect(pulseD); pulseD.connect(pulseG.gain); pl.start();
     bassO = ctx.createOscillator(); bassO.frequency.value = hz(E.cur[0]);
     bassT = ctx.createOscillator(); bassT.type = 'triangle'; bassT.frequency.value = hz(E.cur[0] + 12);
-    const bt = gain(1.1), blp = filt('lowpass', 700);
-    const bo = gain(0.6); bassO.connect(bo); bo.connect(bassG); bassT.connect(bt); bt.connect(blp); blp.connect(bassG); bassO.start(); bassT.start();
+    const sat = shaper(2.5), bt = gain(1.1), blp = filt('lowpass', 700);
+    const bo = gain(0.5); bassO.connect(sat); sat.connect(bo); bo.connect(bassG); bassT.connect(bt); bt.connect(blp); blp.connect(bassG); bassO.start(); bassT.start();
     // air: two high sines with a slow tremolo, heard when the camera is far out
     airG = gain(0); const trem = gain(0.55), tl = ctx.createOscillator(), tlg = gain(0.45);
     tl.frequency.value = 0.13; tl.connect(tlg); tlg.connect(trem.gain); tl.start();
-    trem.connect(airG); airG.connect(bus); const as = gain(1.4); airG.connect(as); as.connect(send);
-    [5, 4].forEach((n, j) => { const o = ctx.createOscillator(); o.frequency.value = hz(E.cur[n] + 12); o.detune.value = j ? 4 : -4; o.connect(trem); o.start(); airO.push(o); });
+    trem.connect(airG); airG.connect(duck); const as = gain(1.4); airG.connect(as); as.connect(duckW);
+    [5, 4].forEach((n, j) => { const o = ctx.createOscillator(); o.frequency.value = hz(E.cur[n] + 12); o.detune.value = j ? 4 : -4; const ap = panner(j ? 0.6 : -0.6); o.connect(ap); ap.connect(trem); o.start(); airO.push(o); });
     // wind (scroll speed and camera moves) and the rewind whistle, both from looped noise
     windBP = filt('bandpass', 400, 1.1); windG = gain(0); loopNoise().connect(windBP); windBP.connect(windG); windG.connect(bus); windG.connect(send);
     rewBP = filt('bandpass', 1500, 9); rewG = gain(0); loopNoise().connect(rewBP); rewBP.connect(rewG); rewG.connect(bus); rewG.connect(send);
+    lastPoke = performance.now();
     document.addEventListener('visibilitychange', out);
   }
 
@@ -802,6 +827,7 @@ function orbitSound(opt = {}) {
     else { tgt(mute.gain, 0, 0.06); suspendT = setTimeout(() => { if (!(E.on && !document.hidden) && ctx.state === 'running') ctx.suspend(); }, 500); }
   }
   E.live = () => !!ctx && E.on && !document.hidden && ctx.state !== 'closed';
+  E.running = () => !!ctx && E.on && ctx.state === 'running';
   E.set = (on) => {
     E.on = on;
     if (on && !ctx) init();
@@ -809,21 +835,35 @@ function orbitSound(opt = {}) {
     try { localStorage.setItem('orbit-sound', on ? 'on' : 'off'); } catch (e) {}
     opt.onLabel?.(on);
   };
+  // any scroll, pointer or key activity: the bed comes back up if it had settled
+  E.poke = () => {
+    lastPoke = performance.now();
+    if (resting && ctx) { resting = false; tgt(rest.gain, 1, 0.3); tgt(restW.gain, 1, 0.3); }
+  };
+  // dip the bed under a hit, then let it come back
+  E.duck = (to, hold) => {
+    if (!ctx) return;
+    const t = T();
+    [duck, duckW].forEach((d) => { d.gain.cancelScheduledValues(t); d.gain.setTargetAtTime(to, t, 0.015); d.gain.setTargetAtTime(1, t + hold, 0.3); });
+  };
 
   /* ---- voices ---- */
-  // FM bell: sine carrier, sine modulator whose depth decays; capped at 26 at once
+  // FM bell: sine carrier, sine modulator whose depth decays; when the pool is full the oldest bell fades out fast
   function bell(f, vel, when, x = 0, o = {}) {
-    if (E.voices >= 26) return;
+    const t = when ?? T();
+    if (bells.length >= BELLS) { bells.shift().kill(t); E.stolen++; }
     E.voices++;
-    const t = when ?? T(), dur = o.dur ?? 1.6, ratio = o.ratio ?? 2, idx = o.index ?? 1;
-    const c = ctx.createOscillator(), m = ctx.createOscillator(), mg = gain(0), g = gain(0), p = panner(x);
+    const dur = o.dur ?? 1.6, ratio = o.ratio ?? 2, idx = o.index ?? 1;
+    const c = ctx.createOscillator(), m = ctx.createOscillator(), mg = gain(0), g = gain(0), kg = gain(1), p = panner(x);
     c.frequency.value = f; m.frequency.value = f * ratio;
     mg.gain.setValueAtTime(f * idx, t); mg.gain.exponentialRampToValueAtTime(f * idx * 0.04 + 0.01, t + dur * 0.6);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + (o.att ?? 0.004)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    m.connect(mg); mg.connect(c.frequency); c.connect(g); g.connect(p); p.connect(bus);
+    m.connect(mg); mg.connect(c.frequency); c.connect(g); g.connect(kg); kg.connect(p); p.connect(bus);
     const s = gain(o.send ?? 0.6); p.connect(s); s.connect(send);
     c.start(t); m.start(t); c.stop(t + dur + 0.05); m.stop(t + dur + 0.05);
-    c.onended = () => { E.voices--; p.disconnect(); s.disconnect(); };
+    const v = { kill: (at) => { const k = Math.max(at, T()); kg.gain.setTargetAtTime(0, k, 0.008); try { c.stop(k + 0.06); m.stop(k + 0.06); } catch (e) {} } };
+    bells.push(v);
+    c.onended = () => { E.voices--; const k = bells.indexOf(v); if (k >= 0) bells.splice(k, 1); p.disconnect(); s.disconnect(); };
   }
   // noise grain through a band-pass, optionally sweeping; capped at 48 at once
   function grain(when, dur, f, q, vel, x = 0, fTo = 0, sendAmt = 0.4) {
@@ -841,100 +881,153 @@ function orbitSound(opt = {}) {
   }
   // pitched drop: a sine falling from f0 to f1, the body of every boom and hit
   function drop(when, f0, f1, dur, vel, type = 'sine') {
-    if (E.voices >= 26) return;
-    E.voices++;
+    if (E.bodies >= BODIES) return;
+    E.bodies++;
     const o = ctx.createOscillator(), g = gain(0); o.type = type;
     o.frequency.setValueAtTime(f0, when); o.frequency.exponentialRampToValueAtTime(f1, when + dur * 0.45);
     g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
     o.connect(g); g.connect(bus); o.start(when); o.stop(when + dur + 0.05);
-    o.onended = () => { E.voices--; g.disconnect(); };
+    o.onended = () => { E.bodies--; g.disconnect(); };
   }
-  // slow swell of two sines on the chord's bass, for big numerals and the finale
+  // the same drop driven hard into a saturator: its harmonics land at 150 to 600 Hz, where laptop speakers still play
+  function crunch(when, f0, f1, dur, vel) {
+    if (E.bodies >= BODIES) return;
+    E.bodies++;
+    const o = ctx.createOscillator(), w = shaper(6), h = filt('highpass', 150, 0.7), g = gain(0);
+    o.frequency.setValueAtTime(f0, when); o.frequency.exponentialRampToValueAtTime(f1, when + dur * 0.5);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    o.connect(w); w.connect(h); h.connect(g); g.connect(bus); const s = gain(0.4); g.connect(s); s.connect(send);
+    o.start(when); o.stop(when + dur + 0.05);
+    o.onended = () => { E.bodies--; g.disconnect(); s.disconnect(); };
+  }
+  // slow swell of two sines on the chord's bass, for the finale
   function swell(when, f, vel, att, dur) {
     [1, 1.5].forEach((r, j) => {
-      if (E.voices >= 26) return;
-      E.voices++;
+      if (E.bodies >= BODIES) return;
+      E.bodies++;
       const o = ctx.createOscillator(), g = gain(0); o.frequency.value = f * r;
       g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel * (j ? 0.5 : 1), when + att); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
       o.connect(g); g.connect(bus); const s = gain(0.5); g.connect(s); s.connect(send);
-      o.start(when); o.stop(when + dur + 0.05); o.onended = () => { E.voices--; g.disconnect(); s.disconnect(); };
+      o.start(when); o.stop(when + dur + 0.05); o.onended = () => { E.bodies--; g.disconnect(); s.disconnect(); };
     });
+  }
+  // a band of noise that rises and falls while its centre sweeps from f0 to f1
+  function whoosh(when, dur, f0, f1, q, vel, x = 0) {
+    if (E.grains >= 48) return;
+    E.grains++;
+    const s = loopNoise(), b = filt('bandpass', f0, q), g = gain(0), p = panner(x);
+    b.frequency.setValueAtTime(f0, when); b.frequency.exponentialRampToValueAtTime(f1, when + dur);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel, when + dur * 0.4); g.gain.linearRampToValueAtTime(0, when + dur);
+    s.connect(b); b.connect(g); g.connect(p); p.connect(bus); const sg = gain(0.7); p.connect(sg); sg.connect(send);
+    s.stop(when + dur + 0.05);
+    s.onended = () => { E.grains--; p.disconnect(); };
   }
 
   /* ---- continuous layers, called every frame with the page's state ----
      p: density 0..1 (objects in orbit), debris 0..1, energy 0..1 (section),
         far 0..1 (camera distance), speed 0..1 (scroll or camera speed),
-        rewind 0..1 and rewindPitch 0..1 */
+        rewind 0..1 and rewindPitch 0..1, bright 0..1 (extra pad brightness),
+        layers { bass, sheen, pulse, air } (the section's arrangement, 1 = full) */
   E.tick = (p, dt) => {
     if (!E.live()) return;
     acc += dt; if (acc < 0.06) return;
     const t = T(), step = acc; acc = 0;
-    const dens = Math.sqrt(Math.max(0, p.density)), en = p.energy ?? 0.7, far = p.far || 0;
+    const dens = Math.sqrt(Math.max(0, p.density)), en = p.energy ?? 0.7, far = p.far || 0, ly = p.layers || {};
     E.boost *= Math.exp(-step / 1.8);
-    tgt(padLP.frequency, (260 + 2500 * Math.pow(dens, 1.3) * (0.5 + 0.5 * en)) * (1 - 0.45 * far) + 1400 * E.boost, 0.25);
-    tgt(padG.gain, PAD * 0.56 * (0.22 + 0.78 * dens) * Math.pow(0.2 + 0.8 * en, 1.6) * (1 - 0.3 * far), 0.35);
-    tgt(bassG.gain, PAD * 0.045 * (0.4 + 0.6 * en), 0.5);
-    tgt(airG.gain, 0.022 * far, 0.6);
+    tgt(padLP.frequency, (500 + 2300 * Math.pow(dens, 1.3) * (0.5 + 0.5 * en)) * (1 - 0.45 * far) + 1400 * E.boost + 900 * (p.bright || 0), 0.25);
+    tgt(padG.gain, PAD * 0.6 * (0.22 + 0.78 * dens) * Math.pow(0.15 + 0.85 * en, 2.2) * (1 - 0.3 * far), 0.35);
+    tgt(sheenG.gain, 1.0 * (ly.sheen ?? 1) * (0.3 + 0.7 * dens), 0.5);
+    tgt(bassG.gain, PAD * 0.042 * (0.3 + 0.7 * en) * (ly.bass ?? 1), 0.5);
+    tgt(pulseD.gain, 0.32 * (ly.pulse || 0), 0.8);
+    tgt(airG.gain, 0.022 * Math.max(far, ly.air || 0), 0.6);
     tgt(verbRet.gain, 0.45 + 0.65 * far, 0.6);
     const sp = p.speed || 0;
     tgt(windG.gain, 0.07 * sp, 0.12); tgt(windBP.frequency, 260 + 1600 * sp, 0.12);
     tgt(rewG.gain, 0.03 * (p.rewind || 0), 0.1); tgt(rewBP.frequency, 320 + 2600 * (p.rewindPitch || 0), 0.08);
+    // the reader stopped: after 8 s the bed settles about 7 dB over 4 s, and comes back on the next move
+    if (!resting && performance.now() - lastPoke > 8000) { resting = true; tgt(rest.gain, 0.42, 1.3); tgt(restW.gain, 0.42, 1.3); }
     // debris: sparse ticks, their rate set by how much debris is in orbit
     const rate = 2.6 * (p.debris || 0) * (0.4 + 0.6 * en);
     if (R() < rate * step) grain(t + R() * 0.05, 0.005 + R() * 0.012, 3200 + R() * 4500, 5, 0.035 + R() * 0.035, (R() - 0.5) * 1.6);
-    // reentry burn-ups gathered since the last tick
-    if (burnAcc > 0 && E.grains < 30) {
-      const n = Math.min(3, Math.ceil(Math.log2(1 + burnAcc)));
-      for (let j = 0; j < n; j++) grain(t + R() * 0.06, 0.22 + R() * 0.38, 2200 + R() * 1800, 3, 0.05 + R() * 0.04, (R() - 0.5) * 1.6, 260 + R() * 260, 0.5);
+    // reentries: meteors at a Poisson rate from 1 to 12 a second, set by the month's reentry count
+    if (t < burnUntil) {
+      const lam = (1 + 11 * burnRate) * step, L = Math.exp(-lam); let k = 0, q = R();
+      while (q > L && k < 4) { k++; q *= R(); }
+      for (let j = 0; j < k; j++) grain(t + R() * step, 0.25 + R() * 0.45, 1800 + R() * 1600, 3, 0.045 + R() * 0.035, (R() - 0.5) * 1.6, 220 + R() * 200, 0.5);
     }
-    burnAcc = 0;
   };
 
   /* ---- moments ---- */
+  // a new chord is tuned on the silent bank and crossfaded in; the bass moves in a quick slide
   E.chord = (name, glide = 0.9) => {
-    const c = CHORDS[name] || CHORDS.hero; E.cur = c;
+    const c = CHORDS[name] || CHORDS.hero;
+    if (c === E.cur && ctx) return;
+    E.cur = c;
     if (!ctx) return;
-    padOsc.forEach((o, j) => tgt(o.frequency, hz(c[1 + (j >> 1)]), glide));
-    tgt(bassO.frequency, hz(c[0]), glide); tgt(bassT.frequency, hz(c[0] + 12), glide);
-    tgt(airO[0].frequency, hz(c[5] + 12), glide * 1.5); tgt(airO[1].frequency, hz(c[4] + 12), glide * 1.5);
+    const t = T(), nb = bank ^ 1, k = glide / 0.9;
+    banks[nb].forEach((o, j) => { o.frequency.cancelScheduledValues(t); o.frequency.setTargetAtTime(hz(c[1 + (j >> 1)]), t, 0.015); });
+    bankG[nb].forEach((g) => g.gain.setTargetAtTime(1, t + 0.05, 0.25 * k));
+    bankG[bank].forEach((g) => g.gain.setTargetAtTime(0, t + 0.05, 0.5 * k));
+    bank = nb;
+    tgt(bassO.frequency, hz(c[0]), 0.07); tgt(bassT.frequency, hz(c[0] + 12), 0.07);
+    tgt(airO[0].frequency, hz(c[5] + 12), glide); tgt(airO[1].frequency, hz(c[4] + 12), glide);
   };
   E.section = (name, withBell) => {
     const same = CHORDS[name] === E.cur; E.chord(name);
     if (withBell && !same && E.live()) bell(hz(E.cur[5]), 0.05, T() + 0.05, 0.25, { dur: 2.6, ratio: 2, index: 0.6, send: 1 });
   };
-  // Enter: a filtered-noise riser, a low hit as the iris opens, the chord blooming out of it
+  // Sputnik 1's beacon: short pulses 0.3 s long, 0.3 s apart, on two alternating pitches, through a narrow radio band
+  E.beacon = (n = 4, vel = 0.05, when) => {
+    if (!E.live()) return;
+    const t0 = when ?? T() + 0.02, bp = filt('bandpass', 1300, 1.6), p = panner(0.3), s = gain(0.5);
+    bp.connect(p); p.connect(bus); p.connect(s); s.connect(send);
+    for (let j = 0; j < n; j++) {
+      const t = t0 + j * 0.6, o = ctx.createOscillator(), g = gain(0), v = vel * (1 - 0.12 * j);
+      o.type = 'square'; o.frequency.value = j % 2 ? 1174.7 : 880;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.006); g.gain.setValueAtTime(v, t + 0.29); g.gain.linearRampToValueAtTime(0, t + 0.302);
+      o.connect(g); g.connect(bp); o.start(t); o.stop(t + 0.32);
+      if (j === n - 1) o.onended = () => { p.disconnect(); s.disconnect(); };
+    }
+    grain(t0, n * 0.6, 2600, 0.7, 0.012, 0.3, 0, 0);
+  };
+  // Enter: the beacon, a filtered-noise riser, a low hit as the iris opens, the chord blooming out of it
   E.enter = () => {
     if (!E.live()) return;
     const t = T() + 0.02, hit = t + 1.42;
+    E.beacon(2, 0.035, t);
     const s = loopNoise(), b = filt('bandpass', 160, 2.2), g = gain(0);
     b.frequency.setValueAtTime(160, t); b.frequency.exponentialRampToValueAtTime(4200, hit - 0.05);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, hit - 0.08); g.gain.linearRampToValueAtTime(0, hit + 0.04);
     s.connect(b); b.connect(g); g.connect(bus); const sg = gain(0.8); g.connect(sg); sg.connect(send); s.stop(hit + 0.2);
-    drop(hit, 130, 40, 2.2, 0.55); drop(hit, 260, 80, 0.9, 0.14, 'triangle');
-    grain(hit, 0.5, 340, 0.8, 0.32, 0, 70, 0.3);
-    E.cur.slice(1).forEach((n, j) => bell(hz(n + 12), 0.055, hit + 0.05 + j * 0.07, (j - 2) * 0.3, { dur: 3.4, ratio: 2, index: 0.7, send: 1 }));
-    setTimeout(() => { E.boost = 1; }, 1400);
+    drop(hit, 130, 40, 2.2, 0.5); drop(hit, 260, 80, 0.9, 0.14, 'triangle'); crunch(hit, 140, 50, 1.1, 0.3);
+    grain(hit, 0.5, 340, 0.8, 0.32, 0, 70, 0.3); grain(hit, 0.12, 900, 0.8, 0.4, 0, 400, 0.5);
+    E.cur.slice(1).forEach((n, j) => bell(hz(n + 12), 0.055, hit + 0.05 + j * 0.07, (j - 2) * 0.35, { dur: 3.4, ratio: 2, index: 0.7, send: 1 }));
+    setTimeout(() => { E.boost = 1; E.duck(0.5, 0.35); }, 1420);
   };
   // one year on the time machine: k is the year's rank (0..14), n the notes in its run
   E.year = (k, n, x) => {
     if (!E.live()) return;
-    const t = T(), top = 17, k0 = Math.max(0, Math.min(k, top - (n - 1)));
-    for (let j = 0; j < n; j++) bell(penta(k0 + j, 50), (0.042 + 0.022 * k / 14) * (1 - j / (n + 3)), t + j * 0.034, x + (j - n / 2) * 0.04, { dur: 1.3, ratio: 3.5, index: 0.55 });
+    const t = T(), top = 17, k0 = Math.max(0, Math.min(k, top - (n - 1))), dur = n > 6 ? 0.8 : 1.3;
+    for (let j = 0; j < n; j++) bell(penta(k0 + j, 50), (0.042 + 0.022 * k / 14) * (1 - j / (n + 3)), t + j * 0.034, x + (j - n / 2) * 0.07, { dur, ratio: 3.5, index: 0.55 });
   };
-  // a breakup: a low boom, a crack, a metallic ring, then debris crackle scaled by the cataloged pieces
-  E.boom = (scale, pieces, x = 0) => {
+  // a breakup: a low boom with a saturated body, a crack, a clang and a ring, then debris crackle scaled by the
+  // cataloged pieces; slow (0..1) spreads the crackle over the page's slow-motion moment
+  E.boom = (scale, pieces, x = 0, slow = 0) => {
     if (!E.live()) return;
     const t = T() + 0.01;
-    drop(t, 96, 34, 1.7, 0.6 * scale); drop(t, 210, 70, 0.7, 0.16 * scale, 'triangle');
-    grain(t, 0.5, 240, 0.7, 0.4 * scale, x, 60, 0.3); grain(t, 0.07, 1900, 1.1, 0.3 * scale, x, 0, 0.6);
-    bell(hz(E.cur[0] + 36), 0.05 * scale, t + 0.03, x, { dur: 2.8, ratio: 1.414, index: 2.4, send: 1 });
-    const n = Math.min(36, Math.round(Math.sqrt(pieces) * 0.7 * scale));
+    drop(t, 96, 34, 1.7, 0.42 * scale); crunch(t, 150, 55, 0.9, 0.6 * scale); drop(t, 210, 70, 0.7, 0.16 * scale, 'triangle');
+    grain(t, 0.5, 240, 0.7, 0.4 * scale, x, 60, 0.3); grain(t, 0.14, 1100, 0.8, 0.8 * scale, x, 500, 0.5); grain(t, 0.07, 1900, 1.1, 0.3 * scale, x, 0, 0.6);
+    bell(390, 0.1 * scale, t + 0.01, x, { dur: 1.3, ratio: 1.414, index: 3.2, send: 1 });
+    bell(hz(E.cur[0] + 36), 0.05 * scale, t + 0.03, x, { dur: 2.8 + slow, ratio: 1.414, index: 2.4, send: 1 });
+    E.duck(0.35, 0.4 + 1.6 * slow);
+    const n = Math.min(36, Math.round(Math.sqrt(pieces) * 0.7 * scale)), span = 2.2 + 0.6 * slow;
     for (let j = 0; j < n; j++) {
-      const w = t + 0.1 + Math.pow(R(), 1.6) * 2.2;
-      grain(w, 0.006 + R() * 0.02, 1800 + R() * 5200, 5, (0.05 + R() * 0.07) * scale * (1 - (w - t) / 2.8), x + (R() - 0.5) * 1.4, 0, 0.5);
+      const w = t + 0.1 + Math.pow(R(), 1.6) * span;
+      grain(w, 0.006 + R() * 0.02, 1800 + R() * 5200, 5, (0.05 + R() * 0.07) * scale * (1 - (w - t) / (span + 0.6)), x + (R() - 0.5) * 1.6, 0, 0.5);
     }
   };
-  E.burn = (count) => { burnAcc += count; };
+  // rate 0..1: the reentry count of the month on screen; meteors keep falling while the replay moves
+  E.burn = (rate) => { if (!ctx) return; burnRate = clamp01(rate); burnUntil = T() + 0.25; };
   // an object locked under the cursor: kind picks the timbre, h (0 low orbit .. 1 far out) the pitch
   E.probe = (kind, h, x) => {
     if (!E.live()) return;
@@ -952,27 +1045,36 @@ function orbitSound(opt = {}) {
     if (!E.live()) return;
     const t = T(), c = E.cur;
     if (what === 'heading') bell(hz(c[5] + 12), 0.04, t, -0.3, { dur: 2.4, ratio: 1, index: 0.4, send: 1.2 });
-    else if (what === 'chart') [3, 4, 5].forEach((i, j) => bell(hz(c[i] + 12), 0.035, t + j * 0.07, 0.2 + j * 0.15, { dur: 1.4, ratio: 2, index: 0.5, send: 1 }));
+    else if (what === 'chart') [3, 4, 5].forEach((i, j) => bell(hz(c[i] + 12), 0.035, t + j * 0.07, -0.2 + j * 0.3, { dur: 1.4, ratio: 2, index: 0.5, send: 1 }));
     else swell(t, hz(c[0] + 12), 0.12, 0.9, 3.2);
   };
   // the closing view: the home chord opens up and a bell run climbs over a low swell
   E.finale = () => {
     E.chord('close', 1.2);
     if (!E.live()) return;
-    const t = T() + 0.1; E.boost = 1.2;
-    swell(t, hz(38), 0.18, 1.4, 5.5);
-    [62, 66, 69, 74, 76, 78, 81].forEach((n, j) => bell(hz(n), 0.055 * (1 - j * 0.06), t + 0.35 + j * 0.16, -0.5 + j * 0.16, { dur: 3.6, ratio: 2, index: 0.8, send: 1.2 }));
+    const t = T() + 0.1; E.boost = 1.4;
+    swell(t, hz(38), 0.26, 1.4, 6);
+    crunch(t + 0.05, 110, 73, 2.4, 0.12);
+    [62, 66, 69, 74, 76, 78, 81].forEach((n, j) => bell(hz(n), 0.075 * (1 - j * 0.06), t + 0.35 + j * 0.16, -0.7 + j * 0.23, { dur: 3.6, ratio: 2, index: 0.8, send: 1.2 }));
   };
   // dashboard: the selection changed; share 0..1 picks the pitch, up or down picks the direction
   E.change = (share, up, delta) => {
     if (!E.live()) return;
     const t = T(), k = 2 + Math.round(Math.sqrt(share) * 10), ks = up ? [k, k + 2] : [k + 2, k];
-    ks.forEach((kk, j) => bell(penta(kk, 62), 0.055, t + j * 0.06, up ? 0.2 : -0.2, { dur: 0.9, ratio: 2, index: 0.5 }));
+    ks.forEach((kk, j) => bell(penta(kk, 62), 0.055, t + j * 0.06, up ? 0.3 : -0.3, { dur: 0.9, ratio: 2, index: 0.5 }));
     const n = Math.min(6, Math.max(1, Math.round(Math.log10(1 + delta))));
     for (let j = 0; j < n; j++) {
-      if (up) bell(penta(k + 5 + j, 62), 0.018, t + 0.1 + j * 0.05, (R() - 0.5) * 1.2, { dur: 0.4, ratio: 3.01, index: 0.3 });
-      else grain(t + 0.05 + R() * 0.3, 0.2 + R() * 0.3, 2400 + R() * 1500, 3, 0.04, (R() - 0.5) * 1.4, 300, 0.5);
+      if (up) bell(penta(k + 5 + j, 62), 0.018, t + 0.1 + j * 0.05, (R() - 0.5) * 1.6, { dur: 0.4, ratio: 3.01, index: 0.3 });
+      else grain(t + 0.05 + R() * 0.3, 0.2 + R() * 0.3, 2400 + R() * 1500, 3, 0.04, (R() - 0.5) * 1.6, 300, 0.5);
     }
+  };
+  // dashboard: the yearly chart's objects in flight between layouts; big is a change of measure
+  E.swarm = (dur, big, amount = 1) => {
+    if (!E.live()) return;
+    const t = T(), a = 0.5 + 0.5 * clamp01(amount);
+    whoosh(t, dur, big ? 380 : 700, big ? 2600 : 1500, big ? 1.4 : 2, (big ? 0.075 : 0.04) * a, 0);
+    const n = Math.round((big ? 6 : 3) * a);
+    for (let j = 0; j < n; j++) bell(penta(9 + Math.floor(R() * 6), 62), 0.012, t + dur * (0.35 + 0.6 * R()), (R() - 0.5) * 1.6, { dur: 0.5, ratio: 3.01, index: 0.3, send: 0.8 });
   };
   E.fall = (a, b) => { if (!E.live()) return; const t = T(); bell(penta(a, 62), 0.06, t, 0, { dur: 1, ratio: 2, index: 0.6 }); bell(penta(b, 62), 0.06, t + 0.09, 0, { dur: 1.2, ratio: 2, index: 0.6 }); };
   E.sweep = () => { if (!E.live()) return; grain(T(), 0.7, 3200, 2.5, 0.09, 0, 180, 0.8); };
@@ -980,45 +1082,79 @@ function orbitSound(opt = {}) {
   return E;
 }   // end of orbitSound
 // Sound is on by default; the first click or key press on the page starts it, since browsers
-// only allow audio after one. The mute choice is shared with the report.
+// only allow audio after one. The mute choice is shared with the report. The label says
+// "Sound on" only while sound is playing; before that it asks for a click.
 let soundOn = true;
 try { soundOn = localStorage.getItem('orbit-sound') !== 'off'; } catch (e) {}
-function syncSoundLabel(on = soundOn) { document.body.classList.toggle('sound-on', on); $('#sound-label').textContent = on ? 'Sound on' : 'Sound off'; }
+const sound = orbitSound({ pad: 1, level: 1.9, onLabel: (on) => { soundOn = on; syncSoundLabel(); }, onState: () => syncSoundLabel() });
+function syncSoundLabel() {
+  const playing = sound.running();
+  document.body.classList.toggle('sound-on', playing);
+  $('#sound-label').textContent = !soundOn ? 'Sound off' : playing || (sound.ctx && document.hidden) ? 'Sound on' : 'Click for sound';
+}
 syncSoundLabel();
-const sound = orbitSound({ pad: 0.85, onLabel: (on) => { soundOn = on; syncSoundLabel(on); } });
 const firstGesture = (e) => {
   removeEventListener('pointerdown', firstGesture, true); removeEventListener('keydown', firstGesture, true);
   if (soundOn && !sound.ctx && !e.target.closest?.('#sound-btn')) sound.set(true);
 };
 addEventListener('pointerdown', firstGesture, true); addEventListener('keydown', firstGesture, true);
-$('#sound-btn').addEventListener('click', () => { const next = !(sound.ctx ? sound.on : soundOn); sound.set(next); if (next) sound.ui(9); });
+// a click while sound is wanted but not yet playing starts it; otherwise the button toggles
+$('#sound-btn').addEventListener('click', () => { const next = !(soundOn && sound.running()); sound.set(next); if (next) sound.ui(9); });
 const blip = (k = 7) => sound.ui(k);   // small clicks for controls that have no event of their own
+const poke = () => sound.poke();
+['pointermove', 'wheel', 'keydown', 'scroll', 'touchmove'].forEach((t) => addEventListener(t, poke, { passive: true }));
 
 // The dashboard's orbit:* events drive the same instrument as the report
-const dsx = { share: 1, t: 0, upd: 0, year: 0, focus: 0, obj: 0 };
-const CHORD_OF = { count: 'hero', orbit: 'starlink', peri: 'altitude', inc: 'incl', life: 'age',
-  type: 'timeline', regime: 'altitude', status: 'paydeb', owner: 'owner', site: 'growth' };
+const dsx = { share: 1, deb: 0.5, act: 0.25, alt: 0.3, t: 0, upd: 0, year: 0, focus: 0, obj: 0, flight: 0, scrubUntil: 0, scrubFrom: null, scrubN: 0, scrubT: 0 };
+// each measure and breakdown borrows the chord of the report section on the same subject
+const CHORD_OF = { count: 'growth', orbit: 'paydeb', peri: 'altitude', inc: 'incl', life: 'age',
+  type: 'events', owner: 'owner', regime: 'altitude', site: 'timeline', status: 'reentry', decade: 'timeline' };
 const soon = (k, ms) => { const now = performance.now(); if (now - dsx[k] < ms) return true; dsx[k] = now; return false; };
+// while the years are being dragged or stepped, only the year ticks sound; one change plays on release
+function flushScrub() {
+  const from = dsx.scrubFrom, n = dsx.scrubN; dsx.scrubFrom = null;
+  if (from == null || n === from) return;
+  sound.change(n / D.n, n > from, Math.abs(n - from));
+}
 addEventListener('orbit:update', (e) => {
-  const d = e.detail; dsx.share = d.share;
-  if (d.prevN == null || d.n === d.prevN || soon('upd', 110)) return;
+  const d = e.detail, now = performance.now(); dsx.share = d.share;
+  if (d.n) { dsx.deb = (d.debris ?? 0) / d.n; dsx.act = (d.active ?? 0) / d.n; if (d.alt != null) dsx.alt = d.alt; }
+  if (d.prevN == null || d.n === d.prevN) return;
+  if (now < dsx.scrubUntil) {
+    if (dsx.scrubFrom == null) dsx.scrubFrom = d.prevN;
+    dsx.scrubN = d.n; clearTimeout(dsx.scrubT); dsx.scrubT = setTimeout(flushScrub, dsx.scrubUntil - now + 60);
+    return;
+  }
+  if (soon('upd', 110)) return;
   sound.change(d.share, d.n > d.prevN, Math.abs(d.n - d.prevN));   // fewer objects burn out, more rise in
 });
 addEventListener('orbit:switch', (e) => sound.section(CHORD_OF[e.detail.id] || 'close', true));
 addEventListener('orbit:drill', () => sound.fall(9, 5));
 addEventListener('orbit:reset', () => { sound.sweep(); sound.chord('hero'); });
-addEventListener('orbit:year', (e) => { if (!soon('year', 35)) sound.touch((e.detail.year - Y0) / (Y1 - Y0), 0.035, e.detail.edge === 'start' ? -0.4 : 0.4); });
+addEventListener('orbit:year', (e) => {
+  dsx.scrubUntil = performance.now() + 260;
+  if (!soon('year', 60)) sound.touch((e.detail.year - Y0) / (Y1 - Y0), 0.035, e.detail.edge === 'start' ? -0.5 : 0.5);
+});
 addEventListener('orbit:box', (e) => (e.detail.box ? sound.fall(5, 9) : sound.fall(9, 5)));
 addEventListener('orbit:focus', (e) => { if (e.detail.group != null && !soon('focus', 90)) sound.touch(hash01(String(e.detail.group).length * 131 + String(e.detail.group).charCodeAt(0), 3), 0.025); });
 addEventListener('orbit:object', (e) => {
   const d = e.detail; if (d.norad == null || soon('obj', 160)) return;
   const h = Math.min(1, Math.max(0, (Math.log(Math.max(d.alt || 500, 200)) - Math.log(200)) / (Math.log(40000) - Math.log(200))));
-  sound.probe(d.type, h, mouse.x / innerWidth * 1.4 - 0.7);
+  sound.probe(d.type, h, mouse.x / innerWidth * 1.6 - 0.8);
 });
+// the yearly chart's objects flying to their new places: a sweep of noise and a few glints, never during a drag
+addEventListener('orbit:flight', (e) => {
+  if (performance.now() < dsx.scrubUntil || soon('flight', 450)) return;
+  sound.swarm(e.detail.dur, e.detail.big, Math.sqrt(dsx.share));
+});
+// the bed follows the view: density from its share of the catalog, debris ticks from its debris share,
+// brightness from its altitude, the sheen from its share of active payloads
 gsap.ticker.add(() => {
   const now = performance.now(), dt = Math.min(0.1, (now - (dsx.t || now)) / 1000); dsx.t = now;
   if (!sound.live()) return;
-  sound.tick({ density: 0.3 + 0.7 * Math.sqrt(dsx.share), debris: 0.3 * dsx.share, energy: 0.6, far: 0, speed: 0, rewind: 0, rewindPitch: 0 }, dt);
+  const sh = Math.sqrt(dsx.share);
+  sound.tick({ density: 0.3 + 0.7 * sh, debris: dsx.deb * (0.4 + 0.6 * sh), energy: 0.62, bright: dsx.alt * 0.6, far: 0, speed: 0, rewind: 0, rewindPitch: 0,
+    layers: { bass: 0.75, sheen: 0.5 + 1.2 * dsx.act, air: 0.5 * dsx.alt } }, dt);
 });
 const cursor = $('#cursor'), cDot = $('.dot', cursor), cRing = $('.ring', cursor);
 const mouse = { x: -99, y: -99, rx: -99, ry: -99 };
@@ -1994,6 +2130,7 @@ function timeParticles(ctx, spec, groups, keyOf, x, y, f, from) {
   TP.U.uMix.value = 0;
   gsap.to(TP.U.uMix, { value: 1, duration: bigMove ? 1.6 : 1.2, ease: 'none', overwrite: true });
   TP.until = performance.now() + 1900; TP.dirty = true;
+  emit('flight', { big: bigMove, dur: bigMove ? 1.6 : 1.2 });
 }
 
 /* ================= The globe of the current view ================= */
@@ -2321,7 +2458,10 @@ function render() {
   $('#reset').style.opacity = isDefaultFilters() ? 0.55 : 1;
   stateToHash();
   STATS.renders++; STATS.lastMs = performance.now() - t0;
-  emit('update', { n: all.n, prevN, catalog: D.n, share: all.n / D.n, measure: S.measure, by: S.by, ms: STATS.lastMs });
+  let deb = 0, la = 0, no = 0;
+  for (const i of sel) { if (D.type[i] === 2) deb++; if (D.orb[i] && D.alt[i] > 0) { la += Math.log(Math.max(D.alt[i], 200) / 200); no++; } }
+  emit('update', { n: all.n, prevN, catalog: D.n, share: all.n / D.n, measure: S.measure, by: S.by, ms: STATS.lastMs,
+    debris: deb, active: all.active, alt: no ? Math.min(1, la / no / Math.log(200)) : 0 });
   prevN = all.n;
 }
 // an address edited by hand (or a pasted link in the same tab) replaces the whole view
