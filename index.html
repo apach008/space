@@ -1242,6 +1242,7 @@ const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.01, 5
 const U = {
   uTime: { value: 0 }, uYear: { value: NOW }, uMix: { value: 1 },
   uPR: { value: DPR }, uSize: { value: 1 }, uTrail: { value: 0.3 }, uTrailLen: { value: 0.2 }, uSink: { value: 0 }, uFlash: { value: 0 },
+  uWin: { value: 0.15 },            // years an arrival or reentry takes to play out; grows with how fast the year moves (see frame)
   // the Sun is placed relative to the camera, to the upper left and a little in front, so every view shows the terminator
   uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) },
   uBurst: { value: 1 },            // 0: each breakup cloud gathered at one point, 1: spread over its orbits
@@ -1578,7 +1579,7 @@ function buildSatellites(D, REP) {
   geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   // Shared GLSL: position on the orbit, `lag` radians of mean anomaly behind now.
   const ORBIT = `
-      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash;
+      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash; uniform float uWin;
       uniform float uTrail; uniform float uTrailLen; uniform float uBurst; uniform float uCut; uniform float uAltX; uniform float uFar;
       uniform float uHi; uniform float uHiKind; uniform float uHiLo; uniform float uHiHi; uniform float uHiType;
       uniform float uSqrt; uniform float uDens; uniform vec3 uCutN;
@@ -1620,11 +1621,13 @@ function buildSatellites(D, REP) {
         // a breakup: in its first moments every piece flies outward from the break point, then settles onto its orbit
         if (s < 1.0) p += blastDir() * 0.15 * sin(3.14159265 * clamp(s / 0.42, 0.0, 1.0));
         // in the last months before reentry the object sinks toward the surface
-        sink = uSink * (1.0 - smoothstep(0.0, 0.35, left));
+        sink = uSink * (1.0 - smoothstep(0.0, clamp(uWin * 0.5, 0.35, 0.8), left));
         // on the timeline, new payloads and rocket stages rise from the ground to their orbit
         float isDeb = step(1.5, aKey.w) * step(aKey.w, 2.5);
-        float rise = (1.0 - isDeb) * uFlash * (1.0 - smoothstep(0.0, 0.15, born));
-        p *= mix(1.0, 1.0 / r, max(sink, rise) * 0.985);
+        float rise = (1.0 - isDeb) * uFlash * (1.0 - smoothstep(0.0, uWin, born));
+        // an arriving object climbs the last stretch to its orbit (it does not start at the ground, so
+        // arrivals never pile up at the surface); a reentering object sinks all the way down
+        p *= mix(1.0, 1.0 / r, max(sink * 0.985, rise * 0.55));
         return p;
       }
       // chart hover: objects inside the hovered band (and of the chart's type, if it counts one) brighten, the rest fade
@@ -1653,7 +1656,7 @@ function buildSatellites(D, REP) {
         return mix(1.0, 1.0 - smoothstep(0.2, 0.3, abs(dot(p, uCutN))), uCut);
       }
       float hotness(float born, float s, float sel){
-        float h = uFlash * exp(-born * 9.0) + (aEv.x > 0.5 ? (1.0 - smoothstep(0.0, 0.3, s)) * 0.6 : 0.0) + max(sel - 1.0, 0.0) * 0.5;
+        float h = uFlash * 0.8 * clamp(0.15 / uWin, 0.08, 1.0) * exp(-born * 3.0 / uWin) + (aEv.x > 0.5 ? (1.0 - smoothstep(0.0, 0.3, s)) * 0.6 : 0.0) + max(sel - 1.0, 0.0) * 0.5;
         return min(h, 1.5);
       }`;
   const mat = new THREE.ShaderMaterial({
@@ -1673,7 +1676,7 @@ function buildSatellites(D, REP) {
         float flare = sink * smoothstep(1.14, 1.01, length(p));
         vHot = min(hotness(born, s, sel) + flare * 1.4, 2.0);
         vCol = col;
-        vA = min(sel, 1.4) * sliceFade(p) * mix(crowd(), 1.0, hp) * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * mix(crowd(), 1.0, hp) * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.5 * uWin, born);
         if (aEv.x > 0.5) vA *= mix(0.16, 1.0, smoothstep(0.0, 0.5, s));   // a gathered cloud would otherwise burn out to white
         float sz = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink) * mix(1.0, 0.45, uFar) * (1.0 + 1.4 * hp);
         gl_PointSize = clamp(sz * 9.0 / -mv.z, mix(1.1, 2.6, hp) * uPR, 16.0 * uPR);
@@ -1715,7 +1718,7 @@ function buildSatellites(D, REP) {
         float s = spread();
         // arc length capped so fast perigee passes and high orbits do not draw long sweeps;
         // an object burning up on reentry draws a long fire streak instead
-        float burn = uSink * (1.0 - smoothstep(0.0, 0.35, left));
+        float burn = uSink * (1.0 - smoothstep(0.0, clamp(uWin * 0.5, 0.35, 0.8), left));
         float lagMax = min(uTrail, uTrailLen / aOrb.x * sqrt((1.0 - aOrb.y) / (1.0 + aOrb.y))) * (1.0 + 3.5 * burn);
         float sink; vec3 p = orbitPos(aT * lagMax, s, born, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
@@ -1724,7 +1727,7 @@ function buildSatellites(D, REP) {
         vCol = pickCol(mix(aColA, aColB, uMix), hp);
         float sel = highlight();
         vHot = hotness(born, s, sel); vT = aT;
-        vA = min(sel, 1.4) * sliceFade(p) * cr * cr * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * cr * cr * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.5 * uWin, born);
       }`,
     fragmentShader: `
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT; varying float vA;
@@ -1828,6 +1831,7 @@ const STATES = {
 };
 let stateName = null;
 let hiYear = 0;   // set while a chart hover asks for a range of years (see hiOn)
+let ySpeed = 0;   // how fast the globe's year is moving, in years per second (smoothed)
 let hiLd = -1;    // log camera distance a chart hover needs to bring its objects into frame, or -1
 let yearTarget = NOW, yearRate = 3;   // the globe's year chases this target; the rate sets how fast
 function goState(name) {
@@ -2069,7 +2073,7 @@ function satPos(k, out) {
     out.x += bx / bl * blast; out.y += by / bl * blast; out.z += bz / bl * blast;
   }
   const left = SAT.life[k * 2 + 1] - U.uYear.value;
-  const sink = U.uSink.value * (1 - THREE.MathUtils.smoothstep(left, 0, 0.35));
+  const sink = U.uSink.value * (1 - THREE.MathUtils.smoothstep(left, 0, Math.min(0.8, Math.max(0.35, U.uWin.value * 0.5))));
   if (sink > 0) out.multiplyScalar(THREE.MathUtils.lerp(1, 1 / out.length(), sink * 0.985));
   return out;
 }
@@ -2225,6 +2229,14 @@ function frame(now) {
   const yt = hiYear > 0 && hiYear > yearTarget ? hiYear : yearTarget, yr = hiYear > 0 && hiYear > yearTarget ? 6 : yearRate;
   U.uYear.value += (yt - y0) * (1 - Math.exp(-dt * yr));
   if (Math.abs(yt - U.uYear.value) < 1e-5) U.uYear.value = yt;
+  // Arrivals and reentries play out over about a second of real time however fast the years move:
+  // the window (in years) follows the year's speed, widening at once and narrowing slowly, so objects
+  // mid-arrival never jump and a fast scroll never lights thousands of objects in the same frame.
+  if (dt > 0) {
+    ySpeed += (Math.abs(U.uYear.value - y0) / dt - ySpeed) * (1 - Math.exp(-dt * 10));
+    const want = Math.min(6, Math.max(0.15, ySpeed * 1.0)), w = U.uWin.value;
+    U.uWin.value = w + (want - w) * (1 - Math.exp(-dt * (want > w ? 12 : 0.9)));
+  }
   yearTick(y0, U.uYear.value);
   updateCamera(dt);
   finalPass.uniforms.uZoom.value = Math.max(intro.zoom, zoomDolly);
@@ -2717,10 +2729,10 @@ function setupScroll(D) {
       if (y > growthY && y < tmTop) {
         // the catalog runs back to October 1957 while the time machine slides into place
         const p = (y - growthY) / (tmTop - growthY);
-        yearTarget = NOW + (Y0 - NOW) * smooth(p); yearRate = 16;
+        yearTarget = NOW + (Y0 - NOW) * smooth(p); yearRate = 7;
         emit('rewind', { progress: p });
       } else if (y >= tmTop && (y <= tmEnd || stateName === 'timeline')) {
-        yearTarget = tmYearAt(clamp01((y - tmTop) / (tmEnd - tmTop))); yearRate = 16;
+        yearTarget = tmYearAt(clamp01((y - tmTop) / (tmEnd - tmTop))); yearRate = 7;
       } else if (stateName === 'reentry') {
         // the reentry section replays January 2024 to today as it scrolls past
         const r = reSec.getBoundingClientRect(), p = clamp01((mid - r.top) / r.height);
