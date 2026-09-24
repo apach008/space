@@ -24,6 +24,7 @@
   --s-other: #5d6687;
   --seq-0: #13204a; --seq-1: #3987e5; --seq-2: #cde2fb;
   --grain-opacity: 0.09;
+  --viewport: #060a1e;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { background: var(--bg); color: var(--ink); }
@@ -48,6 +49,7 @@ button { background: none; border: 0; }
 .cursor .ring { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 1px solid var(--line-2); transition: width .3s, height .3s, margin .3s, border-color .3s, background .3s; }
 .cursor.hover .ring { width: 52px; height: 52px; margin: -26px 0 0 -26px; border-color: var(--glow); background: color-mix(in oklab, var(--glow) 10%, transparent); }
 .cursor.text .ring { width: 4px; height: 26px; margin: -13px 0 0 -2px; border-radius: 2px; }
+.cursor.cross .ring { width: 22px; height: 22px; margin: -11px 0 0 -11px; border-color: var(--pencil); background: transparent; }
 
 .nav { position: sticky; top: 0; z-index: 100; height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 clamp(18px, 3vw, 44px); background: color-mix(in oklab, var(--bg) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
@@ -72,110 +74,174 @@ button { background: none; border: 0; }
 
 /* ===== Dashboard layout ===== */
 .page { padding: 34px clamp(18px, 3vw, 44px) 60px; max-width: 1840px; margin: 0 auto; position: relative; z-index: 2; }
-.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 24px; }
-.head h1 { font: 800 clamp(40px, 4.2vw, 76px)/.9 var(--font-display); font-variation-settings: "wdth" 125; letter-spacing: -.03em; }
-.head p { margin-top: 12px; max-width: 60ch; font: 400 18px/1.5 var(--font-text); color: var(--ink-2); }
-.head p b { color: var(--ink); font-weight: 500; }
-.showing { text-align: right; font-size: 14px; color: var(--ink-2); white-space: nowrap; }
-.showing b { display: block; font: 300 44px/1 var(--font-display); font-variation-settings: "wdth" 70; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+
+/* hero: title, live count and the field of objects in the view */
+.hero { position: relative; min-height: 292px; margin-bottom: 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 30px; }
+#hero-field { position: absolute; left: 0; top: -34px; width: 100%; height: calc(100% + 34px); pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.35) 30%, #000 58%); mask-image: linear-gradient(90deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.35) 30%, #000 58%); }
+.hero-l, .hero-r { position: relative; z-index: 1; }
+.title { font: 800 clamp(46px, 4.4vw, 84px)/.98 var(--font-display); letter-spacing: -.028em; padding-bottom: .04em; overflow: hidden; }
+.title .w { display: inline-block; white-space: nowrap; }
+.title .ch { display: inline-block; font-variation-settings: "wdth" var(--w, 118); }
+.title .sp { display: inline-block; width: .26em; }
+.hero-l p { margin-top: 16px; max-width: 62ch; font: 400 18px/1.5 var(--font-text); color: var(--ink-2); }
+.hero-l p b { color: var(--ink); font-weight: 500; }
+.hero-r { text-align: right; padding-bottom: 4px; }
+.hero-n { font: 300 clamp(80px, 8vw, 150px)/1 var(--font-display); font-variation-settings: "wdth" 64; letter-spacing: -.02em; color: var(--ink); filter: drop-shadow(0 0 26px color-mix(in oklab, var(--glow) 35%, transparent)); }
+.hero-sub { margin-top: 6px; font-size: 15px; color: var(--ink-2); }
+.hero-sub b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* rolling digits: the real digit sets the width, the column of digits rolls in a pseudo element */
+.odo { display: inline-flex; align-items: baseline; font-variant-numeric: tabular-nums; transition: font-variation-settings .5s cubic-bezier(.2,.9,.3,1); white-space: nowrap; }
+.odo .dg { position: relative; display: inline-block; height: 1.05em; line-height: 1.05; overflow: hidden; color: transparent; vertical-align: bottom; }
+.odo .dg::before { content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"; white-space: pre; position: absolute; left: 0; top: 0; width: 100%; text-align: center; line-height: 1.05; color: var(--dg-color, var(--ink));
+  transform: translateY(calc(var(--d, 0) * -1.05em)); transition: transform .95s cubic-bezier(.22,1.25,.36,1) var(--delay, 0s), color .9s ease; }
+.odo .dg.flash::before { color: var(--glow); transition: transform .95s cubic-bezier(.22,1.25,.36,1) var(--delay, 0s), color .05s; }
+.odo .sp { display: inline-block; line-height: 1.05; }
+.odo.rolling { font-variation-settings: "wdth" 50; }
+.odo .na { font-size: .42em; color: var(--ink-3); font-weight: 400; }
 
 /* filters */
-.filters { display: grid; grid-template-columns: 1.45fr 1fr 1fr 1.15fr 1.55fr 1.35fr auto; gap: 0; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: sticky; top: 64px; z-index: 60; }
+.filters { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1.15fr 1.55fr 1.35fr auto; gap: 0; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: sticky; top: 64px; z-index: 60; }
 .f { padding: 12px 16px 14px; border-right: 1px solid var(--line); position: relative; min-width: 0; }
 .f:last-child { border-right: 0; }
 .f-l { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-3); margin-bottom: 8px; letter-spacing: .02em; }
 .f-l b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.chip { height: 28px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; transition: background .2s, color .2s, border-color .2s; }
-.chip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.chip { height: 28px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; transition: background .25s, color .25s, border-color .25s, box-shadow .35s; }
+.chip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; transition: transform .35s cubic-bezier(.3,1.8,.4,1); }
 .chip:hover { color: var(--ink); border-color: var(--ink-3); }
-.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.dd-btn { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--ink); text-align: left; white-space: nowrap; overflow: hidden; }
+.chip:hover i { transform: scale(1.5); }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); box-shadow: 0 0 18px color-mix(in oklab, var(--glow) 35%, transparent); }
+.dd-btn { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--ink); text-align: left; white-space: nowrap; overflow: hidden; transition: border-color .25s; }
+.dd-btn:hover { border-color: var(--ink-3); }
 .dd-btn span { overflow: hidden; text-overflow: ellipsis; }
-.dd-btn svg { flex: none; width: 12px; height: 12px; opacity: .7; }
-.dd { position: absolute; left: 10px; top: calc(100% - 4px); width: max(100%, 320px); max-height: 380px; display: none; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.35); z-index: 80; }
-.dd.open { display: flex; }
+.dd-btn svg { flex: none; width: 12px; height: 12px; opacity: .7; transition: transform .35s cubic-bezier(.3,1.6,.4,1); }
+.f.dd-open .dd-btn svg { transform: rotate(180deg); }
+.dd { position: absolute; left: 10px; top: calc(100% - 4px); width: max(100%, 340px); max-height: 400px; display: flex; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.45); z-index: 80;
+  opacity: 0; visibility: hidden; transform: translateY(-8px) scale(.98); transform-origin: top left; transition: opacity .2s, transform .35s cubic-bezier(.3,1.4,.5,1), visibility 0s .2s; }
+.dd.open { opacity: 1; visibility: visible; transform: none; transition: opacity .2s, transform .35s cubic-bezier(.3,1.4,.5,1), visibility 0s; }
 .dd input[type=search] { margin: 10px; height: 34px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 6px; background: transparent; color: var(--ink); outline: none; cursor: none; }
 .dd-list { overflow: auto; padding: 0 6px 8px; }
-.dd-item { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; font-size: 13px; color: var(--ink-2); }
+.dd-item { position: relative; display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; font-size: 13px; color: var(--ink-2); }
 .dd-item:hover { background: color-mix(in oklab, var(--ink) 8%, transparent); color: var(--ink); }
-.dd-item .bx { width: 14px; height: 14px; border: 1px solid var(--ink-3); border-radius: 3px; flex: none; display: grid; place-items: center; }
+.dd-item .bx { width: 14px; height: 14px; border: 1px solid var(--ink-3); border-radius: 3px; flex: none; display: grid; place-items: center; transition: background .2s, border-color .2s; }
 .dd-item.on .bx { background: var(--ink); border-color: var(--ink); }
 .dd-item.on .bx::after { content: ""; width: 6px; height: 3px; border: solid var(--bg); border-width: 0 0 1.6px 1.6px; transform: rotate(-45deg) translate(1px, -1px); }
 .dd-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dd-item .ct { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.dd-item .cb { flex: none; width: 70px; height: 4px; border-radius: 2px; background: color-mix(in oklab, var(--ink) 7%, transparent); overflow: hidden; }
+.dd-item .cb i { display: block; height: 100%; border-radius: 2px; background: var(--ink-3); }
+.dd-item.on .cb i { background: var(--glow); }
+.dd-item .ct { width: 48px; text-align: right; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .dd-foot { display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
 .dd-foot button { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 /* year range */
-.yr { position: relative; height: 40px; }
-.yr svg { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 26px; }
+.yr { position: relative; height: 56px; }
+.yr svg { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 42px; }
+.yr svg rect { transition: opacity .25s; }
 .yr input[type=range] { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; margin: 0; height: 18px; background: transparent; pointer-events: none; -webkit-appearance: none; appearance: none; }
-.yr input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--ink); cursor: none; }
+.yr input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--ink), 0 0 14px color-mix(in oklab, var(--glow) 60%, transparent); cursor: none; transition: transform .3s cubic-bezier(.3,1.8,.4,1); }
+.yr input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
 .yr input[type=range]::-moz-range-thumb { pointer-events: auto; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 3px solid var(--bg); cursor: none; }
 .yr input[type=range]::-webkit-slider-runnable-track { height: 2px; background: transparent; }
 .yr .track { position: absolute; left: 0; right: 0; bottom: 8px; height: 2px; background: var(--line-2); }
-.yr .fill { position: absolute; bottom: 8px; height: 2px; background: var(--ink); }
-.reset { align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; font-weight: 600; font-size: 14px; color: var(--ink); background: transparent; transition: background .25s, color .25s; }
+.yr .fill { position: absolute; bottom: 8px; height: 2px; background: var(--ink); box-shadow: 0 0 10px color-mix(in oklab, var(--glow) 60%, transparent); }
+.reset { align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; font-weight: 600; font-size: 14px; color: var(--ink); background: transparent; transition: background .25s, color .25s, opacity .3s; }
 .reset:hover { background: var(--pencil); color: #fff; }
-.reset svg { width: 16px; height: 16px; }
+.reset svg { width: 16px; height: 16px; transition: transform .6s cubic-bezier(.3,1.5,.4,1); }
+.reset:hover svg { transform: rotate(-120deg); }
 
 /* KPIs */
-.kpis { display: grid; grid-template-columns: repeat(5, 1fr); margin: 22px 0 18px; border-top: 1px solid var(--line-2); }
-.kpi { padding: 16px 20px 4px 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); margin: 22px 0 18px; border-top: 1px solid var(--line-2); }
+.kpi { position: relative; padding: 16px 20px 4px 0; min-width: 0; }
 .kpi + .kpi { padding-left: 20px; border-left: 1px solid var(--line); }
-.kpi .v { display: block; font: 300 clamp(34px, 3.2vw, 56px)/1 var(--font-display); font-variation-settings: "wdth" 70; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.kpi .v small { font-size: .45em; margin-left: 3px; color: var(--ink-2); font-weight: 400; }
+.kpi .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.kpi .v { display: flex; align-items: baseline; font: 300 clamp(38px, 3.4vw, 60px)/1 var(--font-display); font-variation-settings: "wdth" 70; letter-spacing: -.02em; }
+.kpi .v small { font-size: .42em; margin-left: 4px; color: var(--ink-2); font-weight: 400; }
+.kpi .spark { flex: 1; max-width: 190px; height: 44px; overflow: visible; }
+.spark .ctx { fill: none; stroke: var(--ink-3); stroke-width: 1; opacity: .45; }
+.spark .ln { fill: none; stroke: var(--glow); stroke-width: 1.6; }
+.spark .ar { fill: url(#spark-grad); }
 .kpi .k { display: block; margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
 .kpi .d { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
+.kpi .dl { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.kpi .dl svg { width: 9px; height: 9px; transition: transform .5s cubic-bezier(.3,1.6,.4,1); }
+.kpi .dl.down svg { transform: rotate(180deg); }
+.kpi .dl.flat svg { transform: rotate(90deg); opacity: .5; }
 
 /* switches */
 .switches { display: flex; flex-wrap: wrap; gap: 16px 34px; align-items: center; margin-bottom: 14px; }
 .seg-l { font-size: 13px; color: var(--ink-3); margin-right: 10px; }
 .seg { display: inline-flex; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; position: relative; }
 .seg button { position: relative; z-index: 1; height: 30px; padding: 0 13px; border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: color .3s; white-space: nowrap; }
+.seg button:hover { color: var(--ink); }
 .seg button.on { color: var(--bg); }
-.seg .pill { position: absolute; z-index: 0; top: 3px; height: 30px; border-radius: 999px; background: var(--ink); transition: left .45s cubic-bezier(.3,1.4,.5,1), width .45s cubic-bezier(.3,1.4,.5,1); }
+.seg .pill { position: absolute; z-index: 0; top: 3px; height: 30px; border-radius: 999px; background: var(--ink); box-shadow: 0 0 20px color-mix(in oklab, var(--glow) 35%, transparent); transition: left .45s cubic-bezier(.3,1.4,.5,1), width .45s cubic-bezier(.3,1.4,.5,1); }
 
 /* grid of charts */
 .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-.card { position: relative; background: var(--panel); border: 1px solid var(--line); padding: 16px 18px 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); min-width: 0; }
-.card::before, .card::after, .card .reg-b::before, .card .reg-b::after { content: ""; position: absolute; width: 11px; height: 11px; border-color: var(--ink-3); border-style: solid; pointer-events: none; }
+.card { position: relative; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); padding: 16px 18px 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); min-width: 0; }
+.card::before, .card::after, .card .reg-b::before, .card .reg-b::after { content: ""; position: absolute; width: 11px; height: 11px; border-color: var(--ink-3); border-style: solid; pointer-events: none; transition: width .4s, height .4s, border-color .4s; }
+.card:hover::before, .card:hover::after, .card:hover .reg-b::before, .card:hover .reg-b::after { width: 18px; height: 18px; border-color: var(--ink-2); }
 .card::before { left: -1px; top: -1px; border-width: 1.5px 0 0 1.5px; } .card::after { right: -1px; top: -1px; border-width: 1.5px 1.5px 0 0; }
 .card .reg-b::before { left: -1px; bottom: -1px; border-width: 0 0 1.5px 1.5px; } .card .reg-b::after { right: -1px; bottom: -1px; border-width: 0 1.5px 1.5px 0; }
 .c-8 { grid-column: span 8; } .c-4 { grid-column: span 4; } .c-6 { grid-column: span 6; } .c-12 { grid-column: span 12; }
 .card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 8px; }
 .card-t { font-weight: 650; font-size: 15px; color: var(--ink); }
 .card-n { font-size: 12.5px; color: var(--ink-3); text-align: right; }
+.card-n button { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 .legend { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-bottom: 8px; font-size: 12.5px; color: var(--ink-2); min-height: 18px; }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; transition: opacity .3s, color .3s; }
+.legend span:hover { color: var(--ink); }
 .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .chart svg { display: block; width: 100%; overflow: visible; }
+#ch-time svg, #ch-scatter svg { overflow: hidden; }
 .axis text { font: 400 11.5px var(--font-display); font-variation-settings: "wdth" 90; fill: var(--ink-3); }
 .axis path, .axis line { stroke: var(--line-2); }
 .gridl line { stroke: var(--line); } .gridl path { display: none; }
-.lbl { font: 500 12px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink-2); }
-.lbl-s { font: 600 12px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink); }
-.hover-line { stroke: var(--ink-2); stroke-width: 1; }
+.lbl { font: 500 12.5px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink-2); }
+.lbl-s { font: 600 12.5px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink); }
+.hover-line { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
 .empty { font: italic 400 16px var(--font-text); fill: var(--ink-3); }
-#globe-wrap { position: relative; height: 356px; margin: 0 -18px -12px; overflow: hidden; }
+.shade { fill: #040716; opacity: .72; pointer-events: none; }
+.ann line { stroke: var(--ink-2); stroke-width: 1; }
+.ann text { font: 600 11.5px var(--font-display); font-variation-settings: "wdth" 88; fill: var(--ink); letter-spacing: .03em; }
+.ann text.s { font-weight: 400; fill: var(--ink-3); letter-spacing: 0; }
+.brush .selection { fill: var(--glow); fill-opacity: .06; stroke: var(--glow); stroke-opacity: .7; shape-rendering: crispEdges; }
+.brush .overlay, .brush .selection, .brush .handle { cursor: none !important; }
+.brush .handle { fill: var(--glow); fill-opacity: .0; }
+/* linked highlighting: everything outside the focused group fades */
+.dim { opacity: .13 !important; }
+svg .dim { opacity: .1 !important; }
+[data-g] { transition: opacity .3s; }
+tr[data-g].hi td { color: var(--ink); background: color-mix(in oklab, var(--ink) 5%, transparent); }
+
+#globe-wrap { position: relative; flex: 1; min-height: 380px; margin: 0 -18px -12px; overflow: hidden; background: var(--viewport); }
 #globe { position: absolute; inset: 0; width: 100%; height: 100%; }
 #globe-note { position: absolute; left: 18px; bottom: 14px; right: 18px; font: italic 400 15px/1.4 var(--font-text); color: var(--ink-2); pointer-events: none; }
+.globe-hint { position: absolute; right: 16px; bottom: 12px; font-size: 12px; color: var(--ink-3); pointer-events: none; transition: opacity .4s; }
+.globe-obj { position: absolute; left: 18px; top: 14px; max-width: 70%; font-size: 13px; line-height: 1.4; color: var(--ink-2); pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .25s, transform .35s; }
+.globe-obj.on { opacity: 1; transform: none; }
+.globe-obj b { display: block; color: var(--pencil); font-weight: 650; letter-spacing: .02em; }
 .scatter-wrap { position: relative; }
-.scatter-wrap canvas { position: absolute; left: 0; top: 0; }
+.scatter-wrap canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+.scatter-wrap svg { position: relative; z-index: 1; }
+.pick { pointer-events: none; }
 
 /* table */
 .tbl-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 13.5px; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 13.5px; transition: background .25s, color .25s; }
 th:first-child, td:first-child { text-align: left; }
 th { font-weight: 600; font-size: 12.5px; color: var(--ink-3); user-select: none; }
 th button { color: inherit; font-weight: 600; display: inline-flex; gap: 4px; align-items: center; }
 th.sorted button { color: var(--ink); }
+th.mcol, td.mcol { background: color-mix(in oklab, var(--glow) 6%, transparent); }
 th .arr { opacity: .8; font-size: 10px; }
 td { color: var(--ink-2); }
 td b { color: var(--ink); font-weight: 600; }
 td .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
-td .bar { display: inline-block; height: 4px; border-radius: 2px; background: var(--ink-3); vertical-align: middle; margin-left: 8px; opacity: .6; }
+td .bar { display: inline-block; height: 4px; border-radius: 2px; vertical-align: middle; margin-left: 8px; opacity: .75; }
 td.empty-row { font: italic 400 16px var(--font-text); color: var(--ink-3); padding: 18px 12px; }
 tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1px solid var(--line-2); }
 .tbl-tools { display: flex; gap: 8px; }
@@ -186,25 +252,27 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 .tip.on { opacity: 1; }
 .tip .t { font-weight: 650; color: var(--ink); margin-bottom: 3px; }
 .tip .r { display: flex; justify-content: space-between; gap: 18px; }
+.tip .r.hi span, .tip .r.hi b { color: var(--ink); font-weight: 650; }
 .tip .r b { font-weight: 550; color: var(--ink); font-variant-numeric: tabular-nums; }
 .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.tip .note { margin-top: 4px; color: var(--ink-3); }
 
 .foot { margin-top: 28px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; font-size: 13.5px; color: var(--ink-3); }
 .foot p { max-width: 110ch; font: 400 15px/1.55 var(--font-text); color: var(--ink-3); }
 .foot a { color: var(--ink-2); }
 
-#loading { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg); font: italic 400 18px var(--font-text); color: var(--ink-2); transition: opacity .6s; }
+#loading { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg); font: italic 400 18px var(--font-text); color: var(--ink-2); transition: opacity .45s; }
 
 @media (max-width: 1300px) {
   .filters { grid-template-columns: repeat(3, 1fr); position: relative; top: 0; }
   .f { border-bottom: 1px solid var(--line); }
   .c-8, .c-4, .c-6 { grid-column: span 12; }
-  .kpis { grid-template-columns: repeat(3, 1fr); }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 700px) {
   body { cursor: auto; } .cursor { display: none; } a, button { cursor: pointer; }
-  .filters { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); }
-  .head { flex-direction: column; align-items: flex-start; } .brand span { display: none; }
+  .filters { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; } .hero-r { text-align: left; } .brand span { display: none; }
 }
 </style>
 <script type="importmap">
@@ -217,6 +285,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 <body>
 <div id="loading">Reading the satellite catalog</div>
 <svg class="grain" aria-hidden="true"><filter id="grainf"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#grainf)"/></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb2ff" stop-opacity=".32"/><stop offset="1" stop-color="#7fb2ff" stop-opacity="0"/></linearGradient></defs></svg>
 <div class="cursor" id="cursor"><div class="ring"></div><div class="dot"></div></div>
 <div class="tip" id="tip"></div>
 
@@ -235,13 +304,17 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 </nav>
 
 <div class="page">
-  <div class="head">
-    <div>
-      <h1>Dashboard</h1>
-      <p>Every object in the public satellite catalog, <b>70,745 rows</b> as of September 23, 2026. Choose filters, a measure and a breakdown; each chart, number and table row is recomputed in the browser from the rows that pass the filters.</p>
+  <header class="hero">
+    <canvas id="hero-field" aria-hidden="true"></canvas>
+    <div class="hero-l">
+      <h1 class="title" id="title">The satellite catalog, filtered</h1>
+      <p>Every object in the public satellite catalog, <b id="hero-rows">70,745 rows</b> as of September 23, 2026. Choose filters, a measure and a breakdown; each chart, number and table row is recomputed in the browser from the rows that pass the filters. Behind this text, each dot is one object in the view, drawn at its altitude and moving faster the lower it orbits.</p>
     </div>
-    <div class="showing"><b id="showing-n">0</b>objects in the current view</div>
-  </div>
+    <div class="hero-r">
+      <div class="odo hero-n" id="showing-n"></div>
+      <div class="hero-sub">objects in the view, <b id="hero-share">100.0%</b> of the catalog</div>
+    </div>
+  </header>
 
   <div class="filters" id="filters">
     <div class="f">
@@ -258,11 +331,10 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
   </div>
 
   <div class="kpis">
-    <div class="kpi"><span class="v" id="k-n">0</span><span class="k">objects</span><span class="d" id="k-n-d"></span></div>
-    <div class="kpi"><span class="v" id="k-orbit">0</span><span class="k">in Earth orbit</span><span class="d" id="k-orbit-d"></span></div>
-    <div class="kpi"><span class="v" id="k-active">0</span><span class="k">active payloads</span><span class="d" id="k-active-d"></span></div>
-    <div class="kpi"><span class="v" id="k-peri">0</span><span class="k">median perigee</span><span class="d" id="k-peri-d"></span></div>
-    <div class="kpi"><span class="v" id="k-life">0</span><span class="k">median years in orbit</span><span class="d" id="k-life-d"></span></div>
+    <div class="kpi"><div class="top"><span class="v"><span class="odo" id="k-orbit"></span></span><svg class="spark" id="sp-orbit"></svg></div><span class="k">in Earth orbit</span><span class="d" id="k-orbit-d"></span><span class="dl" id="k-orbit-dl"></span></div>
+    <div class="kpi"><div class="top"><span class="v"><span class="odo" id="k-active"></span></span><svg class="spark" id="sp-active"></svg></div><span class="k">active payloads</span><span class="d" id="k-active-d"></span><span class="dl" id="k-active-dl"></span></div>
+    <div class="kpi"><div class="top"><span class="v"><span class="odo" id="k-peri"></span><small>km</small></span><svg class="spark" id="sp-peri"></svg></div><span class="k">median perigee</span><span class="d" id="k-peri-d"></span><span class="dl" id="k-peri-dl"></span></div>
+    <div class="kpi"><div class="top"><span class="v"><span class="odo" id="k-life"></span><small>yr</small></span><svg class="spark" id="sp-life"></svg></div><span class="k">median years in orbit</span><span class="d" id="k-life-d"></span><span class="dl" id="k-life-dl"></span></div>
   </div>
 
   <div class="switches">
@@ -272,27 +344,27 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 
   <div class="grid">
     <div class="card c-8"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t" id="t-time"></div><div class="card-n">Click a year to filter to it</div></div>
+      <div class="card-h"><div class="card-t" id="t-time"></div><div class="card-n" id="n-time"></div></div>
       <div class="legend" id="lg-time"></div>
       <div class="chart" id="ch-time"></div>
     </div>
     <div class="card c-4"><span class="reg-b"></span>
       <div class="card-h"><div class="card-t">Objects in the view that are in Earth orbit</div><div class="card-n" id="globe-n"></div></div>
       <div class="legend" id="lg-globe"></div>
-      <div id="globe-wrap"><canvas id="globe"></canvas><div id="globe-note"></div></div>
+      <div id="globe-wrap"><canvas id="globe"></canvas><div class="globe-obj" id="globe-obj"></div><div id="globe-note"></div><div class="globe-hint" id="globe-hint">Drag to turn. Click, then scroll to zoom.</div></div>
+    </div>
+    <div class="card c-8"><span class="reg-b"></span>
+      <div class="card-h"><div class="card-t">Altitude and inclination of each object</div><div class="card-n" id="n-scatter"></div></div>
+      <div class="legend" id="lg-scatter"></div>
+      <div class="chart scatter-wrap" id="ch-scatter"><canvas id="sc-canvas"></canvas></div>
     </div>
     <div class="card c-4"><span class="reg-b"></span>
       <div class="card-h"><div class="card-t" id="t-bars"></div><div class="card-n">Click a bar to filter to it</div></div>
       <div class="chart" id="ch-bars"></div>
     </div>
-    <div class="card c-4"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t" id="t-heat"></div><div class="card-n">By launch decade</div></div>
+    <div class="card c-12"><span class="reg-b"></span>
+      <div class="card-h"><div class="card-t" id="t-heat"></div><div class="card-n">By launch decade. Click a cell to filter to it</div></div>
       <div class="chart" id="ch-heat"></div>
-    </div>
-    <div class="card c-4"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t">Altitude and inclination of each object</div><div class="card-n">Inclination in degrees by mean altitude in km, log scale</div></div>
-      <div class="legend" id="lg-scatter"></div>
-      <div class="chart scatter-wrap" id="ch-scatter"><canvas id="sc-canvas"></canvas></div>
     </div>
     <div class="card c-12"><span class="reg-b"></span>
       <div class="card-h"><div class="card-t" id="t-table"></div><div class="tbl-tools"><button class="btn-s magnetic" id="dl">Download CSV</button></div></div>
@@ -301,7 +373,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
   </div>
 
   <div class="foot">
-    <p>Data: CelesTrak SATCAT, downloaded September 23, 2026. One row is one cataloged object. Launch year is the year in the launch date column, except that the 416 payloads released from the International Space Station, which carry the station's 1998 launch date, are placed in the year they entered the catalog. In Earth orbit means no decay date and an orbit centered on Earth (objects docked to the space station included), the same definition as the report. Active payloads have operational status +, P, B, S or X. Perigee and inclination come from the latest cataloged orbit and are left out of medians where the catalog has none. Years in orbit run from the launch date to the decay date, or to September 23, 2026 for objects still up. The globe draws the objects in Earth orbit that have a cataloged perigee, apogee and inclination; orbital planes and positions along each orbit are assigned at random, since the catalog does not record them.</p>
+    <p>Data: CelesTrak SATCAT, downloaded September 23, 2026. One row is one cataloged object. Launch year is the year in the launch date column, except that the 416 payloads released from the International Space Station, which carry the station's 1998 launch date, are placed in the year they entered the catalog. In Earth orbit means no decay date and an orbit centered on Earth (objects docked to the space station included), the same definition as the report. Active payloads have operational status +, P, B, S or X. Perigee and inclination come from the latest cataloged orbit and are left out of medians where the catalog has none; a median drawn in a chart needs at least 15 values. Years in orbit run from the launch date to the decay date, or to September 23, 2026 for objects still up. Debris labels on the yearly chart name the object each group of debris pieces is cataloged under. The globe draws the objects in Earth orbit that have a cataloged perigee, apogee and inclination; orbital planes and positions along each orbit are assigned at random, since the catalog does not record them.</p>
     <span><a href="index.html">Back to the report</a></span>
   </div>
 </div>
@@ -315,6 +387,10 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 
 <script type="module">
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -322,6 +398,16 @@ const fmt = d3.format(',');
 const NOW = 2026 + 265 / 365;
 const R_KM = 6378.137, MU = 398600.4418;
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const Y0 = 1957, Y1 = 2026, YEARS = d3.range(Y0, Y1 + 1);
+const MIN_N = 15; // a median drawn in a chart needs at least this many values
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// sRGB components stored as-is, for colors that reach the screen without a color space conversion
+const rgb01 = (hex) => { const c = d3.rgb(hex); return [c.r / 255, c.g / 255, c.b / 255]; };
+const rawColor = (hex) => new THREE.Color().setRGB(...rgb01(hex), THREE.LinearSRGBColorSpace);
+
+/* ================= Hooks for sound and anything else that wants to react =================
+   Every event is a window CustomEvent named orbit:<name>; see the list at the end of this script. */
+function emit(name, detail = {}) { window.dispatchEvent(new CustomEvent('orbit:' + name, { detail })); }
 
 /* ================= Data ================= */
 async function unpack(id, gz = true) {
@@ -349,12 +435,18 @@ function fyear(s) {
   return y + (CUM[m - 1] + (leap && m > 2 ? 1 : 0) + d - 1) / (leap ? 366 : 365);
 }
 const TYPES = ['Payload', 'Rocket body', 'Debris', 'Unknown'];
+const TYPE_VARS = ['--c-pay', '--c-rb', '--c-deb', '--c-unk'];
 const TYPE_IDX = { P: 0, R: 1, D: 2, U: 3 };
 const REGIMES = { L: 'Low Earth orbit', M: 'Medium Earth orbit', G: 'Geosynchronous and above', H: 'Highly elliptical', K: 'Docked', B: 'Beyond Earth orbit', N: 'No orbit data' };
+const REG_KEYS = Object.keys(REGIMES);
 const REGIME_SHORT = { L: 'Low', M: 'Medium', G: 'Geosync.', H: 'Elliptical', K: 'Docked', B: 'Beyond Earth', N: 'No data' };
 const STATUSES = { A: 'Active', I: 'Inactive', N: 'No status', R: 'Reentered' };
+const ST_KEYS = Object.keys(STATUSES);
+const DECADES = d3.range(1950, 2030, 10).map((d) => d + 's');
 
-let D, REP;
+const hash01 = (a, k) => { let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(k + 1, 0xc2b2ae35); x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
+
+let D, REP, OWN_RANK = {}, SITE_RANK = {}, OWN_CODES = [], SITE_CODES = [];
 async function load() {
   REP = JSON.parse(await unpack('data-report'));
   const text = await unpack('data-satcat');
@@ -364,7 +456,9 @@ async function load() {
   D = { n, norad: new Int32Array(n), name: new Array(n), owner: new Array(n), site: new Array(n), type: new Uint8Array(n),
         year: new Int16Array(n), launchS: new Array(n), launch: new Float64Array(n), decay: new Float64Array(n), status: new Array(n),
         regime: new Array(n), peri: new Float32Array(n), apo: new Float32Array(n), inc: new Float32Array(n), life: new Float32Array(n),
-        inOrbit: new Uint8Array(n), earth: new Uint8Array(n), starlink: new Uint8Array(n) };
+        period: new Float32Array(n), inOrbit: new Uint8Array(n), earth: new Uint8Array(n), starlink: new Uint8Array(n),
+        orb: new Uint8Array(n), act: new Uint8Array(n), regId: new Uint8Array(n), stId: new Uint8Array(n),
+        ownId: new Int32Array(n), siteId: new Int32Array(n), scat: new Uint8Array(n), alt: new Float32Array(n), lalt: new Float32Array(n), parent: new Array(n) };
   for (let i = 0; i < n; i++) {
     const r = splitLine(lines[i + 1]);
     D.norad[i] = +r[col.norad]; D.name[i] = r[col.name]; D.owner[i] = r[col.owner]; D.site[i] = r[col.site];
@@ -379,28 +473,66 @@ async function load() {
     D.peri[i] = r[col.perigee] === '' ? NaN : +r[col.perigee];
     D.apo[i] = r[col.apogee] === '' ? NaN : +r[col.apogee];
     D.inc[i] = r[col.inclination] === '' ? NaN : +r[col.inclination];
+    D.period[i] = r[col.period] === '' || r[col.period] === undefined ? NaN : +r[col.period];
     D.life[i] = (D.inOrbit[i] ? NOW : D.decay[i]) - D.launch[i];
     D.starlink[i] = +r[col.starlink];
+    D.orb[i] = D.inOrbit[i] && D.earth[i] ? 1 : 0;
+    D.act[i] = D.status[i] === 'A' ? 1 : 0;
+    const rk = REG_KEYS.indexOf(D.regime[i]); D.regId[i] = rk < 0 ? 255 : rk;
+    const sk = ST_KEYS.indexOf(D.status[i]); D.stId[i] = sk < 0 ? 255 : sk;
+    const alt = (D.peri[i] + D.apo[i]) / 2; D.alt[i] = alt; D.lalt[i] = Math.log10(Math.max(alt, 1));
+    D.scat[i] = D.earth[i] && isFinite(D.peri[i]) && isFinite(D.apo[i]) && isFinite(D.inc[i]) && alt >= 150 ? 1 : 0;
+    D.parent[i] = D.type[i] === 2 ? D.name[i].replace(/\s+DEB\b.*$/, '').trim() : '';
   }
+  const ownCnt = d3.rollup(d3.range(n), (v) => v.length, (i) => D.owner[i]);
+  OWN_CODES = [...ownCnt.entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]); OWN_CODES.forEach((c, k) => { OWN_RANK[c] = k; });
+  const siteCnt = d3.rollup(d3.range(n), (v) => v.length, (i) => D.site[i]);
+  SITE_CODES = [...siteCnt.entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]); SITE_CODES.forEach((c, k) => { SITE_RANK[c] = k; });
+  for (let i = 0; i < n; i++) { D.ownId[i] = OWN_RANK[D.owner[i]]; D.siteId[i] = SITE_RANK[D.site[i]]; }
+  BUF = new Float64Array(n);
+  VIS = new Uint8Array(n); GI = new Int16Array(n);
 }
+
+/* ================= Medians without sorting: quickselect over a shared buffer ================= */
+let BUF, VIS, GI;
+function qselect(a, l, r, k) {
+  while (r > l) {
+    const p = a[(l + r) >> 1]; let i = l, j = r;
+    while (i <= j) { while (a[i] < p) i++; while (a[j] > p) j--; if (i <= j) { const t = a[i]; a[i] = a[j]; a[j] = t; i++; j--; } }
+    if (k <= j) r = j; else if (k >= i) l = i; else break;
+  }
+  return a[k];
+}
+function medianOf(idx, arr, minN = 1) {
+  let m = 0;
+  for (let j = 0; j < idx.length; j++) { const v = arr[idx[j]]; if (v === v) BUF[m++] = v; }
+  if (!m || m < minN) return NaN;
+  const k = m >> 1; const hi = qselect(BUF, 0, m - 1, k);
+  if (m % 2) return hi;
+  let lo = -Infinity; for (let j = 0; j < k; j++) if (BUF[j] > lo) lo = BUF[j];
+  return (lo + hi) / 2;
+}
+const countFinite = (idx, arr) => { let m = 0; for (let j = 0; j < idx.length; j++) if (arr[idx[j]] === arr[idx[j]]) m++; return m; };
 
 /* ================= State ================= */
 const MEASURES = [
   { id: 'count', label: 'Objects', fmt: (v) => fmt(Math.round(v)), axis: d3.format(',') },
   { id: 'orbit', label: 'Share in Earth orbit', fmt: (v) => pct(v), axis: d3.format('.0%') },
-  { id: 'peri', label: 'Median perigee', fmt: (v) => fmt(Math.round(v)) + ' km', axis: (v) => fmt(v) },
+  { id: 'peri', label: 'Median perigee', fmt: (v) => fmt(Math.round(v)) + ' km', axis: (v) => (v >= 1000 ? fmt(v / 1000) + 'k' : v + '') },
   { id: 'inc', label: 'Median inclination', fmt: (v) => v.toFixed(1) + ' deg', axis: (v) => v + '' },
   { id: 'life', label: 'Median years in orbit', fmt: (v) => v.toFixed(1) + ' yr', axis: (v) => v + '' },
 ];
+const MEDIAN_FIELD = { peri: 'peri', inc: 'inc', life: 'life' };
 const BYS = [
   { id: 'type', label: 'Type' }, { id: 'owner', label: 'Owner' }, { id: 'regime', label: 'Orbit' },
   { id: 'site', label: 'Launch site' }, { id: 'status', label: 'Status' }, { id: 'decade', label: 'Decade' },
 ];
-const S = { y0: 1957, y1: 2026, owner: new Set(), site: new Set(), type: new Set(), regime: new Set(), status: new Set(), measure: 'count', by: 'type' };
-const DEFAULT = JSON.stringify({ ...S, owner: [], site: [], type: [], regime: [], status: [] });
+const S = { y0: Y0, y1: Y1, owner: new Set(), site: new Set(), type: new Set(), regime: new Set(), status: new Set(), box: null, measure: 'count', by: 'type' };
+function isDefaultFilters() { return S.y0 === Y0 && S.y1 === Y1 && !S.box && ['owner', 'site', 'type', 'regime', 'status'].every((k) => !S[k].size); }
 function stateToHash() {
   const o = { y: `${S.y0}-${S.y1}`, m: S.measure, b: S.by };
   for (const k of ['owner', 'site', 'type', 'regime', 'status']) if (S[k].size) o[k] = [...S[k]].join('|');
+  if (S.box) o.box = S.box.join(',');
   history.replaceState(null, '', '#' + new URLSearchParams(o).toString());
 }
 function hashToState() {
@@ -408,7 +540,7 @@ function hashToState() {
   if (p.get('y')) {
     const [a, b] = p.get('y').split('-').map(Number);
     if (Number.isFinite(a) && Number.isFinite(b)) {
-      const c = (v) => Math.min(2026, Math.max(1957, Math.round(v)));
+      const c = (v) => Math.min(Y1, Math.max(Y0, Math.round(v)));
       S.y0 = Math.min(c(a), c(b)); S.y1 = Math.max(c(a), c(b));
     }
   }
@@ -416,68 +548,80 @@ function hashToState() {
   if (p.get('b') && BYS.some((m) => m.id === p.get('b'))) S.by = p.get('b');
   const known = { type: (v) => TYPES.includes(v), regime: (v) => v in REGIMES, status: (v) => v in STATUSES, owner: (v) => v in OWN_RANK, site: (v) => v in SITE_RANK };
   for (const k of ['owner', 'site', 'type', 'regime', 'status']) if (p.get(k)) S[k] = new Set(p.get(k).split('|').filter(known[k]));
+  if (p.get('box')) {
+    const b = p.get('box').split(',').map(Number);
+    if (b.length === 4 && b.every(Number.isFinite) && b[0] < b[1] && b[2] < b[3]) S.box = b;
+  }
+}
+
+/* ================= Filtering: compiled masks over integer codes ================= */
+const F = {};
+function maskOf(set, rank, n) { const m = new Uint8Array(n); for (const c of set) if (c in rank) m[rank[c]] = 1; return m; }
+function compile() {
+  F.y0 = S.y0; F.y1 = S.y1; F.box = S.box;
+  F.own = S.owner.size ? maskOf(S.owner, OWN_RANK, OWN_CODES.length) : null;
+  F.site = S.site.size ? maskOf(S.site, SITE_RANK, SITE_CODES.length) : null;
+  F.type = S.type.size ? Uint8Array.from(TYPES, (t) => (S.type.has(t) ? 1 : 0)) : null;
+  F.reg = S.regime.size ? Uint8Array.from(REG_KEYS, (k) => (S.regime.has(k) ? 1 : 0)) : null;
+  F.st = S.status.size ? Uint8Array.from(ST_KEYS, (k) => (S.status.has(k) ? 1 : 0)) : null;
+}
+function passBase(i, skip) {
+  if (F.own && skip !== 'owner' && !F.own[D.ownId[i]]) return false;
+  if (F.site && skip !== 'site' && !F.site[D.siteId[i]]) return false;
+  if (F.type && !F.type[D.type[i]]) return false;
+  if (F.reg && !F.reg[D.regId[i]]) return false;
+  if (F.st && !F.st[D.stId[i]]) return false;
+  return true;
+}
+const inYear = (i) => D.year[i] >= F.y0 && D.year[i] <= F.y1;
+function inBox(i) { const b = F.box; if (!b) return true; if (!D.scat[i]) return false; const a = D.alt[i], c = D.inc[i]; return a >= b[0] && a <= b[1] && c >= b[2] && c <= b[3]; }
+function passes(i, skip) { return passBase(i, skip) && inYear(i) && inBox(i); }
+function pct(x) { return x > 0 && x < 0.001 ? '<0.1%' : x < 1 && x >= 0.9995 ? '>99.9%' : (x * 100).toFixed(1) + '%'; }
+
+// Accumulator for one group: counts always, row indices only when a median is needed
+function acc(keep) { return { n: 0, orbit: 0, active: 0, idx: keep ? [] : null }; }
+function add(a, i) { a.n++; a.orbit += D.orb[i]; a.active += D.act[i]; if (a.idx) a.idx.push(i); }
+function measureOf(a, m, minN = MIN_N) {
+  if (!a || !a.n) return NaN;
+  if (m === 'count') return a.n;
+  if (m === 'orbit') return a.orbit / a.n;
+  return medianOf(a.idx, D[MEDIAN_FIELD[m]], minN);
 }
 
 /* ================= Palettes: color follows the entity ================= */
 const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
-let OWN_RANK = {}, SITE_RANK = {};
 const OWNER_NAME = (c) => REP.owner_names[c] || c;
 const SITE_NAME = (c) => REP.site_names[c] || c;
-function groupSpec(by, sel) {
-  if (by === 'type') return { key: (i) => TYPES[D.type[i]], order: TYPES, color: (g) => css(['--c-pay', '--c-rb', '--c-deb', '--c-unk'][TYPES.indexOf(g)]) };
-  if (by === 'regime') { const order = Object.values(REGIMES); return { key: (i) => REGIMES[D.regime[i]], order, color: (g) => g === 'No orbit data' ? css('--s-other') : css(SLOTS[order.indexOf(g)]) }; }
-  if (by === 'status') { const order = Object.values(STATUSES); const map = { Active: '--s3', Inactive: '--s4', 'No status': '--s7', Reentered: '--s-other' }; return { key: (i) => STATUSES[D.status[i]], order, color: (g) => css(map[g]) }; }
-  if (by === 'decade') {
-    const order = []; for (let d = Math.floor(S.y0 / 10) * 10; d <= S.y1; d += 10) order.push(d + 's');
-    const seq = d3.scaleLinear().domain([0, Math.max(1, order.length - 1)]).range([css('--seq-1'), css('--seq-2')]).interpolate(d3.interpolateLab);
-    return { key: (i) => Math.floor(D.year[i] / 10) * 10 + 's', order, color: (g) => seq(order.indexOf(g)) };
+function groupSpec(by, sel, ctx) {
+  let order, colorOf, gi, codeOfName = null;
+  if (by === 'type') { order = TYPES.slice(); colorOf = (g) => css(TYPE_VARS[TYPES.indexOf(g)]); gi = (i) => D.type[i]; }
+  else if (by === 'regime') { order = REG_KEYS.map((k) => REGIMES[k]); colorOf = (g) => (g === 'No orbit data' ? css('--s-other') : css(SLOTS[order.indexOf(g)])); gi = (i) => (D.regId[i] === 255 ? -1 : D.regId[i]); }
+  else if (by === 'status') { order = ST_KEYS.map((k) => STATUSES[k]); const map = { Active: '--s3', Inactive: '--s4', 'No status': '--s7', Reentered: '--s-other' }; colorOf = (g) => css(map[g]); gi = (i) => (D.stId[i] === 255 ? -1 : D.stId[i]); }
+  else if (by === 'decade') {
+    order = DECADES.slice();
+    const seq = d3.scaleLinear().domain([0, order.length - 1]).range([css('--seq-1'), css('--seq-2')]).interpolate(d3.interpolateLab);
+    colorOf = (g) => seq(order.indexOf(g)); gi = (i) => clamp(Math.floor(D.year[i] / 10) - 195, 0, order.length - 1);
+  } else {
+    // owner or site: the seven largest in the view, the rest folded into Other
+    const isOwner = by === 'owner';
+    const ids = isOwner ? D.ownId : D.siteId, codes = isOwner ? OWN_CODES : SITE_CODES, nameOf = isOwner ? OWNER_NAME : SITE_NAME;
+    const cnt = new Map(); for (const i of sel) cnt.set(ids[i], (cnt.get(ids[i]) || 0) + 1);
+    const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 7).map((e) => e[0]);
+    const topSet = new Set(top);
+    let other = cnt.size > 7; if (!other) for (const i of ctx) if (!topSet.has(ids[i])) { other = true; break; }
+    order = top.map((id) => nameOf(codes[id])); if (other) order.push('Other');
+    // entities in the catalog's top eight keep their slot; others take the free slots in order
+    const used = new Set(top.filter((id) => id < 8));
+    const free = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => !used.has(k));
+    const slotOf = {}; top.forEach((id) => { slotOf[nameOf(codes[id])] = id < 8 ? id : free.shift(); });
+    colorOf = (g) => (g === 'Other' ? css('--s-other') : css(SLOTS[slotOf[g] ?? 7]));
+    const lut = new Int16Array(codes.length).fill(other ? order.length - 1 : -1); top.forEach((id, k) => { lut[id] = k; });
+    gi = (i) => lut[ids[i]];
+    codeOfName = Object.fromEntries(top.map((id) => [nameOf(codes[id]), codes[id]]));
   }
-  // owner or site: the seven largest in the view, the rest folded into Other
-  const codeOf = by === 'owner' ? (i) => D.owner[i] : (i) => D.site[i];
-  const nameOf = by === 'owner' ? OWNER_NAME : SITE_NAME;
-  const rank = by === 'owner' ? OWN_RANK : SITE_RANK;
-  const cnt = new Map(); for (const i of sel) { const c = codeOf(i); cnt.set(c, (cnt.get(c) || 0) + 1); }
-  const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 7).map((e) => e[0]);
-  const topSet = new Set(top);
-  const names = top.map(nameOf);
-  const order = cnt.size > 7 ? [...names, 'Other'] : names;
-  // entities in the global top eight keep their slot; others take the free slots in order
-  const used = new Set(top.filter((c) => rank[c] < 8).map((c) => rank[c]));
-  const free = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => !used.has(k));
-  const slotOf = {}; top.forEach((c) => { slotOf[nameOf(c)] = rank[c] < 8 ? rank[c] : free.shift(); });
-  return { key: (i) => { const c = codeOf(i); return topSet.has(c) ? nameOf(c) : 'Other'; }, order,
-           color: (g) => g === 'Other' ? css('--s-other') : css(SLOTS[slotOf[g] ?? 7]), codeOfName: Object.fromEntries(top.map((c) => [nameOf(c), c])) };
-}
-
-/* ================= Filtering and aggregation ================= */
-function passes(i, skip) {
-  const y = D.year[i];
-  if (y < S.y0 || y > S.y1) return false;
-  if (skip !== 'owner' && S.owner.size && !S.owner.has(D.owner[i])) return false;
-  if (skip !== 'site' && S.site.size && !S.site.has(D.site[i])) return false;
-  if (S.type.size && !S.type.has(TYPES[D.type[i]])) return false;
-  if (S.regime.size && !S.regime.has(D.regime[i])) return false;
-  if (S.status.size && !S.status.has(D.status[i])) return false;
-  return true;
-}
-function select() { const out = []; for (let i = 0; i < D.n; i++) if (passes(i)) out.push(i); return out; }
-function pct(x) { return x > 0 && x < 0.001 ? '<0.1%' : x < 1 && x >= 0.9995 ? '>99.9%' : (x * 100).toFixed(1) + '%'; }
-function median(arr) { if (!arr.length) return NaN; const a = Float64Array.from(arr).sort(); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
-// Accumulator: everything a measure needs for one group
-function acc() { return { n: 0, orbit: 0, active: 0, peri: [], inc: [], life: [] }; }
-function add(a, i) {
-  a.n++; if (D.inOrbit[i] && D.earth[i]) a.orbit++; if (D.status[i] === 'A') a.active++;
-  if (isFinite(D.peri[i])) a.peri.push(D.peri[i]); if (isFinite(D.inc[i])) a.inc.push(D.inc[i]); a.life.push(D.life[i]);
-}
-function measureOf(a, m) {
-  if (!a || !a.n) return NaN;
-  switch (m) {
-    case 'count': return a.n;
-    case 'orbit': return a.orbit / a.n;
-    case 'peri': return a.peri.length >= 3 ? median(a.peri) : NaN;
-    case 'inc': return a.inc.length >= 3 ? median(a.inc) : NaN;
-    case 'life': return a.life.length >= 3 ? median(a.life) : NaN;
-  }
+  const cc = new Map(order.map((g) => [g, colorOf(g)]));
+  const index = new Map(order.map((g, k) => [g, k]));
+  return { order, index, gi, codeOfName, color: (g) => cc.get(g) ?? css('--s-other'), key: (i) => { const k = gi(i); return k >= 0 ? order[k] : 'Other'; } };
 }
 
 /* ================= UI: sound, cursor ================= */
@@ -508,8 +652,11 @@ const cursor = $('#cursor'), cDot = $('.dot', cursor), cRing = $('.ring', cursor
 const mouse = { x: -99, y: -99, rx: -99, ry: -99 };
 addEventListener('pointermove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 document.addEventListener('pointerover', (e) => {
-  cursor.classList.toggle('hover', !!e.target.closest('a, button, .hit, .dd-item, input[type=range], canvas'));
-  cursor.classList.toggle('text', !!e.target.closest('input[type=search]'));
+  const t = e.target;
+  const cross = !!(t.closest && t.closest('.brush'));
+  cursor.classList.toggle('cross', cross);
+  cursor.classList.toggle('hover', !cross && !!t.closest('a, button, .hit, .dd-item, input[type=range], canvas, .legend span'));
+  cursor.classList.toggle('text', !!t.closest('input[type=search]'));
 });
 gsap.ticker.add(() => {
   mouse.rx += (mouse.x - mouse.rx) * 0.2; mouse.ry += (mouse.y - mouse.ry) * 0.2;
@@ -522,6 +669,8 @@ function magnetize(el) {
   gsap.ticker.add(() => { st.vx += (st.tx - st.x) * 0.16; st.vy += (st.ty - st.y) * 0.16; st.vx *= 0.72; st.vy *= 0.72; st.x += st.vx; st.y += st.vy; if (Math.abs(st.x) + Math.abs(st.y) > 0.01) el.style.transform = `translate(${st.x}px, ${st.y}px)`; });
 }
 $$('.magnetic').forEach(magnetize);
+// a small spring on any control that toggles
+const pop = (el, s = 0.88) => el.animate([{ transform: 'scale(1)' }, { transform: `scale(${s})` }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 460, easing: 'cubic-bezier(.3,1.3,.5,1)' });
 
 const tip = $('#tip');
 function showTip(html, e) {
@@ -531,29 +680,77 @@ function showTip(html, e) {
   tip.style.transform = `translate(${x}px, ${y}px)`;
 }
 const hideTip = () => tip.classList.remove('on');
-const row = (sw, k, v) => `<div class="r"><span>${sw ? `<i class="sw" style="background:${sw}"></i>` : ''}${k}</span><b>${v}</b></div>`;
+const row = (sw, k, v, hi) => `<div class="r${hi ? ' hi' : ''}"><span>${sw ? `<i class="sw" style="background:${sw}"></i>` : ''}${k}</span><b>${v}</b></div>`;
+
+/* ================= Linked highlighting ================= */
+let FOCUS = null, CUR_SPEC = null;
+function setFocus(g) { if (FOCUS === g) return; FOCUS = g; applyFocus(); emit('focus', { group: g }); }
+function applyFocus() {
+  const f = FOCUS;
+  for (const el of document.querySelectorAll('[data-g]')) el.classList.toggle('dim', f !== null && el.getAttribute('data-g') !== f);
+  for (const el of document.querySelectorAll('#tbl tr[data-g]')) { el.classList.toggle('hi', f !== null && el.getAttribute('data-g') === f); el.classList.remove('dim'); }
+  const k = f === null || !CUR_SPEC ? -1 : (CUR_SPEC.index.get(f) ?? -1);
+  for (const U of [G.U, SC.U]) {
+    if (!U) continue;
+    if (k >= 0) { U.uFocus.value = k; gsap.to(U.uFocusAmt, { value: 1, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; } }); }
+    else gsap.to(U.uFocusAmt, { value: 0, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; } });
+  }
+}
+function legend(id, spec, order) {
+  const el = $(id);
+  el.innerHTML = order.map((g) => `<span data-g="${g}"><i style="background:${spec.color(g)}"></i>${g}</span>`).join('');
+  $$('span', el).forEach((s) => {
+    s.addEventListener('pointerenter', () => setFocus(s.dataset.g));
+    s.addEventListener('pointerleave', () => setFocus(null));
+    s.addEventListener('click', () => { setFocus(null); drill(s.dataset.g, spec); });
+  });
+}
+
+/* ================= Rolling digits ================= */
+function odo(el, text) {
+  if (el.__t === text) return;
+  const first = el.__t === undefined; el.__t = text;
+  const chars = [...text];
+  const sig = chars.map((c) => (c >= '0' && c <= '9' ? 'd' : c)).join('');
+  let built = false;
+  if (el.__sig !== sig) {
+    el.__sig = sig; built = true;
+    el.innerHTML = chars.map((c) => (c >= '0' && c <= '9' ? `<span class="dg" style="--d:0">${c}</span>` : c === '~' ? '<span class="na">too few</span>' : `<span class="sp">${c}</span>`)).join('');
+  }
+  const digits = chars.filter((c) => c >= '0' && c <= '9'), dgs = $$('.dg', el);
+  const apply = () => dgs.forEach((s, k) => {
+    const v = digits[k];
+    if (s.__v === v) return;
+    const changed = s.__v !== undefined || (built && !first);
+    s.__v = v; s.textContent = v;
+    s.style.setProperty('--delay', `${(dgs.length - 1 - k) * 0.035}s`); s.style.setProperty('--d', v);
+    if (changed) { s.classList.add('flash'); clearTimeout(s.__ft); s.__ft = setTimeout(() => s.classList.remove('flash'), 420); }
+  });
+  if (built) requestAnimationFrame(() => requestAnimationFrame(apply)); else apply();
+  el.classList.add('rolling'); clearTimeout(el.__rt); el.__rt = setTimeout(() => el.classList.remove('rolling'), 650);
+}
 
 /* ================= Controls ================= */
-function segmented(el, items, get, set) {
+function segmented(el, items, get, set, kind) {
   el.innerHTML = '<span class="pill"></span>' + items.map((m) => `<button data-id="${m.id}">${m.label}</button>`).join('');
   const pill = $('.pill', el);
   const sync = () => { $$('button', el).forEach((b) => { const on = b.dataset.id === get(); b.classList.toggle('on', on); if (on) { pill.style.left = b.offsetLeft + 'px'; pill.style.width = b.offsetWidth + 'px'; } }); };
-  el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; set(b.dataset.id); sync(); blip(700); update(); });
+  el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.dataset.id === get()) return; set(b.dataset.id); sync(); blip(700); emit('switch', { kind, id: b.dataset.id }); update(); });
   return sync;
 }
-const syncMeasure = segmented($('#seg-measure'), MEASURES, () => S.measure, (v) => { S.measure = v; });
-const syncBy = segmented($('#seg-by'), BYS, () => S.by, (v) => { S.by = v; });
+const syncMeasure = segmented($('#seg-measure'), MEASURES, () => S.measure, (v) => { S.measure = v; }, 'measure');
+const syncBy = segmented($('#seg-by'), BYS, () => S.by, (v) => { S.by = v; }, 'by');
 
 function chips(el, items, key, dot) {
   el.innerHTML = items.map(([v, l]) => `<button class="chip" data-v="${v}">${dot ? `<i style="background:var(${dot(v)})"></i>` : ''}${l}</button>`).join('');
-  el.addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; S[key].has(v) ? S[key].delete(v) : S[key].add(v); blip(600); update(); });
+  el.addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; S[key].has(v) ? S[key].delete(v) : S[key].add(v); pop(b); blip(600); update(); });
   return () => $$('.chip', el).forEach((b) => b.classList.toggle('on', S[key].has(b.dataset.v)));
 }
-const syncType = chips($('#chips-type'), TYPES.map((t) => [t, t]), 'type', (v) => ['--c-pay', '--c-rb', '--c-deb', '--c-unk'][TYPES.indexOf(v)]);
-const syncRegime = chips($('#chips-regime'), Object.keys(REGIMES).map((k) => [k, REGIME_SHORT[k]]), 'regime');
-const syncStatus = chips($('#chips-status'), Object.keys(STATUSES).map((k) => [k, STATUSES[k]]), 'status');
+const syncType = chips($('#chips-type'), TYPES.map((t) => [t, t]), 'type', (v) => TYPE_VARS[TYPES.indexOf(v)]);
+const syncRegime = chips($('#chips-regime'), REG_KEYS.map((k) => [k, REGIME_SHORT[k]]), 'regime');
+const syncStatus = chips($('#chips-status'), ST_KEYS.map((k) => [k, STATUSES[k]]), 'status');
 
-// Multi-select dropdowns for owner and site
+// Multi-select dropdowns for owner and site, with the count each pick would give
 const dds = {};
 function dropdown(key) {
   const host = $(`[data-dd="${key}"]`);
@@ -563,80 +760,135 @@ function dropdown(key) {
   panel.innerHTML = `<input type="search" placeholder="Search"><div class="dd-list"></div><div class="dd-foot"><span class="dd-sel"></span><button class="dd-clear">Clear</button></div>`;
   host.append(btn, panel);
   const list = $('.dd-list', panel), search = $('input', panel);
-  const nameOf = key === 'owner' ? OWNER_NAME : SITE_NAME;
+  const nameOf = key === 'owner' ? OWNER_NAME : SITE_NAME, codes = key === 'owner' ? OWN_CODES : SITE_CODES, ids = key === 'owner' ? D.ownId : D.siteId;
   const draw = () => {
-    // counts under every other filter, so the numbers say what picking one would give
-    const cnt = new Map(); for (let i = 0; i < D.n; i++) if (passes(i, key)) { const c = key === 'owner' ? D.owner[i] : D.site[i]; cnt.set(c, (cnt.get(c) || 0) + 1); }
-    const all = key === 'owner' ? Object.keys(OWN_RANK) : Object.keys(SITE_RANK);
+    compile();
+    const cnt = new Int32Array(codes.length); for (let i = 0; i < D.n; i++) if (passes(i, key)) cnt[ids[i]]++;
     const q = search.value.trim().toLowerCase();
-    const items = all.filter((c) => !q || nameOf(c).toLowerCase().includes(q) || c.toLowerCase().includes(q))
-      .sort((a, b) => (cnt.get(b) || 0) - (cnt.get(a) || 0) || nameOf(a).localeCompare(nameOf(b)));
-    list.innerHTML = items.map((c) => `<div class="dd-item${S[key].has(c) ? ' on' : ''}" data-c="${c}"><span class="bx"></span><span class="nm">${nameOf(c)}</span><span class="ct">${fmt(cnt.get(c) || 0)}</span></div>`).join('');
+    const items = codes.map((c, k) => k).filter((k) => !q || nameOf(codes[k]).toLowerCase().includes(q) || codes[k].toLowerCase().includes(q))
+      .sort((a, b) => cnt[b] - cnt[a] || nameOf(codes[a]).localeCompare(nameOf(codes[b])));
+    const mx = Math.max(1, ...items.map((k) => cnt[k]));
+    list.innerHTML = items.map((k) => `<div class="dd-item${S[key].has(codes[k]) ? ' on' : ''}" data-c="${codes[k]}"><span class="bx"></span><span class="nm">${nameOf(codes[k])}</span><span class="cb"><i style="width:${cnt[k] ? Math.max(2, Math.sqrt(cnt[k] / mx) * 100) : 0}%"></i></span><span class="ct">${fmt(cnt[k])}</span></div>`).join('');
     $('.dd-sel', panel).textContent = S[key].size ? `${S[key].size} selected` : 'None selected, showing all';
   };
   const label = () => {
     const n = S[key].size;
     $('span', btn).textContent = n === 0 ? (key === 'owner' ? 'All owners' : 'All launch sites') : n === 1 ? nameOf([...S[key]][0]) : `${n} ${key === 'owner' ? 'owners' : 'sites'}`;
-    $('.dd-count', host).textContent = n ? `${n} of ${Object.keys(key === 'owner' ? OWN_RANK : SITE_RANK).length}` : '';
+    $('.dd-count', host).textContent = n ? `${n} of ${codes.length}` : '';
   };
-  btn.addEventListener('click', (e) => { e.stopPropagation(); const open = !panel.classList.contains('open'); $$('.dd.open').forEach((p) => p.classList.remove('open')); if (open) { panel.classList.add('open'); draw(); search.focus(); } });
+  btn.addEventListener('click', (e) => { e.stopPropagation(); const open = !panel.classList.contains('open'); closeDropdowns(); if (open) { panel.classList.add('open'); host.classList.add('dd-open'); draw(); search.focus(); } });
   panel.addEventListener('click', (e) => e.stopPropagation());
   search.addEventListener('input', draw);
-  list.addEventListener('click', (e) => { const it = e.target.closest('.dd-item'); if (!it) return; const c = it.dataset.c; S[key].has(c) ? S[key].delete(c) : S[key].add(c); blip(600); draw(); update(); });
+  list.addEventListener('click', (e) => { const it = e.target.closest('.dd-item'); if (!it) return; const c = it.dataset.c; S[key].has(c) ? S[key].delete(c) : S[key].add(c); pop($('.bx', it), 0.7); blip(600); draw(); update(); });
   $('.dd-clear', panel).addEventListener('click', () => { S[key].clear(); draw(); update(); });
   dds[key] = { label, draw, panel };
 }
-document.addEventListener('click', () => $$('.dd.open').forEach((p) => p.classList.remove('open')));
+function closeDropdowns() { $$('.dd.open').forEach((p) => { p.classList.remove('open'); p.parentElement.classList.remove('dd-open'); }); }
+document.addEventListener('click', closeDropdowns);
 
-// Year range: two range inputs over a histogram of the whole catalog
+// Year range: two range inputs over a histogram of the whole catalog, stacked by type
 const yr0 = $('#yr0'), yr1 = $('#yr1');
 function syncYears() {
   yr0.value = S.y0; yr1.value = S.y1;
   $('#yr-label').textContent = S.y0 === S.y1 ? `${S.y0}` : `${S.y0} to ${S.y1}`;
-  const w = $('#yr').clientWidth, f = (v) => (v - 1957) / (2026 - 1957) * (w - 16) + 8;
+  const w = $('#yr').clientWidth, f = (v) => (v - Y0) / (Y1 - Y0) * (w - 16) + 8;
   $('#yr-fill').style.left = f(S.y0) + 'px'; $('#yr-fill').style.width = (f(S.y1) - f(S.y0)) + 'px';
-  d3.select('#yr-hist').selectAll('rect').attr('opacity', (d) => (d.y >= S.y0 && d.y <= S.y1 ? 0.85 : 0.22));
+  d3.select('#yr-hist').selectAll('rect').attr('opacity', (d) => (d.y >= S.y0 && d.y <= S.y1 ? 0.9 : 0.16));
 }
 function yearHist() {
-  const cnt = d3.rollup(d3.range(D.n), (v) => v.length, (i) => D.year[i]);
-  const data = d3.range(1957, 2027).map((y) => ({ y, v: cnt.get(y) || 0 }));
-  const svg = d3.select('#yr-hist'); const w = $('#yr').clientWidth; svg.attr('viewBox', `0 0 ${w} 26`);
-  const x = d3.scaleBand().domain(data.map((d) => d.y)).range([8, w - 8]).padding(0.15);
-  const y = d3.scaleSqrt().domain([0, d3.max(data, (d) => d.v)]).range([0, 24]);
-  svg.selectAll('rect').data(data).join('rect').attr('x', (d) => x(d.y)).attr('width', x.bandwidth()).attr('y', (d) => 26 - y(d.v)).attr('height', (d) => y(d.v)).attr('fill', 'var(--ink-3)');
+  const cnt = YEARS.map(() => [0, 0, 0, 0]);
+  for (let i = 0; i < D.n; i++) { const k = D.year[i] - Y0; if (k >= 0 && k < cnt.length) cnt[k][D.type[i]]++; }
+  const svg = d3.select('#yr-hist'); const w = $('#yr').clientWidth, H = 42; svg.attr('viewBox', `0 0 ${w} ${H}`);
+  const x = d3.scaleBand().domain(YEARS).range([8, w - 8]).padding(0.14);
+  const tot = cnt.map((c) => c[0] + c[1] + c[2] + c[3]);
+  const y = d3.scaleSqrt().domain([0, d3.max(tot)]).range([0, H - 2]);
+  const data = [];
+  YEARS.forEach((yy, k) => { const h = y(tot[k]); let acc0 = 0; for (let t = 0; t < 4; t++) { const hh = tot[k] ? h * cnt[k][t] / tot[k] : 0; data.push({ y: yy, t, y0: H - acc0 - hh, h: hh }); acc0 += hh; } });
+  const cols = TYPE_VARS.map(css);
+  svg.selectAll('rect').data(data).join('rect').attr('x', (d) => x(d.y)).attr('width', x.bandwidth()).attr('y', (d) => d.y0).attr('height', (d) => d.h).attr('fill', (d) => cols[d.t]);
 }
-const onYear = () => {
+let lastYearEmit = [S.y0, S.y1];
+function setYears(a, b, source) {
+  a = clamp(a, Y0, Y1); b = clamp(b, Y0, Y1); if (a > b) [a, b] = [b, a];
+  if (a === S.y0 && b === S.y1) return false;
+  const edge = a !== S.y0 ? 'start' : 'end';
+  S.y0 = a; S.y1 = b;
+  if (a !== lastYearEmit[0] || b !== lastYearEmit[1]) { emit('year', { year: edge === 'start' ? a : b, edge, y0: a, y1: b, source }); lastYearEmit = [a, b]; }
+  return true;
+}
+const onYearInput = () => {
   let a = +yr0.value, b = +yr1.value; if (a > b) { if (document.activeElement === yr0) a = b; else b = a; }
-  S.y0 = a; S.y1 = b; syncYears(); update();
+  if (setYears(a, b, 'slider')) { syncYears(); lightRender(); }
 };
-yr0.addEventListener('input', onYear); yr1.addEventListener('input', onYear);
+yr0.addEventListener('input', onYearInput); yr1.addEventListener('input', onYearInput);
+yr0.addEventListener('change', () => update()); yr1.addEventListener('change', () => update());
 
 $('#reset').addEventListener('click', () => {
-  Object.assign(S, { y0: 1957, y1: 2026 }); ['owner', 'site', 'type', 'regime', 'status'].forEach((k) => S[k].clear());
-  blip(330); update();
+  Object.assign(S, { y0: Y0, y1: Y1, box: null }); ['owner', 'site', 'type', 'regime', 'status'].forEach((k) => S[k].clear());
+  $('#reset svg').animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], { duration: 700, easing: 'cubic-bezier(.3,1.2,.4,1)' });
+  G.userZoom = false;
+  blip(330); emit('reset'); update();
 });
 
-/* ================= KPIs ================= */
-const kpiVals = {};
-function tweenNum(id, v, f) {
-  const el = document.getElementById(id); const o = kpiVals[id] || { v: 0 }; kpiVals[id] = o;
-  if (!isFinite(v)) { gsap.killTweensOf(o); el.innerHTML = '<small>no data</small>'; o.v = 0; return; }
-  gsap.to(o, { v, duration: 0.8, ease: 'expo.out', overwrite: true, onUpdate: () => { el.innerHTML = f(o.v); } });
+/* ================= KPIs: rolling numbers, a sparkline by launch year, and the gap to the whole catalog ================= */
+const CAT = {};
+const ARROW = '<svg viewBox="0 0 10 10"><path d="M5 1L9.2 8.6H.8Z" fill="currentColor"/></svg>';
+function deltaLine(id, diff, unit, digits, eps) {
+  const el = document.getElementById(id);
+  if (!isFinite(diff)) { el.className = 'dl flat'; el.innerHTML = ''; return; }
+  const flat = Math.abs(diff) < eps;
+  el.className = 'dl ' + (flat ? 'flat' : diff > 0 ? 'up' : 'down');
+  el.innerHTML = ARROW + (flat ? 'same as the whole catalog' : `${diff > 0 ? '+' : '-'}${digits === 0 ? fmt(Math.round(Math.abs(diff))) : Math.abs(diff).toFixed(digits)}${unit} vs the whole catalog`);
 }
-function kpis(all) {
+function kpiNumbers(all) {
   const n = all.n;
-  tweenNum('k-n', n, (v) => fmt(Math.round(v)));
-  $('#k-n-d').textContent = `${pct(n / D.n)} of the catalog`;
-  tweenNum('k-orbit', all.orbit, (v) => fmt(Math.round(v)));
-  $('#k-orbit-d').textContent = n ? `${pct(all.orbit / n)} of the view` : '';
-  tweenNum('k-active', all.active, (v) => fmt(Math.round(v)));
-  $('#k-active-d').textContent = n ? `${pct(all.active / n)} of the view` : '';
-  const p = measureOf(all, 'peri'); tweenNum('k-peri', p, (v) => `${fmt(Math.round(v))}<small>km</small>`);
-  $('#k-peri-d').textContent = `${fmt(all.peri.length)} objects with an orbit`;
-  const l = measureOf(all, 'life'); tweenNum('k-life', l, (v) => `${v.toFixed(1)}<small>yr</small>`);
+  odo($('#showing-n'), fmt(n));
+  $('#hero-share').textContent = pct(n / D.n);
+  odo($('#k-orbit'), fmt(all.orbit));
+  $('#k-orbit-d').textContent = n ? `${pct(all.orbit / n)} of the view` : 'no objects in the view';
+  deltaLine('k-orbit-dl', n ? (all.orbit / n - CAT.orbit) * 100 : NaN, ' pts', 1, 0.05);
+  odo($('#k-active'), fmt(all.active));
+  $('#k-active-d').textContent = n ? `${pct(all.active / n)} of the view` : 'no objects in the view';
+  deltaLine('k-active-dl', n ? (all.active / n - CAT.active) * 100 : NaN, ' pts', 1, 0.05);
+  const p = medianOf(all.idx, D.peri), np = countFinite(all.idx, D.peri);
+  odo($('#k-peri'), isFinite(p) ? fmt(Math.round(p)) : '~'); $('#k-peri').nextElementSibling.style.visibility = isFinite(p) ? '' : 'hidden';
+  $('#k-peri-d').textContent = `${fmt(np)} objects with an orbit`;
+  deltaLine('k-peri-dl', p - CAT.peri, ' km', 0, 0.5);
+  const l = medianOf(all.idx, D.life);
+  odo($('#k-life'), isFinite(l) ? l.toFixed(1) : '~'); $('#k-life').nextElementSibling.style.visibility = isFinite(l) ? '' : 'hidden';
   $('#k-life-d').textContent = 'launch to reentry, or to today';
-  tweenNum('showing-n', n, (v) => fmt(Math.round(v)));
+  deltaLine('k-life-dl', l - CAT.life, ' yr', 1, 0.05);
 }
+// sparklines: the KPI for each launch year of the view (every year drawn; the chosen years lit)
+const SP = {};
+function sparkData(ctx) {
+  const by = YEARS.map(() => []);
+  const orbit = new Float64Array(YEARS.length), active = new Float64Array(YEARS.length);
+  for (const i of ctx) { const k = D.year[i] - Y0; if (k < 0 || k >= YEARS.length) continue; by[k].push(i); orbit[k] += D.orb[i]; active[k] += D.act[i]; }
+  return { orbit: [...orbit], active: [...active], peri: by.map((ix) => medianOf(ix, D.peri, MIN_N)), life: by.map((ix) => medianOf(ix, D.life, MIN_N)) };
+}
+function interpArr(a, b) { return (t) => b.map((v, k) => (isFinite(v) && isFinite(a[k]) ? a[k] + (v - a[k]) * t : v)); }
+function spark(id, vals) {
+  const svg = d3.select('#' + id); const w = svg.node().getBoundingClientRect().width || 180, h = 44;
+  svg.attr('viewBox', `0 0 ${w} ${h}`);
+  const x = d3.scaleLinear().domain([Y0, Y1]).range([1, w - 1]);
+  const y = d3.scaleLinear().domain([0, d3.max(vals.filter(isFinite)) || 1]).range([h - 2, 3]);
+  const line = (v) => d3.line().defined((d) => isFinite(d)).x((d, k) => x(Y0 + k)).y((d) => y(d)).curve(d3.curveMonotoneX)(v);
+  const area = (v) => d3.area().defined((d) => isFinite(d)).x((d, k) => x(Y0 + k)).y0(h - 2).y1((d) => y(d)).curve(d3.curveMonotoneX)(v);
+  const cid = 'clip-' + id;
+  svg.selectAll('clipPath').data([0]).join('clipPath').attr('id', cid).selectAll('rect').data([0]).join('rect').attr('y', -4).attr('height', h + 8);
+  const node = svg.node(); const prev = node.__v || vals.map(() => 0); node.__v = vals; SP[id] = x;
+  const ip = interpArr(prev, vals);
+  svg.selectAll('path.ctx').data([0]).join('path').attr('class', 'ctx').transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => line(ip(t)) || '');
+  svg.selectAll('path.ar').data([0]).join('path').attr('class', 'ar').attr('clip-path', `url(#${cid})`).transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => area(ip(t)) || '');
+  svg.selectAll('path.ln').data([0]).join('path').attr('class', 'ln').attr('clip-path', `url(#${cid})`).transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => line(ip(t)) || '');
+  sparkClip(id);
+}
+function sparkClip(id) {
+  const x = SP[id]; if (!x) return;
+  d3.select(`#clip-${id} rect`).attr('x', x(S.y0) - 1).attr('width', Math.max(2, x(S.y1) - x(S.y0) + 2));
+}
+const SPARKS = ['sp-orbit', 'sp-active', 'sp-peri', 'sp-life'];
 
 /* ================= Charts ================= */
 function frame(id, h, m) {
@@ -647,195 +899,431 @@ function frame(id, h, m) {
   g.attr('transform', `translate(${m.l},${m.t})`);
   return { el, svg, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b };
 }
-function legend(id, spec, order) {
-  $(id).innerHTML = order.map((g) => `<span><i style="background:${spec.color(g)}"></i>${g}</span>`).join('');
-}
 // A centered note inside a chart; an empty string removes it
 function emptyNote(f, text) {
   f.g.selectAll('text.empty').data(text ? [text] : []).join('text').attr('class', 'empty').attr('text-anchor', 'middle')
     .attr('x', f.iw / 2).attr('y', f.ih / 2).text((d) => d).raise();
 }
-const T = () => d3.transition().duration(550).ease(d3.easeCubicOut);
+const DUR = 700;
+const T = () => d3.transition().duration(DUR).ease(d3.easeCubicOut);
 const M = () => MEASURES.find((m) => m.id === S.measure);
 const byLabel = () => BYS.find((b) => b.id === S.by).label.toLowerCase();
+const needIdx = () => !!MEDIAN_FIELD[S.measure];
 
-// Chart 1: over time
-function chartTime(sel, spec) {
-  const m = M(); const years = d3.range(S.y0, S.y1 + 1);
+// Chart 1: every launch year is drawn; the chosen years are lit and a brush picks them
+const TC = { mode: null, syncing: false, downX: null };
+function chartTime(ctx, spec) {
+  const m = M(), isCount = S.measure === 'count', keep = needIdx();
   $('#t-time').textContent = `${m.label} by launch year and ${byLabel()}`;
-  const f = frame('ch-time', 300, { t: 10, r: 12, b: 26, l: 52 });
-  const groups = spec.order;
-  const cells = new Map(); // year -> group -> acc
-  for (const i of sel) { const y = D.year[i]; let gm = cells.get(y); if (!gm) cells.set(y, gm = new Map()); const k = spec.key(i); let a = gm.get(k); if (!a) gm.set(k, a = acc()); add(a, i); }
-  const x = d3.scaleBand().domain(years).range([0, f.iw]).padding(years.length > 40 ? 0.15 : 0.25);
-  const isCount = S.measure === 'count';
-  let ymax = 1;
-  const rows = years.map((y) => { const o = { y }; for (const g of groups) { o[g] = measureOf(cells.get(y)?.get(g), S.measure); } return o; });
-  if (isCount) ymax = d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1;
-  else ymax = d3.max(rows, (r) => d3.max(groups, (g) => (isFinite(r[g]) ? r[g] : 0))) || 1;
-  const y = d3.scaleLinear().domain([0, S.measure === 'orbit' ? 1 : ymax * 1.05]).nice().range([f.ih, 0]);
-  const tv = isCount ? y.ticks(5).filter(Number.isInteger) : y.ticks(5);
+  $('#n-time').textContent = S.measure === 'life' ? 'Objects still in orbit count their years up to today, so recent launch years run low' : 'Drag across years to filter, or click one year';
+  const f = frame('ch-time', 340, { t: 34, r: 12, b: 26, l: 52 });
+  const cells = YEARS.map(() => new Map());
+  let hasOther = false;
+  for (const i of ctx) { const k = D.year[i] - Y0; if (k < 0 || k >= YEARS.length) continue; const g = spec.key(i); if (g === 'Other' && !spec.index.has('Other')) hasOther = true; let a = cells[k].get(g); if (!a) cells[k].set(g, a = acc(keep)); add(a, i); }
+  const groups = hasOther ? [...spec.order, 'Other'] : spec.order;
+  const rows = YEARS.map((yy, k) => { const o = { y: yy, k }; for (const g of groups) o[g] = measureOf(cells[k].get(g), S.measure); return o; });
+  const x = d3.scaleBand().domain(YEARS).range([0, f.iw]).padding(0.18), bw = x.bandwidth();
+  let y;
+  if (isCount) y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1) * 1.05]).nice();
+  else if (S.measure === 'orbit') y = d3.scaleLinear().domain([0, 1]);
+  else if (S.measure === 'peri') {
+    const vals = rows.flatMap((r) => groups.map((g) => r[g])).filter((v) => isFinite(v) && v > 0);
+    y = d3.scaleLog().domain(vals.length ? [Math.max(80, d3.min(vals) * 0.8), d3.max(vals) * 1.25] : [100, 1000]).clamp(true);
+  } else y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.max(groups, (g) => (isFinite(r[g]) ? r[g] : 0))) || 1) * 1.08]).nice();
+  y.range([f.ih, 0]);
+  const tv = S.measure === 'peri' ? [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000].filter((v) => v >= y.domain()[0] && v <= y.domain()[1])
+    : isCount ? y.ticks(5).filter(Number.isInteger) : y.ticks(5);
   f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(-f.iw).tickFormat(''));
   f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(0).tickPadding(8).tickFormat(m.axis)).on('end', function () { d3.select(this).select('.domain').remove(); });
-  const step = Math.ceil(years.length / 14);
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`)
-    .call(d3.axisBottom(x).tickValues(years.filter((v, i) => (years.length <= 14 ? true : v % (step >= 5 ? 10 : 5) === 0))).tickSize(0).tickPadding(8)).select('.domain').remove();
+    .call(d3.axisBottom(x).tickValues(YEARS.filter((v) => v % 10 === 0)).tickSize(0).tickPadding(8)).select('.domain').remove();
   const layer = f.g.selectAll('g.marks').data([0]).join('g').attr('class', 'marks');
+  const from = TC.mode; TC.mode = isCount ? 'bars' : 'lines';
+  const yOf = (g, k) => { const v = rows[k][g]; return isFinite(v) ? y(v) : NaN; };
   if (isCount) {
-    layer.selectAll('path.ln').remove(); layer.selectAll('circle').remove();
-    const st = d3.stack().keys(groups).value((r, k) => r[k] || 0)(rows);
-    const flat = st.flatMap((s, gi) => s.map((d) => ({ g: groups[gi], y: d.data.y, y0: d[0], y1: d[1] })));
-    layer.selectAll('rect.b').data(flat, (d) => d.g + d.y).join(
-      (en) => en.append('rect').attr('class', 'b').attr('x', (d) => x(d.y)).attr('width', x.bandwidth()).attr('y', f.ih).attr('height', 0),
-    ).attr('fill', (d) => spec.color(d.g)).transition(T())
-      .attr('x', (d) => x(d.y)).attr('width', x.bandwidth()).attr('y', (d) => y(d.y1)).attr('height', (d) => Math.max(0, y(d.y0) - y(d.y1) - (d.y1 > d.y0 && x.bandwidth() > 4 ? 1 : 0)));
+    layer.selectAll('path.ln').interrupt().transition().duration(300).attr('opacity', 0).remove();
+    layer.selectAll('circle.pt').interrupt().transition().duration(300).attr('r', 0).remove();
+    const st = d3.stack().keys(groups).value((r, g) => r[g] || 0)(rows);
+    const flat = st.flatMap((s, gi) => s.map((d) => ({ g: groups[gi], y: d.data.y, k: d.data.k, y0: d[0], y1: d[1] }))).filter((d) => d.y1 > d.y0);
+    const sel = layer.selectAll('rect.b').data(flat, (d) => d.g + '|' + d.y);
+    sel.exit().interrupt().transition().duration(350).attr('opacity', 0).remove();
+    sel.enter().append('rect').attr('class', 'b').attr('x', (d) => x(d.y)).attr('width', bw).attr('y', f.ih).attr('height', 0)
+      .merge(sel).attr('data-g', (d) => d.g).attr('fill', (d) => spec.color(d.g))
+      .transition(T()).delay((d) => (from === 'bars' ? 0 : 120) + d.k * 7)
+      .attr('opacity', 1).attr('x', (d) => x(d.y)).attr('width', bw).attr('y', (d) => y(d.y1)).attr('height', (d) => Math.max(0, y(d.y0) - y(d.y1) - (bw > 4 ? 1 : 0)));
   } else {
-    layer.selectAll('rect.b').remove();
-    const lines = groups.map((g) => ({ g, pts: rows.filter((r) => isFinite(r[g])).map((r) => ({ y: r.y, v: r[g] })) })).filter((l) => l.pts.length);
-    const line = d3.line().x((d) => x(d.y) + x.bandwidth() / 2).y((d) => y(d.v)).curve(d3.curveMonotoneX);
-    layer.selectAll('path.ln').data(lines, (d) => d.g).join('path').attr('class', 'ln').attr('fill', 'none').attr('stroke-width', 2)
-      .attr('stroke', (d) => d.g === 'Other' ? spec.color(d.g) : spec.color(d.g)).transition(T()).attr('d', (d) => line(d.pts));
-    layer.selectAll('circle').data(lines.flatMap((l) => (l.pts.length < 25 ? l.pts.map((p) => ({ ...p, g: l.g })) : [])), (d) => d.g + d.y).join('circle')
-      .attr('r', 3).attr('fill', (d) => spec.color(d.g)).attr('stroke', css('--panel-solid')).attr('stroke-width', 1.5).transition(T()).attr('cx', (d) => x(d.y) + x.bandwidth() / 2).attr('cy', (d) => y(d.v));
+    // bars melt down to the new line positions, then the lines draw themselves in
+    layer.selectAll('rect.b').interrupt().transition().duration(450).ease(d3.easeCubicIn).delay((d) => d.k * 4)
+      .attr('y', (d) => { const v = yOf(d.g, d.k); return isFinite(v) ? v - 1 : f.ih; }).attr('height', 2).attr('opacity', 0).remove();
+    const ys = (g) => YEARS.map((yy, k) => yOf(g, k));
+    const lines = groups.map((g) => ({ g, ys: ys(g) })).filter((l) => l.ys.some(isFinite));
+    const gen = (v) => d3.line().defined((d) => isFinite(d)).x((d, k) => x(YEARS[k]) + bw / 2).y((d) => d).curve(d3.curveMonotoneX)(v) || '';
+    const many = lines.length > 4;
+    const sel = layer.selectAll('path.ln').data(lines, (d) => d.g);
+    sel.exit().interrupt().transition().duration(350).attr('opacity', 0).remove();
+    sel.enter().append('path').attr('class', 'ln').attr('fill', 'none').attr('data-g', (d) => d.g).attr('stroke', (d) => spec.color(d.g))
+      .attr('stroke-width', many ? 1.7 : 2.2).attr('stroke-opacity', many ? 0.8 : 1).attr('stroke-linejoin', 'round').attr('d', (d) => gen(d.ys)).each(function (d) { this.__ys = d.ys; })
+      .attr('stroke-dasharray', function () { const L = this.getTotalLength() || 1; return `${L} ${L}`; })
+      .attr('stroke-dashoffset', function () { return this.getTotalLength() || 1; })
+      .transition().delay(from === 'bars' ? 280 : 60).duration(1200).ease(d3.easeCubicInOut).attr('stroke-dashoffset', 0)
+      .on('end', function () { d3.select(this).attr('stroke-dasharray', null).attr('stroke-dashoffset', null); });
+    sel.attr('data-g', (d) => d.g).attr('stroke', (d) => spec.color(d.g)).attr('stroke-width', many ? 1.7 : 2.2).attr('opacity', 1)
+      .transition(T()).attrTween('d', function (d) { const ip = interpArr(this.__ys || d.ys, d.ys); this.__ys = d.ys; return (t) => gen(ip(t)); });
+    // points that have no neighbor (or every point, when a line is short) get a dot
+    const pts = lines.flatMap((l) => { const n = l.ys.filter(isFinite).length; return l.ys.map((v, k) => ({ g: l.g, k, v })).filter((p) => isFinite(p.v) && (n < 25 || (!isFinite(l.ys[p.k - 1]) && !isFinite(l.ys[p.k + 1])))); });
+    const cs = layer.selectAll('circle.pt').data(pts, (d) => d.g + '|' + d.k);
+    cs.exit().interrupt().transition().duration(300).attr('r', 0).remove();
+    cs.enter().append('circle').attr('class', 'pt').attr('r', 0).attr('cx', (d) => x(YEARS[d.k]) + bw / 2).attr('cy', (d) => d.v)
+      .merge(cs).attr('data-g', (d) => d.g).attr('fill', (d) => spec.color(d.g)).attr('stroke', css('--panel-solid')).attr('stroke-width', 1.5)
+      .transition(T()).delay((d) => 300 + d.k * 6).attr('r', 3.2).attr('cx', (d) => x(YEARS[d.k]) + bw / 2).attr('cy', (d) => d.v);
   }
-  const hl = f.g.selectAll('line.hover-line').data([0]).join('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', f.ih).style('opacity', 0);
-  f.g.selectAll('rect.hit').data(rows, (d) => d.y).join('rect').attr('class', 'hit').attr('fill', 'transparent')
-    .attr('x', (d) => x(d.y)).attr('width', x.step()).attr('y', 0).attr('height', f.ih)
-    .on('pointermove', (ev, r) => {
-      hl.attr('x1', x(r.y) + x.bandwidth() / 2).attr('x2', x(r.y) + x.bandwidth() / 2).style('opacity', 1);
-      const tot = isCount ? `${row('', 'Total', fmt(d3.sum(groups, (g) => r[g] || 0)))}` : '';
-      showTip(`<div class="t">${r.y}</div>${groups.filter((g) => isFinite(r[g]) && r[g]).map((g) => row(spec.color(g), g, m.fmt(r[g]))).join('')}${tot}`, ev);
+  // debris annotations: the largest groups of debris pieces in the view, named after the cataloged parent
+  const ann = [];
+  if (isCount) {
+    const cnt = new Map();
+    for (const i of ctx) if (D.type[i] === 2 && D.parent[i]) { const key = D.year[i] + '|' + D.parent[i]; cnt.set(key, (cnt.get(key) || 0) + 1); }
+    const ymax = y.domain()[1];
+    [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([key, c]) => {
+      const [yy, name] = [+key.split('|')[0], key.slice(key.indexOf('|') + 1)];
+      if (c < 250 || c < ymax * 0.08 || yy < Y0 || yy > Y1) return;
+      const top = d3.sum(groups, (g) => rows[yy - Y0][g] || 0);
+      ann.push({ key, name, c, cx: x(yy) + bw / 2, ty: y(top) });
+    });
+    ann.sort((a, b) => a.cx - b.cx);
+    ann.forEach((a, k) => {
+      a.ly = Math.max(-16, a.ty - 30);
+      const p = ann[k - 1];
+      if (p && a.cx - p.cx < 170 && Math.abs(a.ly - p.ly) < 28) a.ly = p.ly + 30 < a.ty - 8 ? p.ly + 30 : Math.max(-16, p.ly - 30);
+      a.anchor = a.cx > f.iw - 130 ? 'end' : a.cx < 110 ? 'start' : 'middle';
+    });
+  }
+  const ag = f.g.selectAll('g.anns').data([0]).join('g').attr('class', 'anns');
+  const as = ag.selectAll('g.ann').data(ann, (d) => d.key);
+  as.exit().transition().duration(250).attr('opacity', 0).remove();
+  const ae = as.enter().append('g').attr('class', 'ann').attr('opacity', 0);
+  ae.append('line'); ae.append('text').attr('class', 'n'); ae.append('text').attr('class', 's');
+  const am = ae.merge(as);
+  am.select('line').attr('x1', (d) => d.cx).attr('x2', (d) => d.cx).attr('y1', (d) => d.ty - 4).attr('y2', (d) => d.ly + 4);
+  am.select('text.n').attr('x', (d) => d.cx).attr('y', (d) => d.ly - 13).attr('text-anchor', (d) => d.anchor).text((d) => d.name);
+  am.select('text.s').attr('x', (d) => d.cx).attr('y', (d) => d.ly + 1).attr('text-anchor', (d) => d.anchor).text((d) => `${fmt(d.c)} debris pieces`);
+  am.transition().delay(700).duration(500).attr('opacity', 1);
+  // shade the years outside the filter
+  const sh = f.g.selectAll('g.shades').data([0]).join('g').attr('class', 'shades');
+  const x0 = x(S.y0), x1 = x(S.y1) + bw;
+  sh.selectAll('rect').data([[-2, x0 - 2], [x1 + 2, f.iw + 2]]).join('rect').attr('class', 'shade').attr('y', -34).attr('height', f.ih + 34)
+    .transition().duration(TC.brushing ? 0 : 450).attr('x', (d) => d[0]).attr('width', (d) => Math.max(0, d[1] - d[0]));
+  // brush
+  const yearAt = (px) => YEARS[clamp(Math.floor(px / x.step()), 0, YEARS.length - 1)];
+  const brush = d3.brushX().extent([[0, 0], [f.iw, f.ih]])
+    .on('start', (ev) => { if (ev.sourceEvent) TC.brushing = true; })
+    .on('brush', (ev) => {
+      if (TC.syncing || !ev.sourceEvent || !ev.selection) return;
+      const [a, b] = ev.selection;
+      if (setYears(yearAt(a + x.step() * 0.35), yearAt(Math.max(a, b - x.step() * 0.35)), 'brush')) { syncYears(); lightRender(); }
     })
-    .on('pointerleave', () => { hideTip(); hl.style('opacity', 0); })
-    .on('click', (ev, r) => { S.y0 = r.y; S.y1 = r.y; blip(800); update(); });
+    .on('end', (ev) => {
+      TC.brushing = false;
+      if (TC.syncing || !ev.sourceEvent) return;
+      const px = d3.pointer(ev.sourceEvent, f.g.node())[0];
+      const click = !ev.selection || (TC.downX !== null && Math.abs(px - TC.downX) < 3);
+      if (click) {
+        const yy = yearAt(px);
+        if (S.y0 === yy && S.y1 === yy) setYears(Y0, Y1, 'click'); else { setYears(yy, yy, 'click'); blip(800); }
+      } else {
+        const [a, b] = ev.selection; setYears(yearAt(a + x.step() * 0.35), yearAt(Math.max(a, b - x.step() * 0.35)), 'brush');
+      }
+      update();
+    });
+  const bg = f.g.selectAll('g.brush').data([0]).join('g').attr('class', 'brush');
+  bg.call(brush);
+  TC.syncing = true; bg.call(brush.move, S.y0 === Y0 && S.y1 === Y1 ? null : [x0, x1]); TC.syncing = false;
+  TC.x = x; TC.f = f; TC.brush = brush; TC.bg = bg;
+  f.svg.node().__down || (f.svg.node().addEventListener('pointerdown', (e) => { TC.downX = d3.pointer(e, TC.f.g.node())[0]; }, true), f.svg.node().__down = true);
+  // hover: a year line, the tooltip, and focus on the group under the pointer
+  const hl = f.g.selectAll('line.hover-line').data([0]).join('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', f.ih).style('opacity', 0).raise();
+  bg.raise();
+  f.svg.on('pointermove.hover', (ev) => {
+    const [mx, my] = d3.pointer(ev, f.g.node());
+    if (mx < 0 || mx > f.iw || my < -30 || my > f.ih) { hideTip(); hl.style('opacity', 0); setFocus(null); return; }
+    const k = clamp(Math.floor(mx / x.step()), 0, YEARS.length - 1), r = rows[k];
+    hl.attr('x1', x(r.y) + bw / 2).attr('x2', x(r.y) + bw / 2).style('opacity', 1);
+    let fg = null;
+    if (isCount) { const v = y.invert(my); let s = 0; for (const g of groups) { const w = r[g] || 0; if (w && v >= s && v <= s + w) { fg = g; break; } s += w; } }
+    else { let best = 24; for (const g of groups) { const v = r[g]; if (isFinite(v) && Math.abs(y(v) - my) < best) { best = Math.abs(y(v) - my); fg = g; } } }
+    setFocus(fg);
+    const tot = isCount ? row('', 'Total', fmt(d3.sum(groups, (g) => r[g] || 0))) : '';
+    const out = r.y < S.y0 || r.y > S.y1 ? '<div class="note">Outside the chosen years</div>' : '';
+    showTip(`<div class="t">${r.y}</div>${groups.filter((g) => isFinite(r[g]) && r[g]).map((g) => row(spec.color(g), g, m.fmt(r[g]), g === fg)).join('') || '<div class="note">No values</div>'}${tot}${out}`, ev);
+  }).on('pointerleave.hover', () => { hideTip(); hl.style('opacity', 0); setFocus(null); });
   legend('#lg-time', spec, groups.filter((g) => rows.some((r) => isFinite(r[g]) && r[g])));
-  emptyNote(f, !sel.length ? 'No objects match the filters' : rows.some((r) => groups.some((g) => isFinite(r[g]))) ? '' : 'Fewer than 3 values in every year');
+  emptyNote(f, !ctx.length ? 'No objects match the filters' : rows.some((r) => groups.some((g) => isFinite(r[g]))) ? '' : `Fewer than ${MIN_N} values in every year`);
+}
+function timeShade() {
+  if (!TC.f) return;
+  const x = TC.x, bw = x.bandwidth(), x0 = x(S.y0), x1 = x(S.y1) + bw;
+  TC.f.g.selectAll('g.shades rect').data([[-2, x0 - 2], [x1 + 2, TC.f.iw + 2]]).interrupt().attr('x', (d) => d[0]).attr('width', (d) => Math.max(0, d[1] - d[0]));
+  if (!TC.brushing) { TC.syncing = true; TC.bg.call(TC.brush.move, S.y0 === Y0 && S.y1 === Y1 ? null : [x0, x1]); TC.syncing = false; }
 }
 
-// Chart 2: measure by group, horizontal bars
+// Chart 2: measure by group, one labeled bar per row
 function chartBars(groupAcc, spec) {
   const m = M();
   $('#t-bars').textContent = `${m.label} by ${byLabel()}`;
+  const tot = d3.sum([...groupAcc.values()], (a) => a.n);
   const data = spec.order.map((g) => ({ g, v: measureOf(groupAcc.get(g), S.measure), n: groupAcc.get(g)?.n || 0 })).filter((d) => d.n > 0);
   if (S.by !== 'decade' && S.by !== 'status' && S.by !== 'regime') data.sort((a, b) => (isFinite(b.v) ? b.v : -1) - (isFinite(a.v) ? a.v : -1));
-  const h = Math.max(160, data.length * 34 + 10);
-  const f = frame('ch-bars', h, { t: 2, r: 70, b: 4, l: 132 });
-  const y = d3.scaleBand().domain(data.map((d) => d.g)).range([0, f.ih]).padding(0.28);
+  const scH = $('#ch-scatter').getBoundingClientRect().height + $('#lg-scatter').getBoundingClientRect().height + 8;
+  const h = Math.max(220, scH, data.length * 50);
+  const f = frame('ch-bars', h, { t: 4, r: 2, b: 4, l: 2 });
+  const step = Math.min(100, f.ih / Math.max(5, data.length)), barH = Math.min(16, step * 0.24);
   const x = d3.scaleLinear().domain([0, S.measure === 'orbit' ? 1 : (d3.max(data, (d) => (isFinite(d.v) ? d.v : 0)) || 1)]).range([0, f.iw]);
-  const g = f.g.selectAll('g.b').data(data, (d) => d.g).join((en) => { const e = en.append('g').attr('class', 'b').attr('opacity', 0); e.append('path'); e.append('text').attr('class', 'lbl nm'); e.append('text').attr('class', 'lbl-s val'); e.append('rect').attr('class', 'hit'); return e; });
-  g.transition(T()).attr('transform', (d) => `translate(0,${y(d.g)})`).attr('opacity', 1);
-  const bar = (w, bh) => (w < 1 ? '' : `M0,0H${Math.max(0, w - 3)}Q${w},0 ${w},3V${bh - 3}Q${w},${bh} ${Math.max(0, w - 3)},${bh}H0Z`);
-  g.select('path').attr('fill', (d) => spec.color(d.g)).transition(T()).attr('d', (d) => bar(isFinite(d.v) ? x(d.v) : 0, y.bandwidth()));
-  g.select('.nm').attr('x', -10).attr('y', y.bandwidth() / 2).attr('dy', '.35em').attr('text-anchor', 'end').text((d) => (d.g.length > 20 ? d.g.slice(0, 19) + '...' : d.g));
-  g.select('.val').attr('y', y.bandwidth() / 2).attr('dy', '.35em').text((d) => (isFinite(d.v) ? m.fmt(d.v) : 'too few')).transition(T()).attr('x', (d) => (isFinite(d.v) ? x(d.v) : 0) + 7);
-  g.select('.hit').attr('x', -132).attr('width', f.iw + 200).attr('height', y.bandwidth()).attr('fill', 'transparent')
-    .on('pointermove', (ev, d) => showTip(`<div class="t">${d.g}</div>${row(spec.color(d.g), m.label, isFinite(d.v) ? m.fmt(d.v) : 'fewer than 3 values')}${row('', 'Objects', fmt(d.n))}<div style="margin-top:4px;color:var(--ink-3)">${d.g === 'Other' ? '' : 'Click to filter to this group'}</div>`, ev))
-    .on('pointerleave', hideTip)
-    .on('click', (ev, d) => { hideTip(); drill(d.g, spec); });
+  const sel = f.g.selectAll('g.b').data(data, (d) => d.g);
+  sel.exit().interrupt().transition().duration(300).attr('opacity', 0).remove();
+  const en = sel.enter().append('g').attr('class', 'b').attr('opacity', 0).attr('transform', (d, k) => `translate(0,${k * step})`);
+  en.append('rect').attr('class', 'trk').attr('rx', barH / 2).attr('fill', css('--line'));
+  en.append('rect').attr('class', 'bar').attr('rx', barH / 2).attr('width', 0);
+  en.append('text').attr('class', 'lbl nm'); en.append('text').attr('class', 'lbl-s val'); en.append('text').attr('class', 'lbl sh');
+  en.append('rect').attr('class', 'hit').attr('fill', 'transparent');
+  const all = en.merge(sel).attr('data-g', (d) => d.g);
+  all.transition(T()).delay((d, k) => k * 45).attr('opacity', 1).attr('transform', (d, k) => `translate(0,${k * step})`);
+  const by = step * 0.5 + 4;
+  all.select('rect.trk').attr('x', 0).attr('y', by).attr('height', barH).attr('width', f.iw);
+  all.select('rect.bar').attr('y', by).attr('height', barH).attr('fill', (d) => spec.color(d.g))
+    .transition(T()).delay((d, k) => 80 + k * 45).attr('width', (d) => (isFinite(d.v) ? Math.max(barH, x(d.v)) : 0));
+  all.select('.nm').attr('x', 0).attr('y', by - 7).text((d) => (d.g.length > 30 ? d.g.slice(0, 29) + '...' : d.g));
+  all.select('.val').attr('x', f.iw).attr('y', by - 7).attr('text-anchor', 'end').text((d) => (isFinite(d.v) ? m.fmt(d.v) : 'too few values'));
+  all.select('.sh').attr('x', f.iw).attr('y', by - 7).attr('dx', function (d) { return -(this.previousSibling.getComputedTextLength ? this.previousSibling.getComputedTextLength() + 10 : 60); })
+    .attr('text-anchor', 'end').attr('fill', css('--ink-3')).text((d) => (S.measure === 'count' && tot ? pct(d.n / tot) : ''));
+  all.select('.hit').attr('x', 0).attr('y', 0).attr('width', f.iw).attr('height', step)
+    .on('pointermove', (ev, d) => { setFocus(d.g); showTip(`<div class="t">${d.g}</div>${S.measure === 'count' ? '' : row(spec.color(d.g), m.label, isFinite(d.v) ? m.fmt(d.v) : `fewer than ${MIN_N} values`)}${row(S.measure === 'count' ? spec.color(d.g) : '', 'Objects', fmt(d.n))}<div class="note">${d.g === 'Other' ? '' : 'Click to filter to this group'}</div>`, ev); })
+    .on('pointerleave', () => { hideTip(); setFocus(null); })
+    .on('click', (ev, d) => { hideTip(); setFocus(null); drill(d.g, spec); });
   emptyNote(f, data.length ? '' : 'No objects match the filters');
+}
+function applyGroupFilter(g, spec) {
+  if (S.by === 'type') S.type = new Set([g]);
+  else if (S.by === 'regime') S.regime = new Set([REG_KEYS.find((k) => REGIMES[k] === g)]);
+  else if (S.by === 'status') S.status = new Set([ST_KEYS.find((k) => STATUSES[k] === g)]);
+  else if (S.by === 'decade') { const d = parseInt(g, 10); S.y0 = Math.max(Y0, d); S.y1 = Math.min(Y1, d + 9); }
+  else if (S.by === 'owner' && spec.codeOfName?.[g]) S.owner = new Set([spec.codeOfName[g]]);
+  else if (S.by === 'site' && spec.codeOfName?.[g]) S.site = new Set([spec.codeOfName[g]]);
 }
 function drill(g, spec) {
   if (g === 'Other') return;
   blip(820);
-  if (S.by === 'type') { S.type = new Set([g]); }
-  else if (S.by === 'regime') { S.regime = new Set([Object.keys(REGIMES).find((k) => REGIMES[k] === g)]); }
-  else if (S.by === 'status') { S.status = new Set([Object.keys(STATUSES).find((k) => STATUSES[k] === g)]); }
-  else if (S.by === 'decade') { const d = parseInt(g, 10); S.y0 = Math.max(1957, d); S.y1 = Math.min(2026, d + 9); }
-  else if (S.by === 'owner') { S.owner = new Set([spec.codeOfName[g]]); }
-  else if (S.by === 'site') { S.site = new Set([spec.codeOfName[g]]); }
+  applyGroupFilter(g, spec);
+  emit('drill', { by: S.by, group: g });
   update();
 }
 
-// Chart 3: heatmap of group x decade
+// Chart 3: heatmap of group by decade
 function chartHeat(sel, spec) {
-  const m = M();
+  const m = M(), keep = needIdx();
   $('#t-heat').textContent = `${m.label} by ${byLabel()} and decade`;
   const decs = []; for (let d = Math.floor(S.y0 / 10) * 10; d <= S.y1; d += 10) decs.push(d);
   const cells = new Map();
-  for (const i of sel) { const k = spec.key(i) + '|' + Math.floor(D.year[i] / 10) * 10; let a = cells.get(k); if (!a) cells.set(k, a = acc()); add(a, i); }
-  const groups = spec.order.filter((g) => decs.some((d) => cells.get(g + '|' + d)));
-  const data = groups.flatMap((g) => decs.map((d) => { const a = cells.get(g + '|' + d); return { g, d, v: measureOf(a, S.measure), n: a?.n || 0 }; }));
-  const h = Math.max(170, groups.length * 30 + 34);
-  const f = frame('ch-heat', h, { t: 4, r: 4, b: 24, l: 108 });
-  const x = d3.scaleBand().domain(decs).range([0, f.iw]).padding(0.06);
-  const y = d3.scaleBand().domain(groups).range([0, f.ih]).padding(0.08);
+  for (const i of sel) { const k = spec.key(i) + '|' + Math.floor(D.year[i] / 10) * 10; let a = cells.get(k); if (!a) cells.set(k, a = acc(keep)); add(a, i); }
+  const order = spec.index.has('Other') ? spec.order : [...spec.order, 'Other'];
+  const groups = order.filter((g) => decs.some((d) => cells.get(g + '|' + d)));
+  const data = groups.flatMap((g, r) => decs.map((d, c) => { const a = cells.get(g + '|' + d); return { g, d, r, c, v: measureOf(a, S.measure), n: a?.n || 0 }; }));
+  const h = Math.max(150, groups.length * 38 + 30);
+  const f = frame('ch-heat', h, { t: 4, r: 4, b: 26, l: 200 });
+  const x = d3.scaleBand().domain(decs).range([0, f.iw]).padding(0.05);
+  const y = d3.scaleBand().domain(groups).range([0, f.ih]).padding(0.1);
   const vals = data.map((d) => d.v).filter(isFinite);
-  const col = d3.scaleSequential().domain([0, S.measure === 'orbit' ? 1 : d3.max(vals) || 1]).interpolator(d3.interpolateLab(css('--seq-0'), css('--seq-2')));
-  const colC = S.measure === 'count' ? d3.scaleSequentialSqrt().domain([0, d3.max(vals) || 1]).interpolator(d3.interpolateLab(css('--seq-0'), css('--seq-2'))) : col;
-  f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickFormat((d) => `${String(d).slice(2)}s`).tickSize(0).tickPadding(7)).select('.domain').remove();
-  f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').call(d3.axisLeft(y).tickSize(0).tickPadding(8).tickFormat((g) => (g.length > 16 ? g.slice(0, 15) + '...' : g))).select('.domain').remove();
-  const cell = f.g.selectAll('g.cell').data(data, (d) => d.g + d.d).join((en) => { const e = en.append('g').attr('class', 'cell'); e.append('rect').attr('rx', 3); e.append('text').attr('text-anchor', 'middle').attr('dy', '.35em'); return e; });
-  cell.attr('transform', (d) => `translate(${x(d.d)},${y(d.g)})`);
-  cell.select('rect').attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('class', 'hit').transition(T())
-    .attr('fill', (d) => (isFinite(d.v) && d.n ? colC(d.v) : 'transparent')).attr('stroke', (d) => (isFinite(d.v) && d.n ? 'none' : css('--line')));
-  const short = (v) => S.measure === 'count' ? (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k' : Math.round(v)) : S.measure === 'orbit' ? Math.round(v * 100) + '%' : S.measure === 'peri' ? (v >= 1000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v)) : v.toFixed(S.measure === 'life' ? 1 : 0);
-  cell.select('text').attr('x', x.bandwidth() / 2).attr('y', y.bandwidth() / 2)
+  const interp = d3.interpolateLab(css('--seq-0'), css('--seq-2'));
+  const colC = S.measure === 'count' ? d3.scaleSequentialSqrt(interp).domain([0, d3.max(vals) || 1])
+    : d3.scaleSequential(interp).domain(S.measure === 'orbit' ? [0, 1] : [d3.min(vals) ?? 0, d3.max(vals) || 1]);
+  f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickFormat((d) => `${d}s`).tickSize(0).tickPadding(8)).select('.domain').remove();
+  const ya = f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya');
+  ya.transition(T()).call(d3.axisLeft(y).tickSize(0).tickPadding(12).tickFormat((g) => (g.length > 30 ? g.slice(0, 29) + '...' : g))).on('end', function () { d3.select(this).select('.domain').remove(); });
+  ya.selectAll('.tick').attr('data-g', (g) => g);
+  const cs = f.g.selectAll('g.cell').data(data, (d) => d.g + '|' + d.d);
+  cs.exit().interrupt().transition().duration(300).attr('opacity', 0).remove();
+  const en = cs.enter().append('g').attr('class', 'cell').attr('opacity', 0).attr('transform', (d) => `translate(${x(d.d)},${y(d.g)})`);
+  en.append('rect').attr('rx', 3).attr('class', 'hit').attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('fill', 'transparent');
+  en.append('text').attr('text-anchor', 'middle').attr('dy', '.35em').style('pointer-events', 'none');
+  const all = en.merge(cs).attr('data-g', (d) => d.g);
+  all.transition(T()).delay((d) => d.c * 35 + d.r * 18).attr('opacity', 1).attr('transform', (d) => `translate(${x(d.d)},${y(d.g)})`);
+  all.select('rect').transition(T()).delay((d) => d.c * 35 + d.r * 18).attr('width', x.bandwidth()).attr('height', y.bandwidth())
+    .attr('fill', (d) => (isFinite(d.v) && d.n ? colC(d.v) : 'rgba(0,0,0,0)')).attr('stroke', (d) => (isFinite(d.v) && d.n ? 'none' : css('--line')));
+  const short = (v) => S.measure === 'count' ? fmt(Math.round(v)) : S.measure === 'orbit' ? Math.round(v * 100) + '%' : S.measure === 'peri' ? fmt(Math.round(v)) : v.toFixed(S.measure === 'life' ? 1 : 0);
+  all.select('text').attr('x', x.bandwidth() / 2).attr('y', y.bandwidth() / 2)
     .attr('fill', (d) => { if (!isFinite(d.v)) return 'transparent'; const c = d3.lab(colC(d.v)); return c.l > 55 ? '#10152b' : '#f4f6ff'; })
-    .style('font', `500 ${Math.min(12, x.bandwidth() / 3.2)}px Anybody`).text((d) => (isFinite(d.v) && d.n && x.bandwidth() > 22 ? short(d.v) : ''));
-  cell.select('rect').on('pointermove', (ev, d) => showTip(`<div class="t">${d.g}, ${d.d}s</div>${row('', m.label, isFinite(d.v) ? m.fmt(d.v) : 'no data')}${row('', 'Objects', fmt(d.n))}`, ev)).on('pointerleave', hideTip);
+    .style('font', `500 ${Math.min(13, x.bandwidth() / 3.6)}px Anybody`).text((d) => (isFinite(d.v) && d.n && x.bandwidth() > 26 ? short(d.v) : ''));
+  all.select('rect')
+    .on('pointermove', (ev, d) => { setFocus(d.g); showTip(`<div class="t">${d.g}, ${d.d}s</div>${S.measure === 'count' ? '' : row('', m.label, isFinite(d.v) ? m.fmt(d.v) : `fewer than ${MIN_N} values`)}${row('', 'Objects', fmt(d.n))}${d.n ? '<div class="note">Click to filter to this group and decade</div>' : ''}`, ev); })
+    .on('pointerleave', () => { hideTip(); setFocus(null); })
+    .on('click', (ev, d) => {
+      if (!d.n) return;
+      hideTip(); setFocus(null); blip(820);
+      if (d.g !== 'Other') applyGroupFilter(d.g, spec);
+      S.y0 = Math.max(S.y0, d.d); S.y1 = Math.min(S.y1, d.d + 9);
+      emit('drill', { by: S.by, group: d.g, decade: d.d }); update();
+    });
   emptyNote(f, data.length ? '' : 'No objects match the filters');
 }
 
-// Chart 4: altitude and inclination scatter on canvas, with a quadtree for hover
-let scatterQT = null, scatterPts = [];
-function chartScatter(sel, spec) {
-  const f = frame('ch-scatter', 300, { t: 8, r: 10, b: 28, l: 44 });
+// Chart 4: altitude and inclination, drawn with WebGL; a box brush filters, hover names the object and draws its orbit on the globe
+const SC = { dirty: false, until: 0 };
+const SC_H = 470, SC_M = { t: 8, r: 12, b: 28, l: 46 };
+const L0 = Math.log10(150), L1 = Math.log10(420000);
+function initScatter() {
+  const canvas = $('#sc-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const idx = []; for (let i = 0; i < D.n; i++) if (D.scat[i]) idx.push(i);
+  const n = idx.length;
+  const geom = new THREE.BufferGeometry();
+  const P = new Float32Array(n * 2), A = new Float32Array(n * 2), C0 = new Float32Array(n * 3), C1 = new Float32Array(n * 3), Gi = new Float32Array(n), Dl = new Float32Array(n);
+  idx.forEach((i, k) => { P[k * 2] = D.lalt[i]; P[k * 2 + 1] = D.inc[i]; Dl[k] = hash01(D.norad[i], 7); });
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  geom.setAttribute('aP', new THREE.BufferAttribute(P, 2));
+  const aA = new THREE.BufferAttribute(A, 2), aC0 = new THREE.BufferAttribute(C0, 3), aC1 = new THREE.BufferAttribute(C1, 3), aG = new THREE.BufferAttribute(Gi, 1);
+  [aA, aC0, aC1, aG].forEach((b) => b.setUsage(THREE.DynamicDrawUsage));
+  geom.setAttribute('aA', aA); geom.setAttribute('aC0', aC0); geom.setAttribute('aC1', aC1); geom.setAttribute('aG', aG); geom.setAttribute('aD', new THREE.BufferAttribute(Dl, 1));
+  const U = { uMix: { value: 1 }, uFocus: { value: -1 }, uFocusAmt: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uL: { value: new THREE.Vector2(L0, L1) } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `uniform float uMix, uFocus, uFocusAmt, uPR; uniform vec2 uL; attribute vec2 aP, aA; attribute vec3 aC0, aC1; attribute float aG, aD; varying vec4 vC;
+      void main(){
+        float t = clamp((uMix - aD * 0.35) / 0.65, 0.0, 1.0); t = t * t * (3.0 - 2.0 * t);
+        float a = mix(aA.x, aA.y, t);
+        if (a < 0.003) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+        float x = clamp((aP.x - uL.x) / (uL.y - uL.x), 0.0, 1.0) * 2.0 - 1.0; float y = aP.y / 180.0 * 2.0 - 1.0;
+        float moving = step(0.01, abs(aA.x - aA.y)) * (1.0 - abs(2.0 * t - 1.0));
+        y -= moving * 0.02 * sign(aA.x - aA.y);
+        gl_Position = vec4(x, y, 0.0, 1.0);
+        float isF = 1.0 - step(0.5, abs(aG - uFocus));
+        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.07, 2.2, isF), uFocusAmt);
+        vC = vec4(mix(aC0, aC1, t), a * f);
+        gl_PointSize = uPR * (2.3 + 2.0 * moving + 1.0 * isF * uFocusAmt);
+      }`,
+    fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; float k = 1.0 - smoothstep(0.15, 0.5, d); gl_FragColor = vec4(vC.rgb * vC.a * k * 0.5, 1.0); }`,
+  });
+  const scene = new THREE.Scene(); const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; scene.add(pts);
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false });
+  // density to color: brightness saturates, hue stays
+  const post = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms: { tAcc: { value: rt.texture }, uBg: { value: new THREE.Vector3(...rgb01(css('--viewport'))) } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `uniform sampler2D tAcc; uniform vec3 uBg; varying vec2 vUv;
+      void main(){ vec3 a = texture2D(tAcc, vUv).rgb; float L = max(max(a.r, a.g), a.b);
+        vec3 c = L > 0.0 ? a * (1.0 - exp(-L * 1.7)) / L : vec3(0.0);
+        c = mix(c, vec3(1.0), smoothstep(2.5, 14.0, L) * 0.4);
+        gl_FragColor = vec4(uBg + c, 1.0); }`,
+    depthTest: false, depthWrite: false,
+  }));
+  const postScene = new THREE.Scene(); postScene.add(post);
+  Object.assign(SC, { renderer, scene, cam, rt, postScene, idx, n, aA, aC0, aC1, aG, U, qt: null, qtDirty: true });
+  gsap.ticker.add(() => { if (SC.dirty || performance.now() < SC.until) { SC.dirty = false; drawScatter(); } });
+}
+function drawScatter() {
+  const { renderer, rt } = SC;
+  renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(SC.scene, SC.cam);
+  renderer.setRenderTarget(null); renderer.render(SC.postScene, SC.cam);
+}
+const smooth = (t) => t * t * (3 - 2 * t);
+function chartScatter(spec) {
+  const f = frame('ch-scatter', SC_H, SC_M);
   const x = d3.scaleLog().domain([150, 420000]).range([0, f.iw]).clamp(true);
   const y = d3.scaleLinear().domain([0, 180]).range([f.ih, 0]);
-  f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').call(d3.axisLeft(y).tickValues([0, 30, 60, 90, 120, 150, 180]).tickSize(-f.iw).tickFormat(''));
+  f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').call(d3.axisLeft(y).tickValues([0, 30, 60, 90, 120, 150, 180]).tickSize(-f.iw).tickFormat('')).attr('opacity', 0.55);
   f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').call(d3.axisLeft(y).tickValues([0, 30, 60, 90, 120, 150, 180]).tickSize(0).tickPadding(8)).select('.domain').remove();
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`)
-    .call(d3.axisBottom(x).tickValues([200, 500, 1000, 2000, 5000, 20000, 35786, 100000, 400000]).tickFormat((v) => (v === 35786 ? 'GEO' : v >= 1000 ? `${v / 1000}k` : v)).tickSize(0).tickPadding(8)).select('.domain').remove();
-  const cv = $('#sc-canvas'); const dpr = Math.min(devicePixelRatio, 2);
-  cv.width = f.iw * dpr; cv.height = f.ih * dpr; cv.style.width = f.iw + 'px'; cv.style.height = f.ih + 'px'; cv.style.left = '44px'; cv.style.top = '8px';
-  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, f.iw, f.ih);
-  scatterPts = [];
-  const byGroup = new Map();
-  for (const i of sel) {
-    if (!isFinite(D.peri[i]) || !isFinite(D.inc[i]) || !D.earth[i]) continue;
-    const alt = (D.peri[i] + D.apo[i]) / 2; if (alt < 150) continue;
-    const g = spec.key(i); let a = byGroup.get(g); if (!a) byGroup.set(g, a = []); a.push(i);
+    .call(d3.axisBottom(x).tickValues([200, 500, 1000, 2000, 5000, 20000, 35786, 100000, 400000]).tickFormat((v) => (v === 35786 ? 'GEO' : v >= 1000 ? `${fmt(v / 1000)}k km` : `${v} km`)).tickSize(0).tickPadding(8)).select('.domain').remove();
+  // canvas covers the plot area exactly
+  const cv = $('#sc-canvas');
+  if (SC.w !== f.iw || SC.h !== f.ih) {
+    SC.w = f.iw; SC.h = f.ih; SC.renderer.setSize(f.iw, f.ih, false);
+    const pr = SC.renderer.getPixelRatio(); SC.rt.setSize(Math.round(f.iw * pr), Math.round(f.ih * pr));
   }
-  ctx.globalCompositeOperation = 'lighter';
-  const order = [...byGroup.keys()].sort((a, b) => byGroup.get(b).length - byGroup.get(a).length);
-  for (const g of order) {
-    const c = d3.color(spec.color(g)); c.opacity = 0.22; ctx.fillStyle = c.formatRgb();
-    for (const i of byGroup.get(g)) {
-      const px = x((D.peri[i] + D.apo[i]) / 2), py = y(D.inc[i]);
-      ctx.fillRect(px - 1, py - 1, 2, 2); scatterPts.push([px, py, i, g]);
+  cv.style.width = f.iw + 'px'; cv.style.height = f.ih + 'px'; cv.style.left = SC_M.l + 'px'; cv.style.top = SC_M.t + 'px';
+  // next state of every point: in the view, dimmed context outside a box, or gone
+  const A = SC.aA.array, C0 = SC.aC0.array, C1 = SC.aC1.array, Gv = SC.aG.array;
+  const mix = SC.U.uMix.value, cols = new Map();
+  const colOf = (k) => { let v = cols.get(k); if (!v) { v = rgb01(k >= 0 ? spec.color(spec.order[k]) : css('--s-other')); cols.set(k, v); } return v; };
+  const counts = new Map(); let shown = 0;
+  for (let k = 0; k < SC.n; k++) {
+    const i = SC.idx[k], v = VIS[i];
+    const t = smooth(clamp((mix - hash01(D.norad[i], 7) * 0.35) / 0.65, 0, 1));
+    A[k * 2] = A[k * 2] + (A[k * 2 + 1] - A[k * 2]) * t;
+    for (let j = 0; j < 3; j++) C0[k * 3 + j] = C0[k * 3 + j] + (C1[k * 3 + j] - C0[k * 3 + j]) * t;
+    const on = (v & 3) === 3;
+    const a = on ? ((v & 4) ? 1 : 0.13) : 0;
+    A[k * 2 + 1] = a;
+    if (on) {
+      const g = GI[i], col = colOf(g); C1[k * 3] = col[0]; C1[k * 3 + 1] = col[1]; C1[k * 3 + 2] = col[2]; Gv[k] = g;
+      if (A[k * 2] < 0.003) { C0[k * 3] = col[0]; C0[k * 3 + 1] = col[1]; C0[k * 3 + 2] = col[2]; }
+      if (v & 4) { shown++; counts.set(g, (counts.get(g) || 0) + 1); }
     }
   }
-  scatterQT = d3.quadtree().x((d) => d[0]).y((d) => d[1]).addAll(scatterPts);
-  const hit = f.g.selectAll('rect.hit').data([0]).join('rect').attr('class', 'hit').attr('width', f.iw).attr('height', f.ih).attr('fill', 'transparent');
-  const ring = f.g.selectAll('circle.pick').data([0]).join('circle').attr('class', 'pick').attr('r', 6).attr('fill', 'none').attr('stroke', css('--pencil')).attr('stroke-width', 1.5).style('opacity', 0);
-  hit.on('pointermove', (ev) => {
-    const [mx, my] = d3.pointer(ev); const p = scatterQT.find(mx, my, 14);
-    if (!p) { hideTip(); ring.style('opacity', 0); return; }
+  SC.aA.needsUpdate = SC.aC0.needsUpdate = SC.aC1.needsUpdate = SC.aG.needsUpdate = true;
+  SC.U.uMix.value = 0; gsap.to(SC.U.uMix, { value: 1, duration: 1.1, ease: 'none', overwrite: true });
+  SC.until = performance.now() + 1300; SC.dirty = true; SC.qtDirty = true; SC.x = x; SC.y = y; SC.f = f;
+  // box brush
+  const brush = d3.brush().extent([[0, 0], [f.iw, f.ih]]).on('end', (ev) => {
+    if (SC.syncing || !ev.sourceEvent) return;
+    const s = ev.selection;
+    if (!s || Math.abs(s[1][0] - s[0][0]) < 4 || Math.abs(s[1][1] - s[0][1]) < 4) {
+      if (S.box) { S.box = null; emit('box', { box: null }); blip(420); update(); }
+      else { SC.syncing = true; bg.call(brush.move, null); SC.syncing = false; }
+      return;
+    }
+    const r3 = (v) => +d3.format('.3~r')(v);
+    S.box = [r3(x.invert(s[0][0])), r3(x.invert(s[1][0])), +y.invert(s[1][1]).toFixed(1), +y.invert(s[0][1]).toFixed(1)];
+    emit('box', { box: S.box }); blip(760); update();
+  });
+  const bg = f.g.selectAll('g.brush').data([0]).join('g').attr('class', 'brush').call(brush);
+  SC.syncing = true; bg.call(brush.move, S.box ? [[x(S.box[0]), y(S.box[3])], [x(S.box[1]), y(S.box[2])]] : null); SC.syncing = false;
+  const ring = f.g.selectAll('circle.pick').data([0]).join('circle').attr('class', 'pick').attr('r', 7).attr('fill', 'none').attr('stroke', css('--pencil')).attr('stroke-width', 1.6).style('opacity', 0).raise();
+  let lastObj = -1;
+  f.svg.on('pointermove.hover', (ev) => {
+    const [mx, my] = d3.pointer(ev, f.g.node());
+    if (ev.buttons) { hideTip(); ring.style('opacity', 0); return; }
+    if (SC.qtDirty) {
+      const pts = [];
+      for (let k = 0; k < SC.n; k++) { const i = SC.idx[k]; if (VIS[i] === 7 || (VIS[i] === 3 && !S.box)) pts.push([x(D.alt[i]), y(D.inc[i]), i]); }
+      SC.qt = d3.quadtree().x((d) => d[0]).y((d) => d[1]).addAll(pts); SC.qtDirty = false;
+    }
+    const p = mx >= 0 && my >= 0 && mx <= f.iw && my <= f.ih ? SC.qt.find(mx, my, 12) : null;
+    if (!p) { hideTip(); ring.style('opacity', 0); if (lastObj >= 0) { lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } return; }
     const i = p[2]; ring.attr('cx', p[0]).attr('cy', p[1]).style('opacity', 1);
-    showTip(`<div class="t">${D.name[i]}</div>${row(spec.color(p[3]), S.by === 'type' ? 'Type' : BYS.find((b) => b.id === S.by).label, p[3])}${row('', 'Owner', OWNER_NAME(D.owner[i]))}${row('', 'Launched', D.launchS[i])}${row('', 'Orbit', `${fmt(D.peri[i])} by ${fmt(D.apo[i])} km`)}${row('', 'Inclination', D.inc[i].toFixed(1) + ' deg')}`, ev);
-  }).on('pointerleave', () => { hideTip(); ring.style('opacity', 0); });
-  emptyNote(f, scatterPts.length ? '' : sel.length ? 'No object in the view has a cataloged Earth orbit' : 'No objects match the filters');
-  legend('#lg-scatter', spec, order.slice(0, 8).sort((a, b) => spec.order.indexOf(a) - spec.order.indexOf(b)));
+    const g = spec.key(i);
+    showTip(`<div class="t">${D.name[i]}</div>${row(spec.color(g), BYS.find((b) => b.id === S.by).label, g)}${row('', 'Owner', OWNER_NAME(D.owner[i]))}${row('', 'Launched', D.launchS[i])}${row('', 'Orbit', `${fmt(D.peri[i])} by ${fmt(D.apo[i])} km`)}${row('', 'Inclination', D.inc[i].toFixed(1) + ' deg')}<div class="note">${D.orb[i] ? 'Its orbit is drawn on the globe' : 'Reentered; the globe shows its last cataloged orbit'}</div>`, ev);
+    if (i !== lastObj) { lastObj = i; globeOrbit(i); emit('object', { norad: D.norad[i], name: D.name[i] }); }
+  }).on('pointerleave.hover', () => { hideTip(); ring.style('opacity', 0); if (lastObj >= 0) { lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } });
+  $('#n-scatter').innerHTML = S.box
+    ? `Box: ${fmt(S.box[0])} to ${fmt(S.box[1])} km, ${S.box[2]} to ${S.box[3]} deg. <button id="box-clear">Clear box</button>`
+    : 'Drag a box to filter. Mean altitude on a log scale';
+  if (S.box) $('#box-clear').addEventListener('click', () => { S.box = null; emit('box', { box: null }); blip(420); update(); });
+  const order = spec.order.filter((g, k) => counts.get(k));
+  if (counts.get(-1)) order.push('Other');
+  legend('#lg-scatter', spec, order.slice(0, 9));
+  emptyNote(f, shown ? '' : VIS.some((v) => (v & 3) === 3) ? 'No object in the view has a cataloged Earth orbit' : 'No objects match the filters');
 }
 
 // Table: the numbers behind the view, one row per group
 let sortKey = 'n', sortDir = -1, lastTable = [];
+const MCOL = { count: 'n', orbit: 'orbitPct', peri: 'peri', inc: 'inc', life: 'life' };
 function table(groupAcc, all, spec) {
   $('#t-table').textContent = `The numbers behind the view, by ${byLabel()}`;
   const cols = [
     ['g', BYS.find((b) => b.id === S.by).label], ['n', 'Objects'], ['share', 'Share of view'], ['orbit', 'In Earth orbit'],
     ['orbitPct', 'Share in Earth orbit'], ['active', 'Active payloads'], ['peri', 'Median perigee, km'], ['inc', 'Median inclination, deg'], ['life', 'Median years in orbit'],
   ];
-  const rowOf = (g, a) => ({ g, n: a.n, share: a.n / (all.n || 1), orbit: a.orbit, orbitPct: a.orbit / a.n, active: a.active, peri: measureOf(a, 'peri'), inc: measureOf(a, 'inc'), life: measureOf(a, 'life') });
-  let rows = spec.order.filter((g) => groupAcc.get(g)?.n).map((g) => rowOf(g, groupAcc.get(g)));
+  const rowOf = (g, a) => ({ g, n: a.n, share: a.n / (all.n || 1), orbit: a.orbit, orbitPct: a.orbit / a.n, active: a.active, peri: measureOf(a, 'peri', 1), inc: measureOf(a, 'inc', 1), life: measureOf(a, 'life', 1) });
+  const order = spec.index.has('Other') ? spec.order : [...spec.order, 'Other'];
+  let rows = order.filter((g) => groupAcc.get(g)?.n).map((g) => rowOf(g, groupAcc.get(g)));
   rows.sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (sortKey === 'g') return sortDir * String(x).localeCompare(String(y)); return sortDir * ((isFinite(x) ? x : -Infinity) - (isFinite(y) ? y : -Infinity)); });
   lastTable = { cols, rows, total: all.n ? rowOf('All objects in the view', all) : null };
-  const maxN = d3.max(rows, (r) => r.n) || 1;
+  const maxN = d3.max(rows, (r) => r.n) || 1, mc = MCOL[S.measure];
   const cell = (k, r) => {
     const v = r[k];
     if (k === 'g') return `<span class="sw" style="background:${spec.color(v)}"></span>${v}`;
     if (!isFinite(v)) return '<span style="color:var(--ink-3)">n/a</span>';
-    if (k === 'n') return `<b>${fmt(v)}</b><span class="bar" style="width:${Math.round(v / maxN * 60)}px"></span>`;
+    if (k === 'n') return `<b>${fmt(v)}</b><span class="bar" style="width:${Math.round(v / maxN * 60)}px;background:${spec.color(r.g)}"></span>`;
     if (k === 'share' || k === 'orbitPct') return pct(v);
     if (k === 'peri') return fmt(Math.round(v));
     if (k === 'inc' || k === 'life') return v.toFixed(1);
@@ -843,10 +1331,11 @@ function table(groupAcc, all, spec) {
   };
   const emptyRow = rows.length ? '' : `<tr><td colspan="${cols.length}" class="empty-row">No objects match the filters</td></tr>`;
   const tbl = $('#tbl');
-  tbl.innerHTML = `<thead><tr>${cols.map(([k, l]) => `<th class="${k === sortKey ? 'sorted' : ''}"><button data-k="${k}">${l}<span class="arr">${k === sortKey ? (sortDir < 0 ? 'v' : '^') : ''}</span></button></th>`).join('')}</tr></thead>
-    <tbody>${emptyRow}${rows.map((r) => `<tr>${cols.map(([k]) => `<td>${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody>
-    ${lastTable.total ? `<tfoot><tr>${cols.map(([k]) => `<td>${k === 'g' ? 'All objects in the view' : k === 'n' ? fmt(lastTable.total.n) : cell(k, lastTable.total).replace(/<span class="bar"[^>]*><\/span>/, '')}</td>`).join('')}</tr></tfoot>` : ''}`;
-  $$('th button', tbl).forEach((b) => b.addEventListener('click', () => { const k = b.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === 'g' ? 1 : -1; } blip(640); table(groupAcc, all, spec); }));
+  tbl.innerHTML = `<thead><tr>${cols.map(([k, l]) => `<th class="${k === sortKey ? 'sorted' : ''}${k === mc ? ' mcol' : ''}"><button data-k="${k}">${l}<span class="arr">${k === sortKey ? (sortDir < 0 ? 'v' : '^') : ''}</span></button></th>`).join('')}</tr></thead>
+    <tbody>${emptyRow}${rows.map((r) => `<tr data-g="${r.g}">${cols.map(([k]) => `<td${k === mc ? ' class="mcol"' : ''}>${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody>
+    ${lastTable.total ? `<tfoot><tr>${cols.map(([k]) => `<td${k === mc ? ' class="mcol"' : ''}>${k === 'g' ? 'All objects in the view' : k === 'n' ? fmt(lastTable.total.n) : cell(k, lastTable.total).replace(/<span class="bar"[^>]*><\/span>/, '')}</td>`).join('')}</tr></tfoot>` : ''}`;
+  $$('th button', tbl).forEach((b) => b.addEventListener('click', () => { const k = b.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === 'g' ? 1 : -1; } blip(640); table(groupAcc, all, spec); applyFocus(); }));
+  $$('tbody tr[data-g]', tbl).forEach((tr) => { tr.addEventListener('pointerenter', () => setFocus(tr.dataset.g)); tr.addEventListener('pointerleave', () => setFocus(null)); });
 }
 $('#dl').addEventListener('click', () => {
   const { cols, rows, total } = lastTable;
@@ -860,14 +1349,33 @@ $('#dl').addEventListener('click', () => {
 });
 
 /* ================= The globe of the current view ================= */
+// Objects that leave the view fall and burn up; objects that join it rise from the surface.
 const G = {};
+function keplerXYZ(o, t, out) {
+  const [a, e, inc, raan, argp, M0, nn] = o;
+  const Mm = ((M0 + nn * t) % (Math.PI * 2)); let E = Mm + e * Math.sin(Mm);
+  for (let k = 0; k < 4; k++) E = E - (E - e * Math.sin(E) - Mm) / (1 - e * Math.cos(E));
+  return orbitPoint(o, E, out);
+}
+function orbitPoint(o, E, out) {
+  const [a, e, inc, raan, argp] = o;
+  const xp = a * (Math.cos(E) - e), yp = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  const cw = Math.cos(argp), sw = Math.sin(argp), ci = Math.cos(inc), si = Math.sin(inc), cO = Math.cos(raan), sO = Math.sin(raan);
+  const x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw, y2 = y1 * ci, z2 = y1 * si;
+  out.set(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO)); return out;
+}
+function elements(i) {
+  const rp = Math.max(D.peri[i], 80) + R_KM, ra = Math.max(D.apo[i], 80) + R_KM, a = (rp + ra) / 2, e = Math.min((ra - rp) / (ra + rp), 0.97);
+  return [a / R_KM, e, D.inc[i] * Math.PI / 180, hash01(D.norad[i], 1) * Math.PI * 2, hash01(D.norad[i], 2) * Math.PI * 2, hash01(D.norad[i], 3) * Math.PI * 2, Math.sqrt(MU / (a * a * a))];
+}
 function initGlobe(landImg) {
   const canvas = $('#globe');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setClearColor(rawColor(css('--viewport')), 1);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 500);
-  const U = { uTime: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() } };
+  const U = { uTime: { value: 0 }, uMix: { value: 1 }, uFocus: { value: -1 }, uFocusAmt: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() } };
   const tex = new THREE.Texture(landImg); tex.needsUpdate = true; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   const earthMat = new THREE.ShaderMaterial({
     uniforms: Object.assign({ uLand: { value: tex } }, U),
@@ -885,112 +1393,293 @@ function initGlobe(landImg) {
   });
   const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 72), earthMat); scene.add(earth);
   // points for every object with an Earth orbit; visibility and color come from the view
-  const idx = []; for (let i = 0; i < D.n; i++) if (D.earth[i] && D.inOrbit[i] && isFinite(D.peri[i]) && isFinite(D.apo[i]) && isFinite(D.inc[i])) idx.push(i);
+  const idx = []; for (let i = 0; i < D.n; i++) if (D.orb[i] && isFinite(D.peri[i]) && isFinite(D.apo[i]) && isFinite(D.inc[i])) idx.push(i);
   const n = idx.length, orb = new Float32Array(n * 4), orb2 = new Float32Array(n * 4);
-  const hash01 = (a, k) => { let x = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(k + 1, 0xc2b2ae35); x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
-  idx.forEach((i, k) => {
-    const rp = Math.max(D.peri[i], 80) + R_KM, ra = Math.max(D.apo[i], 80) + R_KM, a = (rp + ra) / 2, e = Math.min((ra - rp) / (ra + rp), 0.97);
-    orb.set([a / R_KM, e, D.inc[i] * Math.PI / 180, hash01(D.norad[i], 1) * Math.PI * 2], k * 4);
-    orb2.set([hash01(D.norad[i], 2) * Math.PI * 2, hash01(D.norad[i], 3) * Math.PI * 2, Math.sqrt(MU / (a * a * a)), 0], k * 4);
-  });
-  const col = new THREE.BufferAttribute(new Float32Array(n * 4), 4); col.setUsage(THREE.DynamicDrawUsage);
+  idx.forEach((i, k) => { const el = elements(i); orb.set([el[0], el[1], el[2], el[3]], k * 4); orb2.set([el[4], el[5], el[6], hash01(D.norad[i], 5)], k * 4); });
+  const dyn = (arr, s) => { const b = new THREE.BufferAttribute(arr, s); b.setUsage(THREE.DynamicDrawUsage); return b; };
+  const aA = dyn(new Float32Array(n * 2), 2), aC0 = dyn(new Float32Array(n * 3), 3), aC1 = dyn(new Float32Array(n * 3), 3), aG = dyn(new Float32Array(n), 1);
   const geom = new THREE.BufferGeometry();
   geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-  geom.setAttribute('aOrb', new THREE.BufferAttribute(orb, 4)); geom.setAttribute('aOrb2', new THREE.BufferAttribute(orb2, 4)); geom.setAttribute('aCol', col);
+  geom.setAttribute('aOrb', new THREE.BufferAttribute(orb, 4)); geom.setAttribute('aOrb2', new THREE.BufferAttribute(orb2, 4));
+  geom.setAttribute('aA', aA); geom.setAttribute('aC0', aC0); geom.setAttribute('aC1', aC1); geom.setAttribute('aG', aG);
   const mat = new THREE.ShaderMaterial({
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    vertexShader: `uniform float uTime; uniform float uPR; attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec4 aCol; varying vec4 vC;
-      void main(){ if (aCol.a < 0.01) { gl_Position = vec4(2.0); gl_PointSize = 0.0; return; }
+    vertexShader: `uniform float uTime, uPR, uMix, uFocus, uFocusAmt; attribute vec4 aOrb, aOrb2; attribute vec2 aA; attribute vec3 aC0, aC1; attribute float aG; varying vec4 vC;
+      void main(){
+        float t = clamp((uMix - aOrb2.w * 0.45) / 0.55, 0.0, 1.0); float te = t * t * (3.0 - 2.0 * t);
+        if (aA.x < 0.01 && aA.y < 0.01) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
         float a = aOrb.x, e = aOrb.y, inc = aOrb.z, raan = aOrb.w, argp = aOrb2.x; float M = mod(aOrb2.y + aOrb2.z * uTime, 6.2831853); float E = M + e * sin(M);
         for (int k = 0; k < 4; k++) E = E - (E - e * sin(E) - M) / (1.0 - e * cos(E));
         float xp = a * (cos(E) - e), yp = a * sqrt(1.0 - e * e) * sin(E); float cw = cos(argp), sw = sin(argp), ci = cos(inc), si = sin(inc), cO = cos(raan), sO = sin(raan);
         float x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw; float y2 = y1 * ci, z2 = y1 * si;
-        vec4 mv = modelViewMatrix * vec4(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO), 1.0); gl_Position = projectionMatrix * mv;
-        vC = aCol; gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR); }`,
+        vec3 p = vec3(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO)); float r = length(p); vec3 dir = p / r;
+        float alpha = mix(aA.x, aA.y, te), burn = 0.0;
+        if (aA.x > 0.5 && aA.y < 0.5) { float s = te; p = dir * mix(r, 0.99, s * s * s); burn = smoothstep(0.0, 0.3, s); alpha = 1.0 - smoothstep(0.75, 1.0, s); }
+        else if (aA.x < 0.5 && aA.y > 0.5) { float s = 1.0 - pow(1.0 - te, 3.0); p = dir * mix(1.0, r, s); alpha = smoothstep(0.0, 0.2, te); }
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
+        float isF = 1.0 - step(0.5, abs(aG - uFocus));
+        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.08, 1.8, isF), uFocusAmt);
+        vec3 col = mix(mix(aC0, aC1, te), vec3(1.0, 0.28, 0.03), burn);
+        vC = vec4(col, alpha * f);
+        gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR) * (1.0 + burn * 0.8 + isF * uFocusAmt * 0.6);
+      }`,
     fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
-      vec3 cc = pow(vC.rgb, vec3(0.4545));
-      float a = pow(1.0 - smoothstep(0.0, 0.5, d), 1.5); gl_FragColor = vec4(cc * a * 1.2, a); }`,
+      vec3 cc = pow(max(vC.rgb, 0.0), vec3(0.4545)); float a = pow(1.0 - smoothstep(0.0, 0.5, d), 1.5) * vC.a; gl_FragColor = vec4(cc * a * 1.2, a); }`,
   });
   const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; scene.add(pts);
   const halo = new THREE.Mesh(new THREE.SphereGeometry(1.08, 64, 48), new THREE.ShaderMaterial({
     uniforms: U, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: `varying vec3 vN; varying vec3 vWP; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-    fragmentShader: `varying vec3 vN; varying vec3 vWP; void main(){ float r = dot(normalize(vN), normalize(cameraPosition - vWP)); float i = pow(smoothstep(0.0, 0.62, r), 2.2) * smoothstep(1.0, 0.55, r); gl_FragColor = vec4(vec3(0.2, 0.45, 1.0) * i * 0.8, i); }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vWP; void main(){ float r = dot(normalize(vN), normalize(cameraPosition - vWP)); float i = pow(smoothstep(0.0, 0.62, r), 2.2) * smoothstep(1.0, 0.55, r); gl_FragColor = vec4(vec3(0.2, 0.45, 1.0) * i * 0.55, i); }`,
   }));
   scene.add(halo);
-  Object.assign(G, { renderer, scene, camera, U, earth, idx, col, mat, dist: 4.2, azim: 0.6, elev: 0.35, vaz: 0, vel: 0 });
+  // the orbit of the object under the pointer in the scatter
+  const oGeom = new THREE.BufferGeometry(); oGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(257 * 3), 3));
+  const oMat = new THREE.LineBasicMaterial({ color: rawColor(css('--pencil')), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const oLine = new THREE.Line(oGeom, oMat); oLine.frustumCulled = false; scene.add(oLine);
+  const mGeom = new THREE.BufferGeometry(); mGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3));
+  const marker = new THREE.Points(mGeom, new THREE.ShaderMaterial({
+    uniforms: { uPR: U.uPR, uO: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `uniform float uPR; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = 22.0 * uPR; }`,
+    fragmentShader: `uniform float uO; void main(){ float d = length(gl_PointCoord - 0.5); float a = (smoothstep(0.5, 0.0, d) * 0.5 + smoothstep(0.12, 0.0, d)) * uO; gl_FragColor = vec4(vec3(1.0, 0.55, 0.6) * a, a); }`,
+  }));
+  marker.frustumCulled = false; scene.add(marker);
+  // post: bloom, then a light chromatic aberration, grain and vignette
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.4, 0.8); composer.addPass(bloom);
+  const fin = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform vec2 uRes; varying vec2 vUv;
+      void main(){ vec2 c = vUv - 0.5; float d = dot(c, c); vec2 off = c * d * 0.018;
+        vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+        float n = fract(sin(dot(floor(vUv * uRes) + fract(uTime) * 91.7, vec2(12.9898, 78.233))) * 43758.5453);
+        col += (n - 0.5) * 0.03; col *= 1.0 - d * 0.75;
+        // the renderer encodes this pass to sRGB on the way to the screen; hand it linear values
+        gl_FragColor = vec4(pow(max(col, 0.0), vec3(2.2)), 1.0); }`,
+  });
+  composer.addPass(fin);
+  Object.assign(G, { renderer, composer, bloom, fin, scene, camera, U, earth, idx, n, aA, aC0, aC1, aG, oLine, oGeom, oMat, marker, dist: 9, target: 4.2, fit: 0, azim: 0.6, elev: 0.35, vaz: 0, vel: 0, sim: 0, armed: false, hover: -1 });
   const wrap = $('#globe-wrap');
-  const size = () => { const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
-  size(); addEventListener('resize', size);
+  G.size = () => { const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); fin.uniforms.uRes.value.set(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+  G.size();
   let dragging = false, lx = 0, ly = 0;
-  canvas.addEventListener('pointerdown', (e) => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; G.armed = true; $('#globe-hint').style.opacity = 0; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => { if (!dragging) return; G.vaz = -(e.clientX - lx) * 0.006; G.vel = (e.clientY - ly) * 0.005; lx = e.clientX; ly = e.clientY; });
   canvas.addEventListener('pointerup', () => { dragging = false; });
-  canvas.addEventListener('wheel', (e) => { e.preventDefault(); G.dist = Math.max(2.2, Math.min(40, G.dist * (1 + e.deltaY * 0.001))); }, { passive: false });
-  let last = performance.now(), sim = 0;
+  canvas.addEventListener('pointerleave', () => { if (!dragging) { G.armed = false; $('#globe-hint').style.opacity = 1; } });
+  // scrolling passes through to the page unless the globe was clicked or Ctrl is held
+  canvas.addEventListener('wheel', (e) => { if (!G.armed && !e.ctrlKey) return; e.preventDefault(); G.target = clamp(G.target * (1 + e.deltaY * 0.001), 2.2, 30); G.userZoom = true; }, { passive: false });
+  let last = performance.now();
+  const tmp = new THREE.Vector3();
   const loop = (now) => {
-    const dt = Math.min((now - last) / 1000, 0.05); last = now; sim += dt * 60; U.uTime.value = sim;
-    earth.rotation.y = sim * 7.2921e-5 + 2.1;
-    G.azim += 0.05 * dt + G.vaz; G.elev = Math.max(-1.4, Math.min(1.4, G.elev + G.vel)); G.vaz *= 0.92; G.vel *= 0.9;
+    const dt = Math.min((now - last) / 1000, 0.05); last = now; G.sim += dt * 60; U.uTime.value = G.sim; fin.uniforms.uTime.value = now / 1000;
+    earth.rotation.y = G.sim * 7.2921e-5 + 2.1;
+    G.azim += 0.05 * dt + G.vaz; G.elev = clamp(G.elev + G.vel, -1.4, 1.4); G.vaz *= 0.92; G.vel *= 0.9;
+    const want = Math.max(G.target, G.fit); G.dist += (want - G.dist) * (1 - Math.exp(-dt * 2.4));
     camera.position.set(G.dist * Math.cos(G.elev) * Math.sin(G.azim), G.dist * Math.sin(G.elev), G.dist * Math.cos(G.elev) * Math.cos(G.azim)); camera.lookAt(0, 0, 0);
-    renderer.render(scene, camera); requestAnimationFrame(loop);
+    if (G.hover >= 0) { keplerXYZ(G.hoverEl, G.sim, tmp); G.marker.geometry.attributes.position.array.set([tmp.x, tmp.y, tmp.z]); G.marker.geometry.attributes.position.needsUpdate = true; }
+    composer.render(); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
 }
-
+function globeOrbit(i) {
+  if (!G.oLine) return;
+  const box = $('#globe-obj');
+  if (i < 0) {
+    G.hover = -1; G.fit = 0;
+    gsap.to(G.oMat, { opacity: 0, duration: 0.3, overwrite: true }); gsap.to(G.marker.material.uniforms.uO, { value: 0, duration: 0.3, overwrite: true });
+    box.classList.remove('on'); return;
+  }
+  const el = elements(i), arr = G.oGeom.attributes.position.array, v = new THREE.Vector3();
+  for (let k = 0; k <= 256; k++) { orbitPoint(el, k / 256 * Math.PI * 2, v); arr.set([v.x, v.y, v.z], k * 3); }
+  G.oGeom.attributes.position.needsUpdate = true;
+  G.hover = D.orb[i] ? i : -1; G.hoverEl = el;
+  G.fit = clamp(el[0] * (1 + el[1]) * 2.3, 0, 22);
+  gsap.to(G.oMat, { opacity: D.orb[i] ? 0.95 : 0.5, duration: 0.3, overwrite: true });
+  gsap.to(G.marker.material.uniforms.uO, { value: D.orb[i] ? 1 : 0, duration: 0.3, overwrite: true });
+  box.innerHTML = `<b>${D.name[i]}</b>${fmt(D.peri[i])} by ${fmt(D.apo[i])} km, ${D.inc[i].toFixed(1)} deg${D.orb[i] ? '' : ', reentered'}`;
+  box.classList.add('on');
+}
 function globeUpdate(spec) {
-  if (!G.col) return;
-  const arr = G.col.array, c = new THREE.Color(); let shown = 0; let far = 0;
-  const cache = new Map();
-  G.idx.forEach((i, k) => {
-    if (!passes(i)) { arr[k * 4 + 3] = 0; return; }
-    const g = spec.key(i); let hex = cache.get(g); if (!hex) cache.set(g, hex = spec.color(g));
-    c.set(hex); arr.set([c.r, c.g, c.b, 1], k * 4); shown++; if (D.apo[i] > 12000) far++;
-  });
-  G.col.needsUpdate = true;
+  if (!G.aA) return;
+  const A = G.aA.array, C0 = G.aC0.array, C1 = G.aC1.array, Gv = G.aG.array;
+  const mix = G.U.uMix.value, c = new THREE.Color(), cols = new Map();
+  const colOf = (k) => { let v = cols.get(k); if (!v) { c.set(k >= 0 ? spec.color(spec.order[k]) : css('--s-other')); v = [c.r, c.g, c.b]; cols.set(k, v); } return v; };
+  let shown = 0, far = 0; const present = new Set();
+  for (let k = 0; k < G.n; k++) {
+    const i = G.idx[k];
+    const t = smooth(clamp((mix - hash01(D.norad[i], 5) * 0.45) / 0.55, 0, 1));
+    const cur = A[k * 2] + (A[k * 2 + 1] - A[k * 2]) * t;
+    A[k * 2] = cur > 0.5 ? 1 : 0;
+    for (let j = 0; j < 3; j++) C0[k * 3 + j] = C0[k * 3 + j] + (C1[k * 3 + j] - C0[k * 3 + j]) * t;
+    const on = VIS[i] === 7;
+    A[k * 2 + 1] = on ? 1 : 0;
+    if (on) {
+      const g = GI[i], col = colOf(g); C1[k * 3] = col[0]; C1[k * 3 + 1] = col[1]; C1[k * 3 + 2] = col[2]; Gv[k] = g;
+      if (A[k * 2] < 0.5) { C0[k * 3] = col[0]; C0[k * 3 + 1] = col[1]; C0[k * 3 + 2] = col[2]; }
+      shown++; if (D.apo[i] > 12000) far++; present.add(g);
+    }
+  }
+  G.aA.needsUpdate = G.aC0.needsUpdate = G.aC1.needsUpdate = G.aG.needsUpdate = true;
+  G.U.uMix.value = 0; gsap.to(G.U.uMix, { value: 1, duration: 1.8, ease: 'none', overwrite: true });
   $('#globe-n').textContent = `${fmt(shown)} with a cataloged orbit`;
   $('#globe-note').textContent = shown ? '' : 'No object in the current view has a cataloged Earth orbit.';
-  const target = shown && far / shown > 0.5 ? 24 : shown && far / shown > 0.3 ? 12 : 4.2;
-  gsap.to(G, { dist: target, duration: 1.6, ease: 'power3.inOut', overwrite: 'auto' });
-  const order = spec.order.filter((g) => cache.has(g));
-  legend('#lg-globe', spec, order.slice(0, 8));
+  if (!G.userZoom) G.target = shown && far / shown > 0.5 ? 15 : shown && far / shown > 0.3 ? 9 : 4.9;
+  const order = spec.order.filter((g, k) => present.has(k)); if (present.has(-1)) order.push('Other');
+  legend('#lg-globe', spec, order.slice(0, 9));
+}
+
+/* ================= Hero: title letters and the field of objects in the view ================= */
+const HF = { on: true };
+function initHero() {
+  // title: per letter spans; the width axis swells near the cursor
+  const title = $('#title'); const words = title.textContent.split(' ');
+  title.innerHTML = words.map((w) => `<span class="w">${[...w].map((ch) => `<span class="ch">${ch}</span>`).join('')}</span>`).join('<span class="sp"> </span>');
+  HF.letters = $$('.ch', title).map((el) => ({ el, w: 118 }));
+  gsap.from(HF.letters.map((l) => l.el), { yPercent: 105, opacity: 0, duration: 1.1, ease: 'expo.out', stagger: 0.022, delay: 0.1 });
+  gsap.ticker.add(() => {
+    const r = title.getBoundingClientRect(); const near = mouse.y > r.top - 140 && mouse.y < r.bottom + 140 && mouse.x > r.left - 140 && mouse.x < r.right + 140;
+    // read every position first, then write, so the loop never forces a layout per letter
+    const centers = near ? HF.letters.map((l) => { const b = l.el.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }) : null;
+    HF.letters.forEach((l, k) => {
+      let tw = 118;
+      if (near) { const dx = mouse.x - centers[k][0], dy = mouse.y - centers[k][1]; tw = 104 + 46 * Math.exp(-(dx * dx + dy * dy) / (2 * 120 * 120)); }
+      if (Math.abs(tw - l.w) > 0.05) { l.w += (tw - l.w) * 0.14; l.el.style.setProperty('--w', l.w.toFixed(2)); }
+    });
+  });
+  // field: every object with an orbit gets a slot; the view decides which are lit
+  const cv = $('#hero-field'), ctx = cv.getContext('2d');
+  const pool = []; for (let i = 0; i < D.n; i++) if (D.scat[i]) pool.push(i);
+  const n = pool.length;
+  Object.assign(HF, { cv, ctx, pool, n, x: new Float32Array(n), a: new Float32Array(n), tg: new Float32Array(n), fall: new Float32Array(n), gi: new Int16Array(n), sp: new Float32Array(n), yj: new Float32Array(n), h: pool.map((i) => hash01(D.norad[i], 11)), cols: [] });
+  pool.forEach((i, k) => {
+    HF.x[k] = hash01(D.norad[i], 12);
+    const per = isFinite(D.period[i]) && D.period[i] > 0 ? D.period[i] : 2 * Math.PI * Math.sqrt(Math.pow((D.alt[i] + R_KM), 3) / MU) / 60;
+    HF.sp[k] = 0.055 * Math.pow(90 / per, 0.75);
+    HF.yj[k] = (hash01(D.norad[i], 13) - 0.5) * 7;
+  });
+  const size = () => { const dpr = Math.min(devicePixelRatio, 2); HF.dpr = dpr; HF.W = cv.clientWidth; HF.H = cv.clientHeight; cv.width = HF.W * dpr; cv.height = HF.H * dpr; };
+  size(); HF.size = size;
+  new IntersectionObserver((es) => { HF.on = es[0].isIntersecting; }).observe(cv);
+  const ly = (l) => HF.H * (0.93 - 0.86 * (l - 2.2) / 2.55);
+  HF.ly = ly;
+  let last = performance.now();
+  gsap.ticker.add(() => {
+    const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!HF.on) return;
+    const { W, H, dpr } = HF;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    // altitude guides
+    ctx.font = '400 11px Anybody, sans-serif'; ctx.textAlign = 'left';
+    for (const [alt, lab] of [[200, '200 km'], [2000, '2,000 km'], [35786, 'Geosynchronous, 35,786 km']]) {
+      const yy = ly(Math.log10(alt)); ctx.fillStyle = 'rgba(170,182,235,0.10)'; ctx.fillRect(W * 0.7, yy, W * 0.3, 1);
+      ctx.fillStyle = 'rgba(170,182,235,0.5)'; ctx.fillText(lab, W * 0.7, yy - 5);
+    }
+    for (let k = 0; k < HF.n; k++) {
+      const tg = HF.tg[k]; let a = HF.a[k];
+      if (a < 0.002 && tg === 0) continue;
+      if (tg > a) a = Math.min(tg, a + dt * 1.6); else if (tg < a) { a = Math.max(0, a - dt * 0.9); HF.fall[k] += dt * (30 + 90 * (1 - a)); }
+      HF.a[k] = a;
+      HF.x[k] = (HF.x[k] + HF.sp[k] * dt) % 1;
+      const i = HF.pool[k], yy = ly(D.lalt[i]) + HF.yj[k] + HF.fall[k];
+      const burning = tg === 0 && a > 0;
+      const g = HF.gi[k];
+      ctx.globalAlpha = a * (HF.focus === undefined || HF.focus < 0 ? 1 : g === HF.focus ? 1 : 0.12);
+      ctx.fillStyle = burning ? '#ff8a4c' : (HF.cols[g + 1] || '#5d6687');
+      ctx.fillRect(HF.x[k] * W, yy, burning ? 2.2 : 1.7, burning ? 2.2 : 1.7);
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+function heroUpdate(spec) {
+  if (!HF.pool) return;
+  HF.cols = [css('--s-other'), ...spec.order.map((g) => spec.color(g))];
+  let inView = 0; for (let k = 0; k < HF.n; k++) if (VIS[HF.pool[k]] === 7) inView++;
+  const q = Math.min(1, 2800 / Math.max(1, inView));
+  for (let k = 0; k < HF.n; k++) {
+    const i = HF.pool[k], on = VIS[i] === 7 && HF.h[k] < q;
+    if (on) { if (HF.tg[k] === 0) HF.fall[k] = 0; HF.tg[k] = 1; HF.gi[k] = GI[i]; }
+    else HF.tg[k] = 0;
+  }
 }
 
 /* ================= Update ================= */
-let raf = 0;
+let raf = 0, prevN = null;
 function update() { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => render()); }
+const STATS = window.__orbitStats = { renders: 0, lastMs: 0, lightMs: 0 };
+function mainLoop(withGroups) {
+  compile();
+  const sel = [], ctx = [];
+  const all = { n: 0, orbit: 0, active: 0, idx: sel };
+  for (let i = 0; i < D.n; i++) {
+    if (!passBase(i)) { VIS[i] = 0; continue; }
+    const yy = inYear(i), bb = inBox(i); VIS[i] = 1 | (yy ? 2 : 0) | (bb ? 4 : 0);
+    if (bb) { ctx.push(i); if (yy) { sel.push(i); all.n++; all.orbit += D.orb[i]; all.active += D.act[i]; } }
+  }
+  return { sel, ctx, all };
+}
+function lightRender() {
+  const t0 = performance.now();
+  const { all } = mainLoop();
+  kpiNumbers(all); SPARKS.forEach(sparkClip); syncYears(); timeShade();
+  $('#reset').style.opacity = isDefaultFilters() ? 0.55 : 1;
+  STATS.lightMs = performance.now() - t0;
+}
 function render() {
-  const sel = select();
-  const spec = groupSpec(S.by, sel);
-  const all = acc(); const groupAcc = new Map();
-  for (const i of sel) { add(all, i); const g = spec.key(i); let a = groupAcc.get(g); if (!a) groupAcc.set(g, a = acc()); add(a, i); }
+  const t0 = performance.now();
+  const { sel, ctx, all } = mainLoop();
+  const spec = groupSpec(S.by, sel, ctx); CUR_SPEC = spec;
+  for (let i = 0; i < D.n; i++) if (VIS[i]) GI[i] = spec.gi(i);
+  const groupAcc = new Map();
+  for (const i of sel) { const g = spec.key(i); let a = groupAcc.get(g); if (!a) groupAcc.set(g, a = acc(true)); add(a, i); }
   syncMeasure(); syncBy(); syncType(); syncRegime(); syncStatus(); syncYears(); dds.owner.label(); dds.site.label();
   $$('.dd.open').forEach((p) => { const k = p.parentElement.dataset.dd; dds[k].draw(); });
-  kpis(all);
-  chartTime(sel, spec); chartBars(groupAcc, spec); chartHeat(sel, spec); chartScatter(sel, spec); table(groupAcc, all, spec);
-  globeUpdate(spec);
-  $('#reset').style.opacity = JSON.stringify({ ...S, owner: [...S.owner], site: [...S.site], type: [...S.type], regime: [...S.regime], status: [...S.status], measure: 'count', by: 'type' }) === DEFAULT ? 0.55 : 1;
+  kpiNumbers(all);
+  const sd = sparkData(ctx); spark('sp-orbit', sd.orbit); spark('sp-active', sd.active); spark('sp-peri', sd.peri); spark('sp-life', sd.life);
+  chartTime(ctx, spec); chartScatter(spec); chartBars(groupAcc, spec); chartHeat(sel, spec); table(groupAcc, all, spec);
+  globeUpdate(spec); heroUpdate(spec);
+  FOCUS = null; applyFocus(); hideTip();
+  $('#reset').style.opacity = isDefaultFilters() ? 0.55 : 1;
   stateToHash();
+  STATS.renders++; STATS.lastMs = performance.now() - t0;
+  emit('update', { n: all.n, prevN, catalog: D.n, share: all.n / D.n, measure: S.measure, by: S.by, ms: STATS.lastMs });
+  prevN = all.n;
 }
-let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(() => { yearHist(); render(); }, 150); });
+let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(() => { yearHist(); G.size && G.size(); HF.size && HF.size(); render(); }, 150); });
 
 (async function boot() {
   await load();
-  const ownCnt = d3.rollup(d3.range(D.n), (v) => v.length, (i) => D.owner[i]);
-  [...ownCnt.entries()].sort((a, b) => b[1] - a[1]).forEach(([c], k) => { OWN_RANK[c] = k; });
-  const siteCnt = d3.rollup(d3.range(D.n), (v) => v.length, (i) => D.site[i]);
-  [...siteCnt.entries()].sort((a, b) => b[1] - a[1]).forEach(([c], k) => { SITE_RANK[c] = k; });
+  $('#hero-rows').textContent = `${fmt(D.n)} rows`;
+  // reference values for the whole catalog, for the KPI comparisons
+  const every = d3.range(D.n);
+  CAT.orbit = d3.sum(every, (i) => D.orb[i]) / D.n; CAT.active = d3.sum(every, (i) => D.act[i]) / D.n;
+  CAT.peri = medianOf(every, D.peri); CAT.life = medianOf(every, D.life);
   dropdown('owner'); dropdown('site');
   hashToState();
   yearHist();
   const landBytes = await unpack('data-land', false);
   const img = new Image(); img.src = URL.createObjectURL(new Blob([landBytes], { type: 'image/png' })); await img.decode();
-  initGlobe(img);
+  initGlobe(img); initScatter(); initHero();
   render();
   document.fonts.ready.then(() => { syncMeasure(); syncBy(); });
-  $('#loading').style.opacity = 0; setTimeout(() => $('#loading').remove(), 700);
+  $('#loading').style.opacity = 0; setTimeout(() => $('#loading').remove(), 500);
+  gsap.from('.filters, .kpi, .switches, .card', { opacity: 0, y: 26, duration: 1.1, ease: 'expo.out', stagger: 0.06, delay: 0.15, clearProps: 'transform,opacity' });
   window.__ready = true;
 })().catch((e) => { console.error(e); $('#loading').textContent = 'The page could not read its data: ' + e.message; });
+
+/* Events fired on window (all CustomEvent, detail shown):
+   orbit:update  { n, prevN, catalog, share, measure, by, ms }  after every full render
+   orbit:switch  { kind: 'measure' | 'by', id }                 a switch changed
+   orbit:drill   { by, group, decade? }                          a bar, legend item or heatmap cell was clicked
+   orbit:reset   {}                                              the reset button
+   orbit:year    { year, edge: 'start' | 'end', y0, y1, source } the year range crossed into a new year (slider, brush or click)
+   orbit:box     { box: [altLo, altHi, incLo, incHi] | null }    the scatter box was set or cleared
+   orbit:focus   { group | null }                                linked highlight moved to a group
+   orbit:object  { norad, name } | { norad: null }               the object under the pointer in the scatter changed */
 </script>
 </body>
 </html>
