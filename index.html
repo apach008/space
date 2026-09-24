@@ -40,11 +40,9 @@
   --c-cn: #199e70;
   --c-else: #6f7898;
   --c-gone: #3a4266;
-  --c-seq: #3b8fe6;
 
-  --grain-opacity: 0.09;
-  --blend-hero: difference;
   --scrim: linear-gradient(90deg, rgba(4, 7, 22, 0.86) 0%, rgba(4, 7, 22, 0.55) 38%, rgba(4, 7, 22, 0) 62%);
+  --scrim-r: linear-gradient(270deg, rgba(4, 7, 22, 0.86) 0%, rgba(4, 7, 22, 0.55) 38%, rgba(4, 7, 22, 0) 62%);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,16 +64,8 @@ a, button { cursor: none; color: inherit; }
 
 /* ---------- Fixed layers ---------- */
 #gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
-.grain {
-  position: fixed; inset: -50%; width: 200%; height: 200%; z-index: 50; pointer-events: none;
-  opacity: var(--grain-opacity); mix-blend-mode: overlay;
-  animation: grain 1.2s steps(6) infinite;
-}
-@keyframes grain {
-  0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -4%); }
-  60% { transform: translate(-4%, -2%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); }
-}
-.scrim { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--scrim); transition: opacity .8s; }
+.scrim { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--scrim); transition: opacity .9s; }
+.scrim.r { background: var(--scrim-r); opacity: 0; }
 
 /* ---------- Cursor ---------- */
 .cursor { position: fixed; left: 0; top: 0; z-index: 2100; pointer-events: none; }
@@ -91,6 +81,10 @@ a, button { cursor: none; color: inherit; }
 .cursor .ring::after { top: 50%; left: -7px; height: 1px; width: calc(100% + 14px); transform: translateY(-.5px); clip-path: polygon(0 0, 9px 0, 9px 100%, 0 100%, calc(100% - 9px) 0, 100% 0, 100% 100%, calc(100% - 9px) 100%); }
 .cursor.hover .ring { width: 64px; height: 64px; margin: -32px 0 0 -32px; border-color: var(--glow); background: color-mix(in oklab, var(--glow) 10%, transparent); }
 .cursor.drag .ring { width: 54px; height: 54px; margin: -27px 0 0 -27px; }
+/* locked on a satellite: the ring springs onto the object and turns into a reticle */
+.cursor.lock .ring { width: 30px; height: 30px; margin: -15px 0 0 -15px; border-color: var(--pencil); background: none; }
+.cursor.lock .ring::before, .cursor.lock .ring::after { background: var(--pencil); opacity: 1; }
+.cursor.lock .dot { opacity: .35; }
 .cursor .label {
   position: absolute; left: 26px; top: 14px; white-space: nowrap;
   font: 500 11px/1 var(--font-display); font-variation-settings: "wdth" 100; letter-spacing: .04em; color: var(--ink-2);
@@ -101,8 +95,9 @@ a, button { cursor: none; color: inherit; }
 /* ---------- Probe (object identification on the globe) ---------- */
 .probe { position: fixed; left: 0; top: 0; z-index: 40; pointer-events: none; opacity: 0; transition: opacity .2s; }
 .probe.on { opacity: 1; }
-.probe .mark { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 1.5px solid var(--pencil); border-radius: 50%; }
-.probe .mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: var(--pencil); }
+.probe .mark { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--pencil); box-shadow: 0 0 10px var(--pencil); }
+.probe .lead { position: absolute; left: 0; top: 0; overflow: visible; width: 1px; height: 1px; }
+.probe .lead line { stroke: var(--pencil); stroke-width: 1; opacity: .8; }
 .probe .card {
   position: absolute; left: 22px; top: -8px; width: 262px; padding: 10px 12px 11px;
   background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -113,13 +108,22 @@ a, button { cursor: none; color: inherit; }
 .probe .sub b { color: var(--ink); font-weight: 600; }
 
 .replay { position: fixed; right: clamp(20px, 3vw, 44px); bottom: 5vh; z-index: 3; pointer-events: none; text-align: right; opacity: 0; transition: opacity .5s; }
+.replay.left { right: auto; left: clamp(20px, 3vw, 44px); text-align: left; }
 .replay.on { opacity: 1; }
+.replay .keys { display: flex; gap: 14px; margin-top: 8px; font: 400 13px/1.2 var(--font-display); font-variation-settings: "wdth" 94; color: var(--ink-2); }
+.replay .keys:empty { display: none; }
+.replay .keys i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .replay span { display: block; font: 400 13px/1.3 var(--font-display); font-variation-settings: "wdth" 96; color: var(--ink-2); }
 .replay b { display: block; font: 300 44px/1.05 var(--font-display); font-variation-settings: "wdth" 72; color: #ffae5c; font-variant-numeric: tabular-nums; }
 /* ---------- Loader ---------- */
 #loader {
   position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center;
-  background: var(--bg); clip-path: circle(150% at 50% 50%);
+  background: var(--bg);
+}
+/* the edge of the opening iris, drawn above the loader while it opens */
+.ld-iris {
+  position: fixed; left: 0; top: 0; z-index: 2001; pointer-events: none; border-radius: 50%;
+  border: 1px solid rgba(237, 240, 251, .7); box-shadow: 0 0 40px 4px rgba(127, 178, 255, .35), inset 0 0 40px 4px rgba(127, 178, 255, .25);
 }
 .ld-wrap { position: relative; width: 340px; height: 340px; display: grid; place-items: center; }
 .ld-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -195,6 +199,9 @@ section { position: relative; }
   font-size: clamp(64px, min(11.2vw, 17vh), 216px); line-height: .84; letter-spacing: -.035em;
   color: var(--ink); margin-left: -.04em;
 }
+/* Where a title crosses the globe, the solid letters give way to an outlined copy, so the Earth shows through */
+.title-wrap, .close-wrap { position: relative; }
+.ghost { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; color: transparent !important; -webkit-text-stroke: 1.4px rgba(237, 240, 251, .92); }
 .hero h1 .ln { display: block; overflow: hidden; padding-bottom: .02em; }
 .hero h1 .ch { display: inline-block; will-change: transform, font-variation-settings; }
 .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 26px 0 16px; font: 500 15px/1.3 var(--font-display); font-variation-settings: "wdth" 104; color: var(--ink-2); letter-spacing: .01em; }
@@ -228,7 +235,20 @@ section { position: relative; }
   font-size: clamp(32px, 3.05vw, 54px); line-height: 1.02; letter-spacing: -.02em; margin-bottom: 26px;
   text-wrap: balance;
 }
-.finding h2 .line-mask { display: block; overflow: hidden; }
+.finding h2 .hc { font-variation-settings: "wdth" var(--wd, 104), "wght" var(--wg, 650); }
+
+/* Full-bleed numerals set behind a section, on the globe side */
+.bignum {
+  position: absolute; top: 50%; right: -1.5vw; z-index: 0; pointer-events: none; white-space: nowrap;
+  font-family: var(--font-display); font-size: clamp(220px, 31vw, 600px); line-height: .8; letter-spacing: -.05em;
+  color: rgba(237, 240, 251, .07); -webkit-text-stroke: 1.2px rgba(237, 240, 251, .55);
+  mix-blend-mode: difference; transform: translateY(-50%);
+}
+.bignum.l { right: auto; left: -1.5vw; }
+.bignum .c { display: inline-block; font-variation-settings: "wdth" var(--wd, 100), "wght" var(--wg, 300); }
+.finding .col { position: relative; z-index: 1; }
+.finding.beyond-sec { min-height: 170vh; align-items: flex-start; padding-top: 22vh; }
+.beyond-sec .bignum { top: 62vh; }
 .prose p { color: var(--ink-2); margin-bottom: 1em; max-width: 36rem; }
 .prose p strong { color: var(--ink); font-weight: 500; }
 
@@ -290,10 +310,10 @@ section { position: relative; }
 .hud .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
 .tm-annot {
   position: absolute; left: clamp(20px, 6vw, 110px); top: calc(13vh + clamp(200px, 21vw, 390px)); width: min(440px, 34vw);
-  min-height: 120px;
+  height: 132px; overflow: hidden;
 }
-.tm-annot .a { position: absolute; left: 0; top: 0; padding-left: 16px; border-left: 2px solid var(--pencil); opacity: 0; transform: translateY(10px); transition: opacity .45s, transform .45s; }
-.tm-annot .a.on { opacity: 1; transform: none; }
+/* one note at a time: the old one leaves upward out of the box before the new one rises in */
+.tm-annot .a { position: absolute; left: 0; top: 0; padding-left: 16px; border-left: 2px solid var(--pencil); opacity: 0; }
 .tm-annot .when { font: 600 13px/1.2 var(--font-display); font-variation-settings: "wdth" 100; color: var(--pencil); letter-spacing: .02em; margin-bottom: 6px; }
 .tm-annot p { font: 400 18px/1.5 var(--font-text); color: var(--ink); }
 .tm-chart { position: absolute; left: clamp(20px, 6vw, 110px); right: clamp(20px, 6vw, 110px); bottom: 5vh; }
@@ -312,6 +332,16 @@ section { position: relative; }
 .notes a { color: var(--ink); text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .notes code { font-family: var(--font-display); font-variation-settings: "wdth" 90; font-size: .92em; color: var(--ink); }
 
+/* ---------- Closing view ---------- */
+.closing { min-height: 118vh; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 4vh; }
+.close-num {
+  font-family: var(--font-display); font-size: clamp(150px, 21.5vw, 420px); line-height: .78; letter-spacing: -.045em;
+  color: var(--ink); white-space: nowrap; margin-left: -.03em; font-variant-numeric: tabular-nums;
+}
+.close-num .c { display: inline-block; font-variation-settings: "wdth" var(--wd, 125), "wght" var(--wg, 700); }
+.close-k { margin-top: 22px; max-width: 44rem; font: 400 clamp(18px, 1.4vw, 22px)/1.5 var(--font-text); color: var(--ink-2); }
+.close-k b { color: var(--ink); font-weight: 500; }
+
 footer { position: relative; z-index: 2; padding: 40px clamp(20px, 6vw, 110px) 60px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; font: 400 14px/1.4 var(--font-display); font-variation-settings: "wdth" 96; color: var(--ink-3); }
 footer a { color: var(--ink-2); }
 
@@ -326,6 +356,10 @@ footer a { color: var(--ink-2); }
 .lbl-ring::before { content: ""; position: absolute; left: -12px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border: 1px solid var(--pencil); border-radius: 50%; }
 .lbl-ring.big::before { left: -44px; width: 88px; height: 88px; margin-top: -44px; border-style: dashed; }
 .lbl-ring.big { padding-left: 50px; }
+.lbl-ring.flip { padding-left: 0; padding-right: 34px; }
+.lbl-ring.flip::before { left: auto; right: -12px; }
+.lbl-ring.big.flip { padding-right: 50px; }
+.lbl-ring.big.flip::before { right: -44px; }
 
 @media (max-width: 900px) {
   body { font-size: 17px; cursor: auto; }
@@ -337,7 +371,8 @@ footer a { color: var(--ink-2); }
   .readout { padding-right: 12px; }
   .tm-annot { width: calc(100% - 40px); }
   .nav { gap: 10px; } .brand span { display: none; }
-  .scrim { background: color-mix(in oklab, var(--bg) 55%, transparent); }
+  .scrim, .scrim.r { background: color-mix(in oklab, var(--bg) 55%, transparent); }
+  .bignum { display: none; }
 }
 </style>
 <script type="importmap">
@@ -363,12 +398,12 @@ footer a { color: var(--ink-2); }
 
 <canvas id="gl"></canvas>
 <div class="scrim" id="scrim"></div>
-<svg class="grain" aria-hidden="true"><filter id="grainf"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#grainf)"/></svg>
+<div class="scrim r" id="scrim-r"></div>
 
 <div class="cursor" id="cursor"><div class="ring"></div><div class="dot"></div><div class="label" id="cursor-label">Drag to turn</div></div>
-<div class="probe" id="probe"><div class="mark"></div><div class="card"><div class="nm" id="pr-nm"></div><div class="sub" id="pr-sub"></div></div></div>
+<div class="probe" id="probe"><svg class="lead"><line id="pr-lead" x1="0" y1="0" x2="0" y2="0"/></svg><div class="mark"></div><div class="card"><div class="nm" id="pr-nm"></div><div class="sub" id="pr-sub"></div></div></div>
 <div class="tip" id="tip"></div>
-<div class="replay" id="replay"><span>Replaying reentries</span><b id="replay-d">January 2024</b></div>
+<div class="replay" id="replay"><span id="replay-k">Replaying reentries</span><b id="replay-d">January 2024</b><div class="keys" id="replay-keys"></div></div>
 
 <nav class="nav">
   <a class="brand magnetic" href="index.html">
@@ -387,7 +422,7 @@ footer a { color: var(--ink-2); }
 <main>
   <!-- ============================== HERO ============================== -->
   <section class="hero wrap" data-globe="hero">
-    <h1 id="hero-title"><span class="ln">Everything</span><span class="ln">in orbit</span></h1>
+    <div class="title-wrap"><h1 id="hero-title"><span class="ln">Everything</span><span class="ln">in orbit</span></h1></div>
     <div class="hero-meta"><span>The public satellite catalog, <b>October 1957 to September 2026</b></span><span>By <b>Alejandro Pacheco</b></span></div>
     <p class="hero-summary prose">
       The U.S. Space Force keeps a catalog of every object it tracks in orbit around Earth, and CelesTrak publishes it as a single public file. It lists <strong>70,745 objects</strong> launched since Sputnik: 27,788 payloads, 6,902 spent rocket bodies, 35,889 pieces of debris and 166 objects nobody has identified, and about half of them have since fallen back into the atmosphere. The report below follows how the catalog grew, who owns the objects and where they sit. Two thirds of all payloads ever launched went up after 2019, most of them Starlink satellites, and in June 2024 payloads in orbit outnumbered debris for the first time since 1961. They have stayed ahead since October 2024.
@@ -407,23 +442,28 @@ footer a { color: var(--ink-2); }
     <div class="col prose">
       <h2>Two thirds of all payloads ever launched went up after 2019</h2>
       <p>From 1957 through 2019 the world launched <strong>8,869 payloads</strong>, rarely more than a few hundred in a year. In 2020 the count jumped to 1,257, and it kept rising, to 4,506 in 2025 and 3,226 in the first nine months of 2026. Of the 27,788 payloads in the catalog, <strong>18,919 (68.1%)</strong> were launched in 2020 or later.</p>
-      <p>Scrolling on runs the catalog forward from October 1957. Each point on the globe is one tracked object, drawn on its cataloged orbit, appearing when it entered the catalog and sinking out of sight when it reentered.</p>
+      <p>Scrolling on runs the catalog back to October 1957 and then forward again. Each point on the globe is one tracked object, drawn on its cataloged orbit, appearing when it entered the catalog and sinking out of sight when it reentered.</p>
+      <div class="panel"><span class="reg-b"></span>
+        <div class="chart-head"><div class="chart-title">Payloads launched per year</div><div class="chart-note">2026 runs through September 21</div></div>
+        <div class="chart" id="c-growth"></div>
+      </div>
     </div>
   </section>
 
   <section class="tm" id="tm" data-globe="timeline">
     <div class="tm-stage">
-      <div class="tm-year" id="tm-year">1957</div>
+      <div class="tm-year" id="tm-year">2026</div>
       <div class="hud">
-        <div><b id="hud-orbit">0</b>objects in Earth orbit</div>
-        <div><b id="hud-pay">0</b><span class="sw" style="background:var(--c-pay)"></span>payloads</div>
-        <div><b id="hud-deb">0</b><span class="sw" style="background:var(--c-deb)"></span>debris</div>
+        <div><b id="hud-orbit">34,831</b>objects in Earth orbit</div>
+        <div><b id="hud-pay">19,956</b><span class="sw" style="background:var(--c-pay)"></span>payloads</div>
+        <div><b id="hud-deb">12,521</b><span class="sw" style="background:var(--c-deb)"></span>debris</div>
       </div>
       <div class="tm-annot" id="tm-annot"></div>
       <div class="tm-chart">
         <div class="panel"><span class="reg-b"></span>
-          <div class="chart-head"><div class="chart-title">Payloads launched per year</div><div class="chart-note">2026 runs through September 21</div></div>
-          <div class="chart" id="c-growth"></div>
+          <div class="chart-head"><div class="chart-title">Objects in Earth orbit, by type</div><div class="chart-note">1 January of each year, then today</div></div>
+          <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-rb)"></i>Rocket bodies</span><span><i style="background:var(--c-deb)"></i>Debris</span><span><i style="background:var(--c-unk)"></i>Unknown</span></div>
+          <div class="chart" id="c-tm"></div>
         </div>
       </div>
     </div>
@@ -431,6 +471,7 @@ footer a { color: var(--ink-2); }
 
   <!-- ============================== 2. STARLINK ============================== -->
   <section class="finding wrap" data-globe="starlink">
+    <div class="bignum" aria-hidden="true">65%</div>
     <div class="col prose">
       <h2>Starlink satellites are 65% of the payloads working today</h2>
       <p>SpaceX has launched <strong>12,865 Starlink satellites</strong> since May 2019. Of these, 11,107 are listed as active, which is 64.9% of the 17,114 active payloads in the catalog, and 1,756 have already reentered. Starlink accounts for 66.3% of all payloads launched from 2019 on.</p>
@@ -444,14 +485,14 @@ footer a { color: var(--ink-2); }
   </section>
 
   <!-- ============================== 3. PAYLOADS VS DEBRIS ============================== -->
-  <section class="finding wrap" data-globe="paydeb">
+  <section class="finding wrap right" data-globe="paydeb">
     <div class="col prose">
       <h2>Payloads have outnumbered debris in orbit since October 2024</h2>
       <p>For most of the space age, fragments were the largest group of objects in orbit. Tracked debris in Earth orbit peaked at <strong>14,844 pieces</strong> at the start of 2022, just after the Cosmos 1408 test, and has since fallen to 12,521, because more low fragments reentered than new ones were cataloged. Over the same years the number of payloads in orbit went from 5,255 at the start of 2020 to <strong>19,956</strong> today.</p>
       <p>In June 2024 payloads in orbit outnumbered debris for the first time since mid-1961. Debris was briefly ahead again in September, and payloads have stayed ahead since October 2024. Spent rocket bodies grew slowly throughout and stand at 2,299.</p>
       <div class="panel"><span class="reg-b"></span>
-        <div class="chart-head"><div class="chart-title">Objects in Earth orbit, by type</div><div class="chart-note">1 January of each year, then today</div></div>
-        <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-rb)"></i>Rocket bodies</span><span><i style="background:var(--c-deb)"></i>Debris</span><span><i style="background:var(--c-unk)"></i>Unknown</span></div>
+        <div class="chart-head"><div class="chart-title">Payloads and debris in Earth orbit, 2015 to 2026</div><div class="chart-note">First day of each month, then today</div></div>
+        <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-deb)"></i>Debris</span></div>
         <div class="chart" id="c-inorbit"></div>
       </div>
     </div>
@@ -472,7 +513,7 @@ footer a { color: var(--ink-2); }
   </section>
 
   <!-- ============================== 5. OWNERS ============================== -->
-  <section class="finding wrap" data-globe="owner">
+  <section class="finding wrap right" data-globe="owner">
     <div class="col prose">
       <h2>U.S. payloads went from 14% of launches in the 1980s to 78.5% in the 2020s</h2>
       <p>In the 1970s and 1980s the Soviet Union launched <strong>73% to 78%</strong> of all payloads. Its successor's share fell to 9.5% in the 2010s and 1.9% so far in the 2020s. The U.S. share rose from 13.9% in the 1980s to <strong>78.5%</strong> in the 2020s, and 12,743 of the 14,852 U.S. payloads of the 2020s are Starlink satellites.</p>
@@ -500,7 +541,7 @@ footer a { color: var(--ink-2); }
   </section>
 
   <!-- ============================== 7. INCLINATION ============================== -->
-  <section class="finding wrap" data-globe="incl">
+  <section class="finding wrap right" data-globe="incl">
     <div class="col prose">
       <h2>Three orbital tilts hold almost half of everything in orbit</h2>
       <p>Inclination is the angle between an orbit and the equator. <strong>5,167 objects</strong> fly between 53 and 54 degrees and 3,583 between 43 and 44 degrees, and nearly all of them are Starlink satellites. The band from 97 to 99 degrees holds 7,447 more. At those tilts an orbit is sun-synchronous: it passes over each place at the same local time every day, which Earth-imaging and weather satellites rely on.</p>
@@ -517,7 +558,7 @@ footer a { color: var(--ink-2); }
     <div class="col prose">
       <h2>The higher the orbit, the longer ago its objects arrived</h2>
       <p>Below 600 km, air drag brings an object down within a few years once it stops raising its orbit, so what is there is new: the median object between 400 and 500 km entered the catalog <strong>1.9 years</strong> ago. Higher up, the air is too thin to clear anything out. The median object between 700 and 900 km has been in the catalog for about 17 years, and between 1,500 and 2,000 km for <strong>39 years</strong>.</p>
-      <p>The oldest object still in orbit is Vanguard 1, a U.S. satellite launched in March 1958, on an orbit of 652 by 3,818 km. On the globe, the oldest objects are drawn in the warmest color.</p>
+      <p>The oldest object still in orbit is Vanguard 1, a U.S. satellite launched in March 1958, on an orbit of 652 by 3,818 km. On the globe, the oldest objects are drawn in the warmest color. Here the globe shows only the objects in a thin slice through the Earth's center, with heights above the surface drawn 2.5 times their true scale, so the layers at different heights separate.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Median years since entering the catalog, by mean altitude</div><div class="chart-note">Objects below 2,000 km</div></div>
         <div class="chart" id="c-age"></div>
@@ -526,7 +567,7 @@ footer a { color: var(--ink-2); }
   </section>
 
   <!-- ============================== 9. REENTRIES ============================== -->
-  <section class="finding wrap" data-globe="reentry">
+  <section class="finding wrap right" data-globe="reentry">
     <div class="col prose">
       <h2>Payload reentries rose from 116 in 2020 to 1,111 in 2025</h2>
       <p><strong>1,111 payloads</strong> reentered in 2025, and 671 of them were Starlink satellites, which had been in orbit for a median of 4.0 years when they came down. Counting every type, 1,905 objects reentered in 2025. Debris reentries peaked at 2,055 in 2022, the year after the Cosmos 1408 test.</p>
@@ -540,11 +581,12 @@ footer a { color: var(--ink-2); }
   </section>
 
   <!-- ============================== 10. BEYOND ============================== -->
-  <section class="finding wrap" data-globe="beyond">
+  <section class="finding wrap beyond-sec" data-globe="beyond">
+    <div class="bignum" aria-hidden="true">411</div>
     <div class="col prose">
       <h2>411 objects left Earth orbit for the Moon, the Sun and the planets</h2>
       <p>The catalog also keeps the objects that escaped. <strong>202</strong> now circle the Sun, 109 of them rocket stages and 90 of them payloads. 102 went to the Moon, where 54 crashed, 11 landed and 37 went into orbit. 31 went to Mars and 29 to Venus, and five are on paths out of the solar system: Pioneer 10 and 11, Voyager 1 and 2, and one Falcon 9 upper stage.</p>
-      <p>The United States owns 240 of the 411 and Russia 88. The globe now shows the Moon at its true distance, about 60 Earth radii away.</p>
+      <p>The United States owns 240 of the 411 and Russia 88. The globe now shows the Moon at its true distance, about 60 Earth radii away. Scrolling on flies out to it: the objects that crashed or landed there are drawn on its surface, and those that went into orbit circle it.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Objects whose orbit is not centered on Earth</div><div class="chart-note">By what they orbit or reached</div></div>
         <div class="chart" id="c-beyond"></div>
@@ -572,11 +614,17 @@ footer a { color: var(--ink-2); }
         </ul></div>
         <div class="blk"><h3>Payloads released from the space station</h3><p>The catalog gives the 416 small satellites released from the International Space Station the station's own launch date, November 20, 1998. In the yearly and decade counts of payloads they are counted in the year they entered the catalog instead, which is close to the year they were released. Every other object is counted in its launch year.</p></div>
         <div class="blk"><h3>Rates and shares</h3><p>Every percentage is a count divided by the count of the group named in the same sentence, for example Starlink active payloads divided by all active payloads. The owner shares divide each owner's payloads by all payloads launched in that decade. Medians are taken over the objects in the group. 2026 is a partial year: launches run through September 21 and reentries through September 23.</p></div>
-        <div class="blk"><h3>How the globe is drawn</h3><p>Every object is drawn on an ellipse with its cataloged apogee, perigee and inclination, and moves at the speed that orbit implies, sped up 60 times. The catalog does not record which way each orbit's plane points or where the object is along it, so those two angles are assigned at random for each object. The shells, bands and tilts on the globe are real; the position of any single object is not. Pointing at an object shows its catalog entry.</p></div>
+        <div class="blk"><h3>How the globe is drawn</h3><p>Every object is drawn on an ellipse with its cataloged apogee, perigee and inclination, and moves at the speed that orbit implies, sped up 60 times. The catalog does not record which way each orbit's plane points or where the object is along it, so those two angles are assigned at random for each object. The shells, bands and tilts on the globe are real; the position of any single object is not. Pointing at an object shows its catalog entry.</p><p>On the timeline and in the breakup section, the pieces of each of the ten largest breakups start out together and spread along their orbits over the following months. This shows how a debris cloud disperses, not where the pieces were. The points around the Moon are placed at random: those for objects that crashed or landed sit on its surface, the rest circle it.</p></div>
         <div class="blk"><h3>Files</h3><p>The raw catalog, the code tables and the scripts that turn them into this page are in the project repository, and <code>prepare_data.py</code> prints every number quoted above.</p>
           <a class="to-dash magnetic" href="dashboard.html">Open the dashboard</a></div>
       </div>
     </div>
+  </section>
+
+  <!-- ============================== CLOSING ============================== -->
+  <section class="closing wrap" data-globe="close">
+    <div class="close-wrap"><div class="close-num" id="close-num" aria-label="70,745">70,745</div></div>
+    <p class="close-k">objects cataloged since October 1957. <b>34,831</b> of them are still in Earth orbit, and <b>12,521</b> of those are pieces of debris.</p>
   </section>
 </main>
 
@@ -610,6 +658,10 @@ const fmt = d3.format(',');
 const NOW = 2026 + 265 / 365;          // 23 September 2026, the snapshot day
 const R_KM = 6378.137, MU = 398600.4418;
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const smooth = (t) => t * t * t * (t * (t * 6 - 15) + 10);   // smootherstep on [0, 1]
+// Hooks for the sound design: every notable moment is announced as a window event named orbit:<type>
+const emit = (type, detail = {}) => dispatchEvent(new CustomEvent('orbit:' + type, { detail }));
 
 /* =====================================================================
    1. Data: the slim catalog is gzipped and base64-encoded into this page
@@ -708,7 +760,7 @@ let ldRAF;
 })(0);
 
 /* =====================================================================
-   3. Theme, sound, cursor
+   3. Sound and cursor
    ===================================================================== */
 // Sound: a quiet synthesized drone, plus one note per year on the timeline,
 // pitched by how many payloads went up that year. On by default; browsers
@@ -778,11 +830,22 @@ document.addEventListener('pointerover', (e) => {
   const hot = e.target.closest('a, button, .panel rect.hit, .chart .hit');
   cursor.classList.toggle('hover', !!hot);
 });
+// The ring follows the pointer on a spring. When the pointer finds a satellite the ring
+// springs onto the object and turns 45 degrees into a reticle that tracks it in orbit.
+const lockPos = { on: false, x: 0, y: 0 };
+const ringS = { x: -999, y: -999, vx: 0, vy: 0, rot: 0 };
+const cLabel = $('#cursor-label');
 function cursorTick() {
-  mouse.rx += (mouse.x - mouse.rx) * 0.18; mouse.ry += (mouse.y - mouse.ry) * 0.18;
+  const tx = lockPos.on ? lockPos.x : mouse.x, ty = lockPos.on ? lockPos.y : mouse.y;
+  if (ringS.x < -900) { ringS.x = tx; ringS.y = ty; }
+  const k = lockPos.on ? 0.3 : 0.2, damp = lockPos.on ? 0.58 : 0.55;
+  ringS.vx = (ringS.vx + (tx - ringS.x) * k) * damp; ringS.vy = (ringS.vy + (ty - ringS.y) * k) * damp;
+  ringS.x += ringS.vx; ringS.y += ringS.vy;
+  ringS.rot += ((lockPos.on ? 45 : 0) - ringS.rot) * 0.16;
+  cursor.classList.toggle('lock', lockPos.on);
   cDot.style.transform = `translate(${mouse.x}px, ${mouse.y}px)`;
-  cRing.style.transform = `translate(${mouse.rx}px, ${mouse.ry}px)`;
-  $('#cursor-label').style.transform = `translate(${mouse.rx}px, ${mouse.ry}px)`;
+  cRing.style.transform = `translate(${ringS.x}px, ${ringS.y}px) rotate(${ringS.rot.toFixed(1)}deg)`;
+  cLabel.style.transform = `translate(${ringS.x}px, ${ringS.y}px)`;
 }
 $$('.magnetic').forEach((el) => {
   const st = { x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0 };
@@ -809,12 +872,18 @@ renderer.setPixelRatio(DPR);
 renderer.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.01, 5000);
-const lin = (hex) => new THREE.Color(hex);  // THREE converts sRGB hex into the linear working space
 const U = {
   uTime: { value: 0 }, uYear: { value: NOW }, uMix: { value: 1 },
-  uPR: { value: DPR }, uSize: { value: 1 }, uTrail: { value: 0.13 }, uSink: { value: 0 }, uFlash: { value: 0 },
+  uPR: { value: DPR }, uSize: { value: 1 }, uTrail: { value: 0.3 }, uTrailLen: { value: 0.2 }, uSink: { value: 0 }, uFlash: { value: 0 },
+  // the Sun is placed relative to the camera, to the upper left and a little in front, so every view shows the terminator
   uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) },
+  uBurst: { value: 1 },            // 0: each breakup cloud gathered at one point, 1: spread over its orbits
+  uCut: { value: 0 }, uAltX: { value: 2.5 },   // age section: slice through the globe, heights exaggerated
+  uFar: { value: 0 },              // 0 near the Earth, 1 when the camera is out at the Moon
+  uHi: { value: 0 }, uHiKind: { value: 0 }, uHiLo: { value: 0 }, uHiHi: { value: 0 },   // chart hover highlight
+  uMoonA: { value: 0 },
 };
+const SUN_VIEW = new THREE.Vector3(-0.8, 0.42, 0.42).normalize();
 
 // Background: a gradient sky with drifting nebula noise
 const NOISE = `
@@ -876,7 +945,8 @@ const earthMat = new THREE.ShaderMaterial({
   extensions: { derivatives: true },
   vertexShader: `varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
     void main(){ vObjN = normal; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
+  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uTime; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP; ${NOISE}
+    float h21(vec2 p){ return fract(sin(dot(p, vec2(41.37, 289.13))) * 43758.5453); }
     void main(){
       vec3 n = normalize(vObjN);
       float lat = asin(clamp(n.y, -1.0, 1.0));
@@ -891,12 +961,27 @@ const earthMat = new THREE.ShaderMaterial({
       float dotm = 1.0 - smoothstep(0.34 - aa, 0.34 + aa, d);
       float isLand = step(0.5, land) * dotm;
       vec3 N = normalize(vN); vec3 V = normalize(cameraPosition - vWP);
-      float ndl = dot(N, uSun); float day = smoothstep(-0.2, 0.45, ndl);
+      float ndl = dot(N, uSun);
+      float day = smoothstep(-0.06, 0.32, ndl);
+      float band = exp(-pow((ndl - 0.03) / 0.12, 2.0));          // the terminator
+      float night = 1.0 - smoothstep(-0.22, 0.06, ndl);
       float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
-      vec3 ocean = mix(vec3(0.0015, 0.003, 0.012), vec3(0.004, 0.011, 0.036), day);
-      vec3 col = ocean + isLand * mix(vec3(0.018, 0.012, 0.008), vec3(0.075, 0.12, 0.3), day);
-      col += vec3(0.08, 0.18, 0.6) * fres * (0.15 + 0.5 * day);
-      col += vec3(1.0, 0.9, 0.8) * pow(max(dot(reflect(-uSun, N), V), 0.0), 60.0) * 0.05 * (1.0 - isLand);
+      vec3 ocean = mix(vec3(0.0008, 0.0016, 0.006), vec3(0.006, 0.022, 0.07), day);
+      vec3 col = ocean + isLand * mix(vec3(0.01, 0.011, 0.02), vec3(0.12, 0.2, 0.46), day);
+      // warm light scattered along the terminator
+      col += vec3(1.0, 0.4, 0.14) * band * (0.035 + 0.11 * isLand);
+      // night-side lights: a share of the land dots, clustered by noise, fewer toward the poles
+      float cluster = smoothstep(0.46, 0.74, fbm(vec2(lonc, latc) * 2.4 + 3.7));
+      float lit = step(1.0 - cluster * 0.85, h21(vec2(ri, ci))) * (1.0 - smoothstep(0.95, 1.2, abs(latc)));
+      float core = 1.0 - smoothstep(0.16 - aa, 0.26 + aa, d);
+      float tw = 0.8 + 0.2 * sin(uTime * 0.003 + h21(vec2(ci, ri)) * 40.0);
+      col += vec3(1.0, 0.6, 0.26) * 1.25 * lit * core * night * step(0.5, land) * tw;
+      // sun glint on the oceans
+      vec3 H = normalize(uSun + V);
+      col += vec3(1.0, 0.84, 0.62) * (pow(max(dot(N, H), 0.0), 320.0) * 0.22 + pow(max(dot(N, H), 0.0), 24.0) * 0.025) * (1.0 - isLand) * day;
+      // limb: blue on the day side, warm where the terminator meets the edge
+      col += mix(vec3(0.03, 0.07, 0.25), vec3(0.12, 0.3, 0.85), day) * fres * (0.1 + 0.62 * day);
+      col += vec3(1.0, 0.42, 0.16) * fres * band * 0.45;
       gl_FragColor = vec4(col, 1.0);
     }`,
 });
@@ -910,8 +995,11 @@ const atmoMat = new THREE.ShaderMaterial({
   fragmentShader: `uniform vec3 uSun; varying vec3 vN; varying vec3 vWP;
     void main(){ vec3 V = normalize(cameraPosition - vWP); float rim = dot(normalize(vN), V);
       float i = pow(smoothstep(0.0, 0.62, rim), 2.2) * smoothstep(1.0, 0.55, rim);
-      float lit = 0.35 + 0.65 * smoothstep(-0.4, 0.6, dot(normalize(vN), uSun));
-      gl_FragColor = vec4(vec3(0.16, 0.36, 1.0) * i * lit * 0.55, i); }`,
+      float ndl = dot(normalize(vN), uSun);
+      float lit = 0.25 + 0.75 * smoothstep(-0.35, 0.55, ndl);
+      float band = exp(-pow((ndl + 0.02) / 0.2, 2.0));
+      vec3 c = mix(vec3(0.16, 0.36, 1.0), vec3(0.34, 0.6, 1.0), smoothstep(0.2, 0.8, ndl)) * lit * 0.6 + vec3(1.0, 0.45, 0.18) * band * 0.35;
+      gl_FragColor = vec4(c * i, i); }`,
 });
 world.add(new THREE.Mesh(new THREE.SphereGeometry(1.085, 96, 64), atmoMat));
 
@@ -935,7 +1023,7 @@ const moonMat = new THREE.ShaderMaterial({
     void main(){ vec3 p = normalize(vP); float n = fbm(p.xy * 3.0 + p.z * 2.0) * 0.6 + fbm(p.yz * 7.0) * 0.4;
       float maria = smoothstep(0.45, 0.6, fbm(p.xz * 1.6 + 3.0));
       float l = max(dot(normalize(vN), uSun), 0.0);
-      vec3 c = vec3(0.55, 0.56, 0.6) * (0.55 + 0.45 * n) * (1.0 - 0.35 * maria) * (0.04 + 0.96 * l);
+      vec3 c = vec3(0.17, 0.172, 0.19) * (0.55 + 0.45 * n) * (1.0 - 0.35 * maria) * (0.03 + 0.97 * smoothstep(0.0, 0.6, l));
       gl_FragColor = vec4(c, 1.0); }`,
 });
 const moon = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 64, 48), moonMat);
@@ -948,15 +1036,50 @@ const moonOrbit = (() => {
   world.add(l); return l;
 })();
 
-// Label anchors projected into the DOM
+// The objects sent to the Moon: points on its surface for those that crashed or landed
+// (they carry a decay date), points circling it for the rest. Placement is random.
+let MOONOBJ = null;
+function buildMoonObjects(D) {
+  const ids = []; for (let i = 0; i < D.n; i++) if (D.center[i] === 'MO') ids.push(i);
+  const n = ids.length, aU = new Float32Array(n * 3), aV = new Float32Array(n * 3), aK = new Float32Array(n * 3);
+  const u = new THREE.Vector3(), v = new THREE.Vector3(), w = new THREE.Vector3();
+  let surface = 0;
+  ids.forEach((i, k) => {
+    const h1 = hash01(D.norad[i], 11), h2 = hash01(D.norad[i], 12), h3 = hash01(D.norad[i], 13);
+    u.set(Math.cos(h1 * 6.2832) * Math.sqrt(1 - (2 * h2 - 1) ** 2), 2 * h2 - 1, Math.sin(h1 * 6.2832) * Math.sqrt(1 - (2 * h2 - 1) ** 2));
+    const onSurface = !!D.decayS[i]; if (onSurface) surface++;
+    w.set(0.3, 1, -0.2).normalize(); v.crossVectors(u, w).normalize();
+    aU.set([u.x, u.y, u.z], k * 3); aV.set([v.x, v.y, v.z], k * 3);
+    aK.set([onSurface ? 0 : 1, onSurface ? 1.006 : 1.18 + 0.7 * h3, h3 * 6.2832], k * 3);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aU', new THREE.BufferAttribute(aU, 3)); g.setAttribute('aV', new THREE.BufferAttribute(aV, 3)); g.setAttribute('aK', new THREE.BufferAttribute(aK, 3));
+  const m = new THREE.ShaderMaterial({
+    uniforms: Object.assign({ uMoonPos: { value: moon.position } }, U), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `attribute vec3 aU; attribute vec3 aV; attribute vec3 aK; uniform vec3 uMoonPos; uniform float uTime; uniform float uPR; varying float vKind;
+      void main(){
+        float R = 0.2727 * aK.y, th = aK.z + uTime * 0.0035;
+        vec3 p = aK.x < 0.5 ? aU * R : (aU * cos(th) + aV * sin(th)) * R;
+        vec4 mv = modelViewMatrix * vec4(uMoonPos + p, 1.0); gl_Position = projectionMatrix * mv;
+        vKind = aK.x; gl_PointSize = clamp(uPR * 14.0 / -mv.z, 1.5 * uPR, 7.0 * uPR); }`,
+    fragmentShader: `uniform float uMoonA; varying float vKind;
+      void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; float a = pow(1.0 - d * 2.0, 1.5) * uMoonA;
+        vec3 c = vKind < 0.5 ? vec3(1.0, 0.62, 0.3) : vec3(0.62, 0.82, 1.0); gl_FragColor = vec4(c * a * 1.4, a); }`,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; p.renderOrder = 3; world.add(p);
+  MOONOBJ = { n, surface };
+}
+
+// Label anchors projected into the DOM. A label that would run off the right edge flips to the left of its anchor.
 const labels = [];
 function worldLabel(text, pos) {
   const el = document.createElement('div');
   el.textContent = text;
   el.style.cssText = 'position:fixed;left:0;top:0;z-index:3;pointer-events:none;font:500 13px/1 Anybody, sans-serif;font-variation-settings:"wdth" 96;color:var(--ink-2);letter-spacing:.02em;opacity:0;transition:opacity .6s;white-space:nowrap';
-  document.body.appendChild(el); const L = { el, pos, on: false }; labels.push(L); return L;
+  document.body.appendChild(el); const L = { el, pos, on: false, w: -1 }; labels.push(L); return L;
 }
-const lblMoon = worldLabel('The Moon, 384,400 km away', moon.position.clone());
+const lblMoon = worldLabel('The Moon and the objects sent to it', moon.position.clone().add(new THREE.Vector3(0, 0.36, 0)));
 lblMoon.el.classList.add('lbl-ring');
 const lblEarth = worldLabel('Earth and the 34,831 objects in its orbit', new THREE.Vector3(0, 0, 0));
 lblEarth.el.classList.add('lbl-ring', 'big');
@@ -972,6 +1095,7 @@ function hash01(n, k) {
   x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
   return (x >>> 0) / 4294967296;
 }
+const TRAIL_K = 12;       // vertices along each trail arc
 function buildSatellites(D, REP) {
   const idx = [];
   for (let i = 0; i < D.n; i++) {
@@ -980,6 +1104,7 @@ function buildSatellites(D, REP) {
   }
   const n = idx.length;
   const orb = new Float32Array(n * 4), orb2 = new Float32Array(n * 4), life = new Float32Array(n * 2);
+  const key = new Float32Array(n * 4), ev = new Float32Array(n * 2), bst = new Float32Array(n * 4);
   const pos = new Float32Array(n * 3);   // unused by the shader, needed by three for bounds
   const evIdx = new Uint8Array(n), og = new Uint8Array(n);
   const evMap = Object.fromEntries(REP.breakup_ids.map((id, k) => [id, k + 1]));
@@ -994,35 +1119,91 @@ function buildSatellites(D, REP) {
     life[k * 2] = D.appear[i]; life[k * 2 + 1] = D.decay[i];
     evIdx[k] = D.type[i] === 2 ? (evMap[D.intl[i].slice(0, 8)] || 0) : 0;
     og[k] = ownerGroup[D.owner[i]] ?? 3;
+    // what the chart hover can select on: inclination, mean altitude, year entered, type
+    key[k * 4] = D.inc[i]; key[k * 4 + 1] = (D.peri[i] + D.apo[i]) / 2; key[k * 4 + 2] = D.appear[i]; key[k * 4 + 3] = D.type[i];
+  }
+  // Breakup clouds: while gathered, every piece of one of the ten largest breakups takes the
+  // orbit angles of its group's first piece; spreading mixes each piece back to its own angles.
+  const rep = new Int32Array(11).fill(-1), start = new Float64Array(11).fill(1e9);
+  for (let k = 0; k < n; k++) { const g = evIdx[k]; if (!g) continue; if (rep[g] < 0) rep[g] = k; start[g] = Math.min(start[g], life[k * 2]); }
+  for (let k = 0; k < n; k++) {
+    const g = evIdx[k], r = g ? rep[g] : k;
+    bst[k * 4] = orb[r * 4 + 3]; bst[k * 4 + 1] = orb2[r * 4]; bst[k * 4 + 2] = orb2[r * 4 + 1]; bst[k * 4 + 3] = orb2[r * 4 + 2];
+    ev[k * 2] = g; ev[k * 2 + 1] = g ? start[g] : 0;
   }
   const geom = new THREE.BufferGeometry();
   geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geom.setAttribute('aOrb', new THREE.BufferAttribute(orb, 4));
   geom.setAttribute('aOrb2', new THREE.BufferAttribute(orb2, 4));
   geom.setAttribute('aLife', new THREE.BufferAttribute(life, 2));
+  geom.setAttribute('aKey', new THREE.BufferAttribute(key, 4));
+  geom.setAttribute('aEv', new THREE.BufferAttribute(ev, 2));
+  geom.setAttribute('aBurst', new THREE.BufferAttribute(bst, 4));
   const colA = new THREE.BufferAttribute(new Float32Array(n * 4), 4); colA.setUsage(THREE.DynamicDrawUsage);
   const colB = new THREE.BufferAttribute(new Float32Array(n * 4), 4); colB.setUsage(THREE.DynamicDrawUsage);
   geom.setAttribute('aColA', colA); geom.setAttribute('aColB', colB);
   geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   // Shared GLSL: position on the orbit, `lag` radians of mean anomaly behind now.
   const ORBIT = `
-      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash; uniform float uTrail;
+      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash;
+      uniform float uTrail; uniform float uTrailLen; uniform float uBurst; uniform float uCut; uniform float uAltX; uniform float uFar;
+      uniform float uHi; uniform float uHiKind; uniform float uHiLo; uniform float uHiHi;
       attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec2 aLife; attribute vec4 aColA; attribute vec4 aColB;
-      varying vec4 vCol; varying float vHot; varying float vBurn;
-      vec3 orbitPos(float lag, float left, out float sink){
-        float a = aOrb.x, e = aOrb.y, inc = aOrb.z, raan = aOrb.w, argp = aOrb2.x;
-        float M = mod(aOrb2.y + aOrb2.z * uTime - lag, 6.2831853);
+      attribute vec4 aKey; attribute vec2 aEv; attribute vec4 aBurst;
+      varying vec4 vCol; varying float vHot; varying float vBurn; varying float vA;
+      const float TAU = 6.2831853;
+      float wrapA(float x){ return mod(x + 3.14159265, TAU) - 3.14159265; }
+      // 1 for ordinary objects; for breakup pieces, how far the cloud has spread
+      float spread(){ return aEv.x < 0.5 ? 1.0 : min(uBurst, smoothstep(0.0, 1.5, uYear - aEv.y)); }
+      vec3 kepler(float a, float e, float inc, float raan, float argp, float M){
+        M = mod(M, TAU);
         float E = M + e * sin(M);
         for (int k = 0; k < 4; k++) E = E - (E - e * sin(E) - M) / (1.0 - e * cos(E));
         float xp = a * (cos(E) - e), yp = a * sqrt(1.0 - e * e) * sin(E);
         float cw = cos(argp), sw = sin(argp), ci = cos(inc), si = sin(inc), cO = cos(raan), sO = sin(raan);
         float x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw;
         float y2 = y1 * ci, z2 = y1 * si;
-        vec3 p = vec3(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO));
+        return vec3(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO));
+      }
+      vec3 orbitPos(float lag, float s, float born, float left, out float sink){
+        float Mo = aOrb2.y + aOrb2.z * uTime;
+        float raan = aOrb.w, argp = aOrb2.x, M = Mo;
+        if (s < 1.0) {
+          // a cloud first stretches along the orbit, then its planes fan out
+          float Ms = aBurst.z + aBurst.w * uTime;
+          M = Ms + wrapA(Mo - Ms) * smoothstep(0.0, 0.6, s);
+          float k2 = smoothstep(0.35, 1.0, s);
+          raan = aBurst.x + wrapA(aOrb.w - aBurst.x) * k2;
+          argp = aBurst.y + wrapA(aOrb2.x - aBurst.y) * k2;
+        }
+        vec3 p = kepler(aOrb.x, aOrb.y, aOrb.z, raan, argp, M - lag);
+        float r = length(p);
+        float ax = mix(1.0, uAltX, uCut);                      // heights exaggerated in the age section
+        float r2 = 1.0 + (r - 1.0) * ax; p *= r2 / r; r = r2;
         // in the last months before reentry the object sinks toward the surface
         sink = uSink * (1.0 - smoothstep(0.0, 0.35, left));
-        float r = length(p); p *= mix(1.0, 1.0 / r, sink * 0.985);
+        // on the timeline, new payloads and rocket stages rise from the ground to their orbit
+        float isDeb = step(1.5, aKey.w) * step(aKey.w, 2.5);
+        float rise = (1.0 - isDeb) * uFlash * (1.0 - smoothstep(0.0, 0.15, born));
+        p *= mix(1.0, 1.0 / r, max(sink, rise) * 0.985);
         return p;
+      }
+      // chart hover: objects inside the hovered band brighten, the rest fade
+      float highlight(){
+        if (uHi < 0.001) return 1.0;
+        float v = uHiKind < 1.5 ? aKey.x : uHiKind < 2.5 ? aKey.y : uHiKind < 3.5 ? aKey.z : aEv.x;
+        float m = step(uHiLo, v) * (1.0 - step(uHiHi, v));
+        return mix(1.0, m > 0.5 ? 1.3 : 0.06, uHi);
+      }
+      // age section: keep a slab through the Earth's centre, facing the camera
+      float sliceFade(vec4 mv){
+        if (uCut < 0.001) return 1.0;
+        float cz = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).z;
+        return mix(1.0, 1.0 - smoothstep(0.2, 0.3, abs(mv.z - cz)), uCut);
+      }
+      float hotness(float born, float s, float sel){
+        float h = uFlash * exp(-born * 9.0) + (aEv.x > 0.5 ? (1.0 - smoothstep(0.0, 0.3, s)) * 0.6 : 0.0) + max(sel - 1.0, 0.0) * 0.5;
+        return min(h, 1.5);
       }`;
   const mat = new THREE.ShaderMaterial({
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -1030,66 +1211,74 @@ function buildSatellites(D, REP) {
       void main(){
         float born = uYear - aLife.x; float left = aLife.y - uYear;
         if (born < 0.0 || left <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
-        float sink; vec3 p = orbitPos(0.0, left, sink); vBurn = sink;
+        float s = spread();
+        float sink; vec3 p = orbitPos(0.0, s, born, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
         vec4 col = mix(aColA, aColB, uMix);
-        vHot = uFlash * exp(-born * 9.0);
+        float sel = highlight();
+        vHot = hotness(born, s, sel);
         vCol = col;
-        float s = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink);
-        gl_PointSize = clamp(s * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR);
+        vA = min(sel, 1.4) * sliceFade(mv) * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
+        if (aEv.x > 0.5) vA *= mix(0.16, 1.0, smoothstep(0.0, 0.5, s));   // a gathered cloud would otherwise burn out to white
+        float sz = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink) * mix(1.0, 0.45, uFar);
+        gl_PointSize = clamp(sz * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR);
       }`,
     fragmentShader: `
-      varying vec4 vCol; varying float vHot; varying float vBurn;
+      varying vec4 vCol; varying float vHot; varying float vBurn; varying float vA;
       void main(){
         float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
         vec3 c = mix(vCol.rgb, vec3(1.0, 0.97, 0.9), clamp(vHot, 0.0, 1.0) * 0.85);
         c = mix(c, vec3(1.0, 0.45, 0.12), vBurn * 0.9);
         float core = pow(1.0 - smoothstep(0.0, 0.5, d), 1.7);
-        float a = core * (0.18 + 0.82 * vCol.a) * (1.0 + vHot);
+        float a = core * (0.18 + 0.82 * vCol.a) * (1.0 + vHot) * vA;
         gl_FragColor = vec4(c * a * 1.6, a);
       }`,
   });
   const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; pts.renderOrder = 2; world.add(pts);
 
-  // Trails: one short line segment per object, drawn instanced from the same
-  // arrays. The head is at the object, the tail a few degrees back along its orbit.
+  // Trails: an arc of TRAIL_K vertices per object, drawn instanced from the same arrays.
+  // The head is at the object; the arc follows the orbit backward and fades out.
   const tg = new THREE.InstancedBufferGeometry();
-  tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-  tg.setAttribute('aTail', new THREE.BufferAttribute(new Float32Array([0, 1]), 1));
+  const segs = TRAIL_K - 1, tv = new Float32Array(segs * 2);
+  for (let j = 0; j < segs; j++) { tv[j * 2] = j / segs; tv[j * 2 + 1] = (j + 1) / segs; }
+  tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(segs * 2 * 3), 3));
+  tg.setAttribute('aT', new THREE.BufferAttribute(tv, 1));
   const inst = (arr, k) => new THREE.InstancedBufferAttribute(arr, k);
   const tColA = inst(colA.array, 4), tColB = inst(colB.array, 4);
   tColA.setUsage(THREE.DynamicDrawUsage); tColB.setUsage(THREE.DynamicDrawUsage);
   tg.setAttribute('aOrb', inst(orb, 4)); tg.setAttribute('aOrb2', inst(orb2, 4)); tg.setAttribute('aLife', inst(life, 2));
+  tg.setAttribute('aKey', inst(key, 4)); tg.setAttribute('aEv', inst(ev, 2)); tg.setAttribute('aBurst', inst(bst, 4));
   tg.setAttribute('aColA', tColA); tg.setAttribute('aColB', tColB);
   tg.instanceCount = n; tg.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   const tmat = new THREE.ShaderMaterial({
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: ORBIT + `
-      attribute float aTail; varying float vT;
+      attribute float aT; varying float vT;
       void main(){
         float born = uYear - aLife.x; float left = aLife.y - uYear;
         if (born < 0.0 || left <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
-        float sink; vec3 p = orbitPos(0.0, left, sink); vBurn = sink;
-        if (aTail > 0.5) {
-          // the tail sits a fixed angle back along the orbit, capped in length so
-          // fast perigee passes and high orbits do not draw long chords
-          float s2; vec3 q = orbitPos(uTrail, left, s2); vec3 d = q - p; float L = length(d);
-          p += d * min(1.0, 0.09 / max(L, 1e-5));
-        }
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-        vCol = mix(aColA, aColB, uMix); vHot = uFlash * exp(-born * 9.0); vT = aTail;
+        float s = spread();
+        // arc length capped so fast perigee passes and high orbits do not draw long sweeps
+        float lagMax = min(uTrail, uTrailLen / aOrb.x * sqrt((1.0 - aOrb.y) / (1.0 + aOrb.y)));
+        float sink; vec3 p = orbitPos(aT * lagMax, s, born, left, sink); vBurn = sink;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        vCol = mix(aColA, aColB, uMix);
+        float sel = highlight();
+        vHot = hotness(born, s, sel); vT = aT;
+        vA = min(sel, 1.4) * sliceFade(mv) * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
       }`,
     fragmentShader: `
-      varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT;
+      varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT; varying float vA;
       void main(){
-        float a = (1.0 - vT) * (0.08 + 0.92 * vCol.a) * (1.0 + vHot);
+        float a = pow(1.0 - vT, 1.7) * (0.06 + 0.94 * vCol.a) * (1.0 + vHot) * vA;
         vec3 c = mix(vCol.rgb, vec3(1.0, 0.45, 0.12), vBurn * 0.9);
-        gl_FragColor = vec4(c * a * 0.75, a * 0.75);
+        gl_FragColor = vec4(c * a * 0.7, a * 0.7);
       }`,
   });
   const trails = new THREE.LineSegments(tg, tmat); trails.frustumCulled = false; trails.renderOrder = 1; world.add(trails);
-  SAT = { idx, n, orb, orb2, life, geom, mat, tmat, colA, colB, tColA, tColB, evIdx, og, D };
+  SAT = { idx, n, orb, orb2, life, geom, mat, tmat, colA, colB, tColA, tColB, evIdx, og, D, key, ev, bst, rep, start, evMap };
 }
 
 // Color modes. Each returns [hex, emphasis] per object.
@@ -1143,45 +1332,112 @@ function setMode(mode, instant = false) {
 }
 
 // ---------------------------------------------------------------------
-// Camera rig: spherical coordinates around a target, eased between the
-// states each section asks for, plus drag with inertia and pointer parallax.
+// Camera rig: spherical coordinates around a target. Each section names a pose, and the
+// pose follows the scroll position between the sections' keyframes, so the camera moves
+// with the reader's scroll instead of on a clock. Drag with inertia and pointer parallax sit on top.
 // ---------------------------------------------------------------------
-const rig = { dist: 5.6, elev: 0.28, azim: 0.6, film: 0, tx: 0, ty: 0, tz: 0, spin: 0.018, timeScale: 60 };
+const rig = { ld: Math.log(16), elev: 0.9, azim: 0.6, film: 0, tx: 0, ty: 0, tz: 0, spin: 0.018, cut: 0, timeScale: 60 };
+const pose = { ld: Math.log(4.9), elev: 0.3, film: 0.5, tx: 0, ty: 0, tz: 0, spin: 0.02, cut: 0 };
+const intro = { k: 0, ld: Math.log(16), elev: 0.9, zoom: 0 };   // the fly-in after Enter blends from this pose
 const drag = { on: false, vx: 0, vy: 0, lx: 0, ly: 0, az: 0, el: 0 };
 const par = { x: 0, y: 0 };
+const shake = { amp: 0 };
 const wide = () => innerWidth > 900;
 const STATES = {
   hero:     { dist: 4.9, elev: 0.3, film: 0.5, mode: 'type', year: NOW, spin: 0.02 },
-  growth:   { dist: 4.4, elev: 0.26, film: 0.42, mode: 'type', year: NOW, spin: 0.02 },
+  growth:   { dist: 4.4, elev: 0.26, film: 0.42, mode: 'type', year: null, spin: 0.02, sink: 1 },
   timeline: { dist: 4.1, elev: 0.3, film: 0.36, mode: 'type', year: null, spin: 0.03, flash: 1, sink: 1 },
   starlink: { dist: 3.0, elev: 0.42, film: 0.45, mode: 'starlink', year: NOW, spin: 0.02 },
-  paydeb:   { dist: 3.5, elev: 0.18, film: 0.45, mode: 'paydeb', year: NOW, spin: 0.02 },
+  paydeb:   { dist: 3.5, elev: 0.18, film: 0.52, side: -1, mode: 'paydeb', year: NOW, spin: 0.02 },
   events:   { dist: 3.2, elev: -0.25, film: 0.45, mode: 'events', year: NOW, spin: 0.02 },
-  owner:    { dist: 4.3, elev: 0.35, film: 0.45, mode: 'owner', year: NOW, spin: 0.02 },
+  owner:    { dist: 4.3, elev: 0.35, film: 0.52, side: -1, mode: 'owner', year: null, spin: 0.02 },
   altitude: { dist: 21, elev: 0.5, film: 0.42, mode: 'regime', year: NOW, spin: 0.012, rings: 1 },
-  incl:     { dist: 4.6, elev: 1.45, film: 0.45, mode: 'incl', year: NOW, spin: 0.03 },
-  age:      { dist: 3.2, elev: 0.15, film: 0.45, mode: 'age', year: NOW, spin: 0.02 },
-  reentry:  { dist: 3.6, elev: 0.3, film: 0.45, mode: 'reentry', year: null, spin: 0.02, sink: 1, flash: 0 },
-  beyond:   { dist: 118, elev: 0.55, film: 0.38, mode: 'type', year: NOW, spin: 0.004, moon: 1, target: moonDir.clone().multiplyScalar(26) },
-  notes:    { dist: 6.5, elev: 0.2, film: 0.0, mode: 'type', year: NOW, spin: 0.015 },
+  incl:     { dist: 4.6, elev: 1.45, film: 0.52, side: -1, mode: 'incl', year: NOW, spin: 0.03 },
+  age:      { dist: 6.4, elev: 0.12, film: 0.45, mode: 'age', year: NOW, spin: 0.02, cut: 1 },
+  reentry:  { dist: 3.6, elev: 0.3, film: 0.52, side: -1, mode: 'reentry', year: null, spin: 0.02, sink: 1 },
+  beyond:   { dist: 118, elev: 0.55, film: 0.36, mode: 'type', year: NOW, spin: 0.004, moon: 1, target: moonDir.clone().multiplyScalar(28) },
+  moon:     { dist: 2.9, elev: 0.3, film: 0.42, spin: 0.05, target: moon.position.clone() },   // a camera pose only, reached late in the beyond section
+  notes:    { dist: 26, elev: 0.45, film: 0.0, mode: 'type', year: NOW, spin: 0.01 },
+  close:    { dist: 8.4, elev: 0.38, film: 0.0, mode: 'type', year: NOW, spin: 0.03, target: new THREE.Vector3(0, -0.72, 0) },
 };
 let stateName = null;
+let yearTarget = NOW, yearRate = 3;   // the globe's year chases this target; the rate sets how fast
 function goState(name) {
   const st = STATES[name]; if (!st || name === stateName) return;
   const prev = stateName; stateName = name;
-  const tgt = st.target || new THREE.Vector3();
-  const far = (st.dist > 50) !== ((STATES[prev]?.dist || 0) > 50);
-  gsap.to(rig, { dist: st.dist, elev: st.elev, film: wide() ? st.film : 0, tx: tgt.x, ty: tgt.y, tz: tgt.z, spin: st.spin,
-    duration: far ? 2.6 : 1.8, ease: far ? 'expo.inOut' : 'power3.inOut', overwrite: 'auto' });
-  if (st.year !== null) gsap.to(U.uYear, { value: st.year, duration: 1.2, ease: 'power2.out', overwrite: 'auto' });
-  gsap.to(U.uFlash, { value: st.flash || 0, duration: 0.6 });
-  gsap.to(U.uSink, { value: st.sink || 0, duration: 0.6 });
-  [geoRing.material, leoRing.material].forEach((m) => gsap.to(m, { opacity: st.rings ? 0.75 : 0, duration: 1.2 }));
-  gsap.to(moonOrbit.material, { opacity: st.moon ? 0.45 : 0, duration: 1.5 });
+  if (st.year != null) { yearTarget = st.year; yearRate = 2.6; }
+  gsap.to(U.uFlash, { value: st.flash || 0, duration: 0.6, overwrite: 'auto' });
+  gsap.to(U.uSink, { value: st.sink || 0, duration: 0.6, overwrite: 'auto' });
+  [geoRing.material, leoRing.material].forEach((m) => gsap.to(m, { opacity: st.rings ? 0.75 : 0, duration: 1.2, overwrite: 'auto' }));
+  gsap.to(moonOrbit.material, { opacity: st.moon ? 0.45 : 0, duration: 1.5, overwrite: 'auto' });
+  gsap.to(U.uMoonA, { value: st.moon ? 1 : 0, duration: 1.5, overwrite: 'auto' });
   lblMoon.on = !!st.moon; lblEarth.on = !!st.moon; lblGeo.on = !!st.rings;
   setMode(st.mode);
-  $('#scrim').style.opacity = name === 'hero' || name === 'timeline' ? 0.6 : 1;
+  const side = st.side || 1;
+  $('#scrim').style.opacity = side < 0 || name === 'notes' || name === 'close' ? 0 : name === 'hero' || name === 'timeline' ? 0.6 : 1;
+  $('#scrim-r').style.opacity = side < 0 ? 1 : 0;
+  $('#replay').classList.toggle('left', side < 0);
+  if (name === 'events') burstEvents();
+  else { gsap.killTweensOf(U.uBurst); gsap.to(U.uBurst, { value: 1, duration: 0.8 }); }
   if (prev) sound.pluck(noteFor(Object.keys(STATES).indexOf(name) + 3), 0.4);
+  emit('section', { name, prev });
+}
+
+// Keyframes: scroll positions where the camera sits exactly in a section's pose
+let KEYS = [];
+const pa = {}, pb = {};
+function statePose(name, o) {
+  const st = STATES[name], tg = st.target;
+  o.ld = Math.log(st.dist); o.elev = st.elev; o.film = (wide() ? st.film : 0) * (st.side || 1);
+  o.tx = tg ? tg.x : 0; o.ty = tg ? tg.y : 0; o.tz = tg ? tg.z : 0; o.spin = st.spin; o.cut = st.cut || 0;
+}
+function poseAt(y) {
+  if (!KEYS.length) return;
+  let i = 0; while (i < KEYS.length - 1 && KEYS[i + 1].y <= y) i++;
+  const A = KEYS[i], B = KEYS[Math.min(i + 1, KEYS.length - 1)];
+  const t = B.y > A.y ? clamp01((y - A.y) / (B.y - A.y)) : 0;
+  const e = smooth(clamp01((t - 0.15) / 0.7));   // hold near each keyframe, travel in between
+  statePose(A.s, pa); statePose(B.s, pb);
+  for (const f in pa) pose[f] = pa[f] + (pb[f] - pa[f]) * e;
+}
+
+// Breakups: a ring of light where a cloud forms, a bloom pulse and a short camera shake
+const glowTex = (inner, outer) => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  if (inner) { g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.64, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(255,255,255,1)'); g.addColorStop(0.87, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); }
+  else { g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); }
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+};
+const ringTex = glowTex(true), flareTex = glowTex(false);
+function shockwave(g, color) {
+  if (!SAT || SAT.rep[g] < 0) return;
+  const k = SAT.rep[g], at = new THREE.Vector3();
+  const mk = (tex, s0, s1, dur, op) => {
+    const m = new THREE.SpriteMaterial({ map: tex, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, opacity: op, sizeAttenuation: false });
+    const sp = new THREE.Sprite(m); sp.position.copy(satPos(k, at)); sp.scale.setScalar(s0); sp.renderOrder = 4; world.add(sp);
+    gsap.to(sp.scale, { x: s1, y: s1, z: s1, duration: dur, ease: 'expo.out', onUpdate: () => sp.position.copy(satPos(k, at)) });
+    gsap.to(m, { opacity: 0, duration: dur, ease: 'power2.in', onComplete: () => { world.remove(sp); m.dispose(); } });
+  };
+  mk(ringTex, 0.003, 0.085, 1.8, 0.85); mk(ringTex, 0.003, 0.045, 1.2, 0.65); mk(flareTex, 0.035, 0.008, 0.9, 0.85);
+}
+function impact(g, detail) {
+  shockwave(g, new THREE.Color(GLOBE_PAL.dark.ev[EVENT_GROUP[g] ?? 4]));
+  shake.amp = Math.max(shake.amp, detail.source === 'timeline' ? 1 : 0.55);
+  gsap.fromTo(bloom, { strength: BLOOM + 0.55 }, { strength: BLOOM, duration: 1.4, ease: 'power2.out', overwrite: true });
+  emit('burst', detail);
+}
+// In the breakup section the four highlighted clouds gather to a point and spread out again
+function burstEvents() {
+  if (!SAT) return;
+  gsap.killTweensOf(U.uBurst); U.uBurst.value = 0;
+  gsap.to(U.uBurst, { value: 1, duration: 5.5, delay: 0.7, ease: 'power1.inOut' });
+  const ids = ['1999-025', '1982-092', '1993-036', '2022-151'];
+  ids.forEach((id, j) => {
+    const g = SAT.evMap[id], b = REP.breakups[g - 1];
+    if (!g || !b || b.in_orbit < 20) return;    // Cosmos 1408 has only 4 pieces left, so it gets no ring
+    gsap.delayedCall(0.35 + j * 0.3, () => { if (stateName === 'events') impact(g, { source: 'events', name: titleCase(b.name), pieces: b.debris, inOrbit: b.in_orbit }); });
+  });
 }
 
 canvas.addEventListener('pointerdown', (e) => {
@@ -1196,23 +1452,54 @@ canvas.addEventListener('pointermove', (e) => {
 const endDrag = () => { drag.on = false; cursor.classList.remove('drag'); };
 canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
 
+const camT = new THREE.Vector3(), camE = new THREE.Vector3(), globeUV = new THREE.Vector2(0.75, 0.5);
+let globeR = 200;
+let lastLd = Math.log(16), zoomDolly = 0;
 function updateCamera(dt) {
+  // the rig chases the scroll pose; log distance so long pulls feel even
+  const k = 1 - Math.exp(-dt * 5.5);
+  for (const f in pose) rig[f] += (pose[f] - rig[f]) * k;
   // inertia on drag, eased back toward zero when released
   drag.az += drag.vx; drag.el = Math.max(-1.2, Math.min(1.2, drag.el + drag.vy));
   const damp = drag.on ? 0.6 : 0.93; drag.vx *= damp; drag.vy *= damp;
   if (!drag.on) drag.el *= 0.985;
   rig.azim += rig.spin * dt;
   par.x += (mouse.nx - par.x) * 0.04; par.y += (mouse.ny - par.y) * 0.04;
+  const ik = intro.k;
+  const ld = intro.ld + (rig.ld - intro.ld) * ik, dist = Math.exp(ld);
   const az = rig.azim + drag.az + par.x * 0.08;
-  const el = Math.max(-1.5, Math.min(1.53, rig.elev + drag.el - par.y * 0.05));
-  const t = new THREE.Vector3(rig.tx, rig.ty, rig.tz);
-  camera.position.set(t.x + rig.dist * Math.cos(el) * Math.sin(az), t.y + rig.dist * Math.sin(el), t.z + rig.dist * Math.cos(el) * Math.cos(az));
-  camera.up.set(0, 1, 0); camera.lookAt(t);
-  camera.filmOffset = rig.film * camera.getFilmWidth() * -0.5 * (camera.aspect > 1 ? 1 : 0);
+  const el = Math.max(-1.5, Math.min(1.53, intro.elev + (rig.elev - intro.elev) * ik + drag.el - par.y * 0.05));
+  camT.set(rig.tx, rig.ty, rig.tz);
+  camera.position.set(camT.x + dist * Math.cos(el) * Math.sin(az), camT.y + dist * Math.sin(el), camT.z + dist * Math.cos(el) * Math.cos(az));
+  if (shake.amp > 1e-3) {
+    const s = shake.amp * dist * 0.012;
+    camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s; camera.position.z += (Math.random() - 0.5) * s;
+    shake.amp *= Math.exp(-dt * 4.5);
+  }
+  camera.up.set(0, 1, 0); camera.lookAt(camT);
+  camera.filmOffset = rig.film * ik * camera.getFilmWidth() * -0.5 * (camera.aspect > 1 ? 1 : 0);
   camera.updateProjectionMatrix();
+  U.uCut.value = rig.cut;
+  U.uFar.value = THREE.MathUtils.smoothstep(camera.position.length(), 25, 90);
+  // fast dollies smear the frame toward the globe; the Sun keeps its place relative to the camera
+  const dl = Math.abs(ld - lastLd) / Math.max(dt, 1e-3); lastLd = ld;
+  zoomDolly += (Math.min(0.1, dl * 0.03) - zoomDolly) * 0.15;
+  U.uSun.value.copy(SUN_VIEW).applyQuaternion(camera.quaternion);
+  camera.updateMatrixWorld();
+  const c = camT.set(0, 0, 0).project(camera); globeUV.set(c.x * 0.5 + 0.5, c.y * 0.5 + 0.5);
+  const e = camE.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(1.02).project(camera);
+  globeR = Math.hypot((e.x - c.x) * 0.5 * innerWidth, (e.y - c.y) * 0.5 * innerHeight);
+}
+// Masks a solid title outside the globe's disc and its outlined copy inside it
+function discMask(solid, ghost) {
+  const b = solid.getBoundingClientRect();
+  const at = `circle at ${(globeUV.x * innerWidth - b.left).toFixed(1)}px ${((1 - globeUV.y) * innerHeight - b.top).toFixed(1)}px`, R = globeR.toFixed(1), R1 = (globeR + 1).toFixed(1);
+  const mS = `radial-gradient(${at}, transparent ${R}px, #000 ${R1}px)`, mG = `radial-gradient(${at}, #000 ${R}px, transparent ${R1}px)`;
+  solid.style.webkitMaskImage = mS; solid.style.maskImage = mS; ghost.style.webkitMaskImage = mG; ghost.style.maskImage = mG;
 }
 
-// Post-processing: bloom, then a final pass for grain, chromatic fringing and vignette
+// Post-processing: bloom, then a final pass for a radial zoom blur toward the globe (during the
+// fly-in and fast dollies), chromatic fringing, grain and vignette
 const composer = new EffectComposer(renderer);
 composer.setPixelRatio(DPR);
 composer.addPass(new RenderPass(scene, camera));
@@ -1221,44 +1508,68 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight 
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const finalPass = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, uTime: U.uTime, uCA: { value: 0.0035 } },
+  uniforms: { tDiffuse: { value: null }, uTime: U.uTime, uCA: { value: 0.0035 }, uZoom: { value: 0 }, uZC: { value: globeUV } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform float uCA; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform float uCA; uniform float uZoom; uniform vec2 uZC; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-    void main(){ vec2 d = vUv - 0.5; float r2 = dot(d, d); vec2 off = d * r2 * uCA * 8.0;
-      vec3 c = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+    vec3 fringe(vec2 uv){ vec2 d = uv - 0.5; vec2 off = d * dot(d, d) * uCA * 8.0 * (1.0 + uZoom * 10.0);
+      return vec3(texture2D(tDiffuse, uv + off).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - off).b); }
+    void main(){ vec2 d = vUv - 0.5; float r2 = dot(d, d);
+      vec3 c = fringe(vUv);
+      if (uZoom > 0.0005) {
+        float j = h(vUv * 731.0 + fract(uTime * 0.01)) / 11.0;
+        for (int i = 1; i < 12; i++) { float t = float(i) / 11.0 - j; c += fringe(uZC + (vUv - uZC) * (1.0 - uZoom * t)); }
+        c /= 12.0;
+      }
       float g = h(vUv * 1000.0 + fract(uTime * 0.013) * 91.0) - 0.5;
-      c += g * 0.028;
+      c += g * 0.03;
       c *= 1.0 - r2 * 0.7;
       gl_FragColor = vec4(c, 1.0); }`,
 });
-// ShaderPass clones its uniforms; point uTime back at the shared one so the grain moves
-finalPass.uniforms.uTime = U.uTime;
+// ShaderPass clones its uniforms; point the shared ones back so time and the globe centre reach the pass
+finalPass.uniforms.uTime = U.uTime; finalPass.uniforms.uZC.value = globeUV;
 composer.addPass(finalPass);
 
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight; U.uRes.value.set(innerWidth, innerHeight);
   bloom.resolution.set(innerWidth / 2, innerHeight / 2);
+  labels.forEach((L) => { L.w = -1; });
 });
 
 // ---------------------------------------------------------------------
 // Pointing at an object: the same orbit math on the CPU, nearest visible
-// point within 12 px, hidden if the Earth is in front of it.
+// point within 12 px, hidden if the Earth is in front of it. The cursor
+// ring locks onto the object and a leader line draws out to its card.
 // ---------------------------------------------------------------------
-const probe = $('#probe'), probeCard = $('.card', probe);
-let probeK = -1, probeWait = 0, probeW = 240, probeH = 90;
+const probe = $('#probe'), probeCard = $('.card', probe), prLead = $('#pr-lead'), prName = $('#pr-nm');
+let probeK = -1, probeW = 240, probeH = 90, leadT0 = 0;
 const pv = new THREE.Vector3();
+const TAU = Math.PI * 2;
+const wrapA = (x) => { x = (x + Math.PI) % TAU; if (x < 0) x += TAU; return x - Math.PI; };
+const sstep = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+// Mirrors orbitPos in the shaders: breakup spreading, the age section's height scale, sinking before reentry
 function satPos(k, out) {
-  const o = SAT.orb, o2 = SAT.orb2;
-  const a = o[k * 4], e = o[k * 4 + 1], inc = o[k * 4 + 2], raan = o[k * 4 + 3], argp = o2[k * 4];
-  let M = (o2[k * 4 + 1] + o2[k * 4 + 2] * U.uTime.value) % (Math.PI * 2);
+  const o = SAT.orb, o2 = SAT.orb2, b = SAT.bst, T = U.uTime.value;
+  const a = o[k * 4], e = o[k * 4 + 1], inc = o[k * 4 + 2];
+  let raan = o[k * 4 + 3], argp = o2[k * 4], M = o2[k * 4 + 1] + o2[k * 4 + 2] * T;
+  if (SAT.ev[k * 2]) {
+    const s = Math.min(U.uBurst.value, sstep(0, 1.5, U.uYear.value - SAT.ev[k * 2 + 1]));
+    if (s < 1) {
+      const Ms = b[k * 4 + 2] + b[k * 4 + 3] * T, k2 = sstep(0.35, 1, s);
+      M = Ms + wrapA(M - Ms) * sstep(0, 0.6, s);
+      raan = b[k * 4] + wrapA(raan - b[k * 4]) * k2; argp = b[k * 4 + 1] + wrapA(argp - b[k * 4 + 1]) * k2;
+    }
+  }
+  M = ((M % TAU) + TAU) % TAU;
   let E = M + e * Math.sin(M);
   for (let j = 0; j < 4; j++) E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
   const xp = a * (Math.cos(E) - e), yp = a * Math.sqrt(1 - e * e) * Math.sin(E);
   const cw = Math.cos(argp), sw = Math.sin(argp), ci = Math.cos(inc), si = Math.sin(inc), cO = Math.cos(raan), sO = Math.sin(raan);
   const x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw, y2 = y1 * ci, z2 = y1 * si;
   out.set(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO));
+  const ax = 1 + (U.uAltX.value - 1) * U.uCut.value;
+  if (ax !== 1) { const r = out.length(); out.multiplyScalar((1 + (r - 1) * ax) / r); }
   const left = SAT.life[k * 2 + 1] - U.uYear.value;
   const sink = U.uSink.value * (1 - THREE.MathUtils.smoothstep(left, 0, 0.35));
   if (sink > 0) out.multiplyScalar(THREE.MathUtils.lerp(1, 1 / out.length(), sink * 0.985));
@@ -1270,16 +1581,25 @@ function occluded(p) {
   const b = c.dot(d), cc = c.lengthSq() - 1, disc = b * b - cc;
   if (disc < 0) return false; const t = -b - Math.sqrt(disc); return t > 0 && t < L;
 }
-const sp = new THREE.Vector3();
+const sp = new THREE.Vector3(), vz = new THREE.Vector3();
 function pick() {
-  if (!SAT || drag.on) return -1;
+  if (!SAT || drag.on || U.uFar.value > 0.4) return -1;
   const el = document.elementFromPoint(mouse.x, mouse.y);
   if (el !== canvas) return -1;
   let best = -1, bd = 144; const y = Math.fround(U.uYear.value);
+  // keep the locked object while the pointer stays near it, so a dense shell does not flicker between neighbours
+  if (probeK >= 0 && SAT.life[probeK * 2 + 1] > y) {
+    satPos(probeK, sp); const hid = occluded(sp.clone()); sp.project(camera);
+    const d = ((sp.x * 0.5 + 0.5) * innerWidth - mouse.x) ** 2 + ((-sp.y * 0.5 + 0.5) * innerHeight - mouse.y) ** 2;
+    if (!hid && sp.z < 1 && d < 1600) return probeK;
+  }
+  const cut = U.uCut.value > 0.5, cz = cut ? vz.set(0, 0, 0).applyMatrix4(camera.matrixWorldInverse).z : 0;
   for (let k = 0; k < SAT.n; k++) {
     if (SAT.life[k * 2] > y || SAT.life[k * 2 + 1] <= y) continue;
     if (SAT.colB.array[k * 4 + 3] < 0.2 && U.uMix.value > 0.5) continue;
-    satPos(k, sp); sp.project(camera);
+    satPos(k, sp);
+    if (cut && Math.abs(vz.copy(sp).applyMatrix4(camera.matrixWorldInverse).z - cz) > 0.25) continue;
+    sp.project(camera);
     if (sp.z > 1) continue;
     const sx = (sp.x * 0.5 + 0.5) * innerWidth, sy = (-sp.y * 0.5 + 0.5) * innerHeight;
     const d = (sx - mouse.x) ** 2 + (sy - mouse.y) ** 2;
@@ -1288,31 +1608,52 @@ function pick() {
   return best;
 }
 const OWN = {}; // filled from the report data
+// the name types itself in from scrambled characters
+const SCR = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-';
+let scr = null;
+function scrambleTick(now) {
+  if (!scr) return;
+  const p = (now - scr.t0) / 420, n = Math.floor(clamp01(p) * scr.text.length);
+  let s = scr.text.slice(0, n);
+  for (let i = n; i < scr.text.length; i++) s += scr.text[i] === ' ' ? ' ' : SCR[(Math.random() * SCR.length) | 0];
+  prName.textContent = p >= 1 ? scr.text : s;
+  if (p >= 1) scr = null;
+}
 function showProbe(k) {
-  if (k < 0) { probe.classList.remove('on'); probeK = -1; cursor.classList.remove('show-label'); return; }
+  if (k < 0) { probe.classList.remove('on'); probeK = -1; lockPos.on = false; cursor.classList.remove('show-label'); return; }
   const i = SAT.idx[k], D = SAT.D;
   if (k !== probeK) {
     probeK = k;
-    $('#pr-nm').textContent = D.name[i] || 'Unnamed object';
+    const name = D.name[i] || 'Unnamed object';
+    scr = { text: name, t0: performance.now() }; leadT0 = performance.now();
     const own = OWN[D.owner[i]] || D.owner[i];
     probeW = -1;
     $('#pr-sub').innerHTML = `${TYPE_NAME[D.type[i]]}, ${own}<br>Launched <b>${D.launchS[i]}</b>, catalog number ${D.norad[i]}<br>Orbit <b>${fmt(D.peri[i])} by ${fmt(D.apo[i])} km</b>, inclination <b>${D.inc[i].toFixed(1)}</b> degrees`;
+    prName.textContent = name;   // measure the card at its final width before the scramble starts
     sound.blip(880);
+    emit('probe', { name, norad: D.norad[i], type: TYPE_NAME[D.type[i]] });
   }
   probe.classList.add('on');
 }
-function trackProbe() {
+function trackProbe(now) {
   if (probeK < 0) return;
   satPos(probeK, sp); const hidden = occluded(sp.clone()); sp.project(camera);
   const px = (sp.x * 0.5 + 0.5) * innerWidth, py = (-sp.y * 0.5 + 0.5) * innerHeight;
   probe.style.transform = `translate(${px}px, ${py}px)`;
+  lockPos.on = !hidden; lockPos.x = px; lockPos.y = py;
   // keep the card on screen: flip it left of the mark near the right edge, lift it near the bottom, keep it below the nav
   if (probeW < 0) { probeW = probeCard.offsetWidth; probeH = probeCard.offsetHeight; }
   let top = -8;
   if (py + top + probeH > innerHeight - 12) top = innerHeight - 12 - probeH - py;
   if (py + top < 72) top = 72 - py;
-  probeCard.style.left = (px + 22 + probeW > innerWidth - 12 ? -22 - probeW : 22) + 'px';
+  const flip = px + 30 + probeW > innerWidth - 12, left = flip ? -30 - probeW : 30;
+  probeCard.style.left = left + 'px';
   probeCard.style.top = top + 'px';
+  // leader line from the object to the card's near edge, drawn out when a new object is found
+  const lx = flip ? -30 : 30, ly = top + 14, len = Math.hypot(lx, ly), p = clamp01((now - leadT0) / 280);
+  prLead.setAttribute('x2', lx); prLead.setAttribute('y2', ly);
+  prLead.style.strokeDasharray = len; prLead.style.strokeDashoffset = len * (1 - p);
+  probeCard.style.opacity = sstep(0.4, 1, p);
   if (hidden || SAT.life[probeK * 2 + 1] <= Math.fround(U.uYear.value)) showProbe(-1);
 }
 
@@ -1320,23 +1661,35 @@ function trackProbe() {
    5. Render loop
    ===================================================================== */
 let last = performance.now(), simT = 0, pickAt = 0;
+let yearTick = () => {};   // set up with the scroll: timeline readouts, breakup flashes, burn-up counts
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05); last = now;
   simT += dt * rig.timeScale; U.uTime.value = simT;
   earthSpin.rotation.y = simT * 7.2921e-5 + 2.1;
+  // the globe's year chases its target: fast while scrubbed, slower when a section changes it
+  const y0 = U.uYear.value;
+  U.uYear.value += (yearTarget - y0) * (1 - Math.exp(-dt * yearRate));
+  if (Math.abs(yearTarget - U.uYear.value) < 1e-5) U.uYear.value = yearTarget;
+  yearTick(y0, U.uYear.value);
   updateCamera(dt);
+  finalPass.uniforms.uZoom.value = Math.max(intro.zoom, zoomDolly);
   cursorTick();
+  scrambleTick(now);
   if (SAT && now > pickAt) {
     pickAt = now + 70;
     const onCanvas = document.elementFromPoint(mouse.x, mouse.y) === canvas;
-    cursor.classList.toggle('show-label', onCanvas && probeK < 0);
+    cursor.classList.toggle('show-label', onCanvas && probeK < 0 && U.uFar.value < 0.4);
     showProbe(pick());
   }
-  trackProbe();
+  trackProbe(now);
   for (const L of labels) {
     sp.copy(L.pos).project(camera);
+    if (L.w < 0 && L.on) L.w = L.el.offsetWidth;
+    const x = (sp.x * 0.5 + 0.5) * innerWidth, y = (-sp.y * 0.5 + 0.5) * innerHeight - 7;
+    const flip = L.w > 0 && x + L.w + 16 > innerWidth;
+    L.el.classList.toggle('flip', flip);
     L.el.style.opacity = L.on && sp.z < 1 ? 1 : 0;
-    L.el.style.transform = `translate(${(sp.x * 0.5 + 0.5) * innerWidth}px, ${(-sp.y * 0.5 + 0.5) * innerHeight - 7}px)`;
+    L.el.style.transform = `translate(${flip ? x - L.w : x}px, ${y}px)`;
   }
   composer.render(dt);
   requestAnimationFrame(frame);
@@ -1378,28 +1731,56 @@ function roundTopBar(x, y, w, h, r) {
 const TYPE_KEYS = ['Payload', 'Rocket body', 'Debris', 'Unknown'];
 const typeColor = () => [css('--c-pay'), css('--c-rb'), css('--c-deb'), css('--c-unk')];
 
-// 1. Payloads per year, the timeline chart
+// Hovering a chart lights up the matching objects on the globe.
+// kind 1: inclination in degrees, 2: mean altitude in km, 3: year entered the catalog, 4: breakup group
+let hiKey = '';
+function hiOn(kind, lo, hi) {
+  const k = `${kind}:${lo}:${hi}`; if (k === hiKey) return; hiKey = k;
+  U.uHiKind.value = kind; U.uHiLo.value = lo; U.uHiHi.value = hi;
+  gsap.to(U.uHi, { value: 1, duration: 0.35, overwrite: true });
+  emit('highlight', { kind, lo, hi });
+}
+function hiOff() { hiKey = ''; gsap.to(U.uHi, { value: 0, duration: 0.5, overwrite: true }); }
+const leave = () => { hideTip(); hiOff(); };
+
+// 1. Payloads per year, the growth section
 charts.growth = () => {
   const d = REP.by_year.years.map((y, i) => ({ y, v: REP.by_year.Payload[i] }));
-  const f = frameSvg('c-growth', Math.max(110, Math.min(150, innerHeight * 0.15)), { t: 8, r: 4, b: 22, l: 44 });
+  const f = frameSvg('c-growth', 230, { t: 14, r: 4, b: 24, l: 44 });
   const x = d3.scaleBand().domain(d.map((e) => e.y)).range([0, f.iw]).padding(0.18);
   const y = d3.scaleLinear().domain([0, 4700]).range([f.ih, 0]);
-  yGrid(f.g, y, f.iw, 3);
+  yGrid(f.g, y, f.iw, 4);
   f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`)
     .call(d3.axisBottom(x).tickValues(d.map((e) => e.y).filter((v) => v % 10 === 0 || v === 2026)).tickSize(0).tickPadding(8)).select('.domain').remove();
-  const bars = f.g.selectAll('path.b').data(d).join('path').attr('class', 'b')
-    .attr('d', (e) => roundTopBar(x(e.y), y(e.v), x.bandwidth(), f.ih - y(e.v), 2)).attr('fill', css('--c-pay'));
-  const cur = f.g.append('line').attr('class', 'anno-line').attr('y1', -4).attr('y2', f.ih);
+  f.g.selectAll('path.b').data(d).join('path').attr('class', 'b grow')
+    .attr('d', (e) => roundTopBar(x(e.y), y(e.v), x.bandwidth(), f.ih - y(e.v), 2)).attr('fill', (e) => (e.y >= 2020 ? css('--c-pay') : '#2d5f9c'));
+  f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y) - 1).attr('width', x.bandwidth() + 2)
     .attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.y}</div>${row(css('--c-pay'), 'Payloads launched', fmt(e.v))}`, ev)).on('pointerleave', hideTip);
-  charts.growth.set = (yr) => {
-    bars.attr('opacity', (e) => (e.y <= yr ? 1 : 0.16));
-    const cx = x(Math.min(2026, Math.max(1957, Math.floor(yr)))) + x.bandwidth() / 2; cur.attr('x1', cx).attr('x2', cx);
-  };
-  charts.growth.set(U.uYear.value < 1957.8 ? 1957 : tmYear);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(css('--c-pay'), 'Payloads launched', fmt(e.v))}`, ev); hiOn(3, e.y, e.y + 1); }).on('pointerleave', leave);
+  animateGrow(f, 'growth');
 };
-let tmYear = 1957;
+
+// 1b. The timeline chart: objects in Earth orbit by type, drawn in up to the year on the globe
+charts.tm = () => {
+  const S = REP.in_orbit; const d = S.years.map((y, i) => ({ y, Payload: S.Payload[i], 'Rocket body': S['Rocket body'][i], Debris: S.Debris[i], Unknown: S.Unknown[i] }));
+  const L = 48;
+  const f = frameSvg('c-tm', Math.max(96, Math.min(132, innerHeight * 0.13)), { t: 6, r: 6, b: 22, l: L });
+  const x = d3.scaleLinear().domain([1957.75, NOW]).range([0, f.iw]);
+  const y = d3.scaleLinear().domain([0, 36000]).range([f.ih, 0]);
+  yGrid(f.g, y, f.iw, 2);
+  f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickValues([1960, 1970, 1980, 1990, 2000, 2010, 2020]).tickFormat(d3.format('d')).tickSize(0).tickPadding(8)).select('.domain').remove();
+  const cols = typeColor();
+  const area = d3.area().x((e) => x(e.data.y)).y0((e) => y(e[0])).y1((e) => y(e[1])).curve(d3.curveMonotoneX);
+  const st = d3.stack().keys(TYPE_KEYS)(d);
+  f.g.append('g').attr('opacity', 0.13).selectAll('path').data(st).join('path').attr('d', area).attr('fill', (s, i) => cols[i]);
+  const clip = f.svg.append('clipPath').attr('id', 'clip-tm').append('rect').attr('x', 0).attr('y', 0).attr('height', f.h).attr('width', 0);
+  f.g.append('g').attr('clip-path', 'url(#clip-tm)').selectAll('path').data(st).join('path').attr('d', area).attr('fill', (s, i) => cols[i])
+    .attr('stroke', css('--panel-solid')).attr('stroke-width', 0.8);
+  const cur = f.g.append('line').attr('class', 'anno-line').attr('y1', -2).attr('y2', f.ih);
+  charts.tm.set = (yr) => { const cx = x(Math.min(NOW, Math.max(1957.75, yr))); clip.attr('width', Math.max(0, cx)); cur.attr('x1', cx).attr('x2', cx); };
+  charts.tm.set(U.uYear.value);
+};
 
 // 2. Starlink vs other payloads, stacked bars
 charts.starlink = () => {
@@ -1415,37 +1796,59 @@ charts.starlink = () => {
   g.append('path').attr('class', 'grow').attr('d', (e) => e.sl ? roundTopBar(x(e.y), y(e.ot + e.sl), x.bandwidth(), y(e.ot) - y(e.ot + e.sl) - 2, 3) : '').attr('fill', cS);
   f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.y}</div>${row(cS, 'Starlink', fmt(e.sl))}${row(cO, 'Other payloads', fmt(e.ot))}${row('', 'Starlink share', (e.sl / (e.sl + e.ot) * 100).toFixed(1) + '%')}`, ev))
-    .on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(cS, 'Starlink', fmt(e.sl))}${row(cO, 'Other payloads', fmt(e.ot))}${row('', 'Starlink share', (e.sl / (e.sl + e.ot) * 100).toFixed(1) + '%')}`, ev); hiOn(3, e.y, e.y + 1); })
+    .on('pointerleave', leave);
   animateGrow(f, 'starlink');
 };
 
-// 3. Objects in Earth orbit by type, stacked area
+// 3. Payloads and debris in Earth orbit, monthly from 2015, counted from the catalog in the page
+let MONTHLY = null;
+function monthly() {
+  if (MONTHLY) return MONTHLY;
+  const D = SAT.D, ids = [];
+  for (let i = 0; i < D.n; i++) { const c = D.center[i]; if ((c === 'EA' || /^\d+$/.test(c)) && (D.type[i] === 0 || D.type[i] === 2)) ids.push(i); }
+  const count = (t) => { let p = 0, q = 0; for (const i of ids) if (D.appear[i] <= t && D.decay[i] > t) { if (D.type[i] === 0) p++; else q++; } return [p, q]; };
+  const out = [];
+  for (let yy = 2015; yy <= 2026; yy++) for (let m = 0; m < 12; m++) {
+    if (yy === 2026 && m > 8) break;
+    const t = fyear(`${yy}-${String(m + 1).padStart(2, '0')}-01`), [p, q] = count(t);
+    out.push({ t, yy, m, p, d: q });
+  }
+  const [p, q] = count(NOW); out.push({ t: NOW, yy: 2026, m: 8, p, d: q, today: true });
+  return (MONTHLY = out);
+}
 charts.inorbit = () => {
-  const S = REP.in_orbit; const d = S.years.map((y, i) => ({ y, Payload: S.Payload[i], 'Rocket body': S['Rocket body'][i], Debris: S.Debris[i], Unknown: S.Unknown[i] }));
-  const f = frameSvg('c-inorbit', 270, { t: 12, r: 10, b: 24, l: 48 });
-  const x = d3.scaleLinear().domain([1958, NOW]).range([0, f.iw]);
-  const stack = d3.stack().keys(TYPE_KEYS)(d);
-  const y = d3.scaleLinear().domain([0, 36000]).range([f.ih, 0]);
+  const d = monthly();
+  const f = frameSvg('c-inorbit', 270, { t: 16, r: 12, b: 24, l: 48 });
+  const x = d3.scaleLinear().domain([2015, NOW]).range([0, f.iw]);
+  const y = d3.scaleLinear().domain([0, 22000]).range([f.ih, 0]);
   yGrid(f.g, y, f.iw, 4);
-  f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).ticks(7).tickFormat(d3.format('d')).tickSize(0).tickPadding(8)).select('.domain').remove();
-  const cols = typeColor();
+  f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickValues([2015, 2017, 2019, 2021, 2023, 2025]).tickFormat(d3.format('d')).tickSize(0).tickPadding(8)).select('.domain').remove();
+  const cP = css('--c-pay'), cD = css('--c-deb');
   const clip = f.svg.append('clipPath').attr('id', 'clip-inorbit').append('rect').attr('width', 0).attr('height', f.h);
-  const area = d3.area().x((e) => x(e.data.y)).y0((e) => y(e[0])).y1((e) => y(e[1])).curve(d3.curveMonotoneX);
-  f.g.append('g').attr('clip-path', 'url(#clip-inorbit)').selectAll('path').data(stack).join('path').attr('d', area).attr('fill', (s, i) => cols[i])
-    .attr('stroke', css('--panel-solid')).attr('stroke-width', 1);
-  // payloads vs debris crossing, October 2024
-  const cx = x(2024.75);
-  f.g.append('line').attr('class', 'anno-line').attr('x1', cx).attr('x2', cx).attr('y1', y(33000)).attr('y2', y(20000));
-  f.g.append('text').attr('class', 'anno').attr('x', cx - 6).attr('y', y(33400)).attr('text-anchor', 'end').text('Oct 2024, payloads pass debris for good');
+  const gg = f.g.append('g').attr('clip-path', 'url(#clip-inorbit)');
+  const cv = d3.curveMonotoneX;
+  // the gap between the two lines, tinted by whichever group is ahead
+  gg.append('path').datum(d).attr('d', d3.area().x((e) => x(e.t)).y0((e) => y(e.d)).y1((e) => y(Math.max(e.p, e.d))).curve(cv)).attr('fill', cP).attr('opacity', 0.3);
+  gg.append('path').datum(d).attr('d', d3.area().x((e) => x(e.t)).y0((e) => y(e.p)).y1((e) => y(Math.max(e.p, e.d))).curve(cv)).attr('fill', cD).attr('opacity', 0.22);
+  gg.append('path').datum(d).attr('d', d3.line().x((e) => x(e.t)).y((e) => y(e.d)).curve(cv)).attr('fill', 'none').attr('stroke', cD).attr('stroke-width', 2.2);
+  gg.append('path').datum(d).attr('d', d3.line().x((e) => x(e.t)).y((e) => y(e.p)).curve(cv)).attr('fill', 'none').attr('stroke', cP).attr('stroke-width', 2.2);
+  // the first month payloads are ahead, found from the counts
+  const ci = d.findIndex((e, i) => i > 0 && e.p > e.d && d[i - 1].p <= d[i - 1].d);
+  if (ci > 0) {
+    const e = d[ci], cx = x(e.t);
+    f.g.append('line').attr('class', 'anno-line').attr('x1', cx).attr('x2', cx).attr('y1', y(e.p) - 8).attr('y2', y(21000));
+    f.g.append('text').attr('class', 'anno').attr('x', cx - 6).attr('y', y(21200)).attr('text-anchor', 'end').text(`${MONTHS[e.m]} ${e.yy}, payloads pass debris`);
+    charts.inorbit.cross = `${MONTHS[e.m]} ${e.yy}`;
+  }
   const hl = f.g.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', f.ih).style('opacity', 0);
   f.g.append('rect').attr('class', 'hit').attr('width', f.iw).attr('height', f.ih).attr('fill', 'transparent')
     .on('pointermove', (ev) => {
-      const [mx] = d3.pointer(ev); const yr = x.invert(mx);
-      const e = d.reduce((a, b) => (Math.abs(b.y - yr) < Math.abs(a.y - yr) ? b : a));
-      hl.attr('x1', x(e.y)).attr('x2', x(e.y)).style('opacity', 1);
-      const label = e.y > 2026.5 ? 'Today (Sep 23, 2026)' : `1 January ${e.y}`;
-      showTip(`<div class="t">${label}</div>${TYPE_KEYS.map((k, i) => row(cols[i], k, fmt(e[k]))).join('')}${row('', 'Total', fmt(TYPE_KEYS.reduce((s, k) => s + e[k], 0)))}`, ev);
+      const [mx] = d3.pointer(ev); const t = x.invert(mx);
+      const e = d.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+      hl.attr('x1', x(e.t)).attr('x2', x(e.t)).style('opacity', 1);
+      const label = e.today ? 'Today (Sep 23, 2026)' : `1 ${MONTHS[e.m]} ${e.yy}`;
+      showTip(`<div class="t">${label}</div>${row(cP, 'Payloads', fmt(e.p))}${row(cD, 'Debris', fmt(e.d))}`, ev);
     }).on('pointerleave', () => { hideTip(); hl.style('opacity', 0); });
   charts.inorbit.play = () => { played.add('inorbit'); clip.transition().duration(1800).ease(d3.easeCubicInOut).attr('width', f.w); };
   if (played.has('inorbit')) clip.attr('width', f.w);
@@ -1466,8 +1869,8 @@ charts.breakups = () => {
   g.append('text').attr('class', 'lbl').attr('x', -10).attr('y', y.bandwidth() / 2).attr('dy', '.35em').attr('text-anchor', 'end').text((e) => e.label);
   g.append('text').attr('class', 'lbl-strong').attr('x', (e) => x(e.debris) + 7).attr('y', y.bandwidth() / 2).attr('dy', '.35em').text((e) => fmt(e.debris));
   g.append('rect').attr('class', 'hit').attr('x', -128).attr('width', f.iw + 170).attr('height', y.bandwidth()).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.label}</div>${row('', 'Owner', e.owner)}${row('', 'Parent launched', e.launched)}${row(cIn, 'Still in orbit', fmt(e.in_orbit))}${row(cGone, 'Reentered', fmt(e.gone))}`, ev))
-    .on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.label}</div>${row('', 'Owner', e.owner)}${row('', 'Parent launched', e.launched)}${row(cIn, 'Still in orbit', fmt(e.in_orbit))}${row(cGone, 'Reentered', fmt(e.gone))}`, ev); const g = SAT.evMap[e.launch_id]; if (g) hiOn(4, g, g + 0.5); })
+    .on('pointerleave', leave);
   animateGrowX(f, 'breakups');
 };
 function titleCase(s) {
@@ -1491,8 +1894,8 @@ charts.owners = () => {
     .selectAll('rect').data((s) => s).join('rect').attr('class', 'grow').attr('x', (e) => x(e.data.dec)).attr('width', x.bandwidth())
     .attr('y', (e) => y(e[1]) + 1).attr('height', (e) => Math.max(0, y(e[0]) - y(e[1]) - 2));
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.dec)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.dec}s, ${fmt(e.tot)} payloads</div>${keys.map((k, i) => row(cols[i], k, `${(e[k] * 100).toFixed(1)}%  (${fmt(e[k + '_n'])})`)).join('')}`, ev))
-    .on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.dec}s, ${fmt(e.tot)} payloads</div>${keys.map((k, i) => row(cols[i], k, `${(e[k] * 100).toFixed(1)}%  (${fmt(e[k + '_n'])})`)).join('')}`, ev); hiOn(3, e.dec, e.dec + 10); })
+    .on('pointerleave', leave);
   animateGrow(f, 'owners');
 };
 
@@ -1511,7 +1914,7 @@ charts.altitude = () => {
   f.g.append('text').attr('class', 'anno').attr('x', x(700) + 4).attr('y', y(2600)).text('700 to 900 km, mostly debris');
   f.g.append('text').attr('class', 'anno').attr('x', x(505) + 4).attr('y', y(5900)).text('450 to 500 km, mostly Starlink');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.b)).attr('width', x(125) - x(100)).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${fmt(e.b)} to ${fmt(e.b + 25)} km</div>${TYPE_KEYS.map((k, i) => row(cols[i], k, fmt(e[k]))).join('')}`, ev)).on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${fmt(e.b)} to ${fmt(e.b + 25)} km</div>${TYPE_KEYS.map((k, i) => row(cols[i], k, fmt(e[k]))).join('')}`, ev); hiOn(2, e.b, e.b + 25); }).on('pointerleave', leave);
   animateGrow(f, 'altitude');
 };
 
@@ -1532,7 +1935,7 @@ charts.incl = () => {
     f.g.append('text').attr('class', 'lbl-strong').attr('x', x(v + 0.5)).attr('y', y(c[Math.floor(v)]) - 8).attr('text-anchor', 'middle').text(t);
   });
   f.g.selectAll('rect.hit').data(d.filter((e) => e.i < 150)).join('rect').attr('class', 'hit').attr('x', (e) => x(e.i)).attr('width', x(1) - x(0)).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.i} to ${e.i + 1} degrees</div>${row('', 'Objects', fmt(e.v))}`, ev)).on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.i} to ${e.i + 1} degrees</div>${row('', 'Objects', fmt(e.v))}`, ev); hiOn(1, e.i, e.i + 1); }).on('pointerleave', leave);
   animateGrow(f, 'incl');
 };
 
@@ -1554,7 +1957,7 @@ charts.age = () => {
   f.g.selectAll('path.b').data(d).join('path').attr('class', 'b grow').attr('d', (e) => roundTopBar(x(e.b), y(e.v), x.bandwidth(), f.ih - y(e.v), 3)).attr('fill', (e) => seq(e.v));
   f.g.selectAll('text.v').data(d).join('text').attr('class', 'lbl-strong').attr('x', (e) => x(e.b) + x.bandwidth() / 2).attr('y', (e) => y(e.v) - 6).attr('text-anchor', 'middle').text((e) => e.v.toFixed(1));
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.b)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => showTip(`<div class="t">${e.b.replace('-', ' to ')} km</div>${row('', 'Objects', fmt(e.n))}${row('', 'Median years in catalog', e.v.toFixed(1))}${row('', 'Median year entered', e.yr)}`, ev)).on('pointerleave', hideTip);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.b.replace('-', ' to ')} km</div>${row('', 'Objects', fmt(e.n))}${row('', 'Median years in catalog', e.v.toFixed(1))}${row('', 'Median year entered', e.yr)}`, ev); const [lo, hi] = e.b.split('-').map(Number); hiOn(2, lo, hi); }).on('pointerleave', leave);
   f.g.append('text').attr('class', 'axis').attr('x', -40).attr('y', -8).style('font', '400 11.5px Anybody').style('fill', css('--ink-3')).text('Years');
   animateGrow(f, 'age');
 };
@@ -1610,7 +2013,7 @@ function animateGrowX(f, key) {
 }
 function renderCharts() {
   if (!REP) return;
-  for (const k of ['growth', 'starlink', 'inorbit', 'breakups', 'owners', 'altitude', 'incl', 'age', 'reentry', 'beyond']) charts[k]();
+  for (const k of ['growth', 'tm', 'starlink', 'inorbit', 'breakups', 'owners', 'altitude', 'incl', 'age', 'reentry', 'beyond']) charts[k]();
 }
 let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(renderCharts, 200); });
 
@@ -1622,37 +2025,96 @@ function setupScroll(D) {
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
 
-  // Globe state per section
-  // whichever section covers the middle of the screen sets the globe state
   const secs = $$('[data-globe]');
-  // the reentry section replays January 2024 to today as it scrolls past
-  const reSec = $('[data-globe="reentry"]');
-  const pickState = () => {
-    const mid = innerHeight * 0.5;
-    for (const sec of secs) { const r = sec.getBoundingClientRect(); if (r.top <= mid && r.bottom > mid) { goState(sec.dataset.globe); break; } }
-    if (stateName === 'reentry') {
-      const r = reSec.getBoundingClientRect(), p = Math.min(1, Math.max(0, (mid - r.top) / r.height));
-      gsap.killTweensOf(U.uYear); U.uYear.value = 2024 + (NOW - 2024) * p;
-      const yy = Math.floor(U.uYear.value), mm = Math.min(11, Math.floor((U.uYear.value - yy) * 12));
-      $('#replay-d').textContent = `${MONTHS[mm]} ${yy}`;
+  const reSec = $('[data-globe="reentry"]'), ownSec = $('[data-globe="owner"]');
+  const replay = $('#replay'), replayK = $('#replay-k'), replayD = $('#replay-d'), replayKeys = $('#replay-keys');
+  const Y0 = 1957.75;
+  // Camera keyframes and the scroll range of the time machine, measured from the layout
+  let growthY = 0, tmTop = 0, tmEnd = 1;
+  const measure = () => {
+    const vh = innerHeight, maxY = document.documentElement.scrollHeight - vh, out = [];
+    for (const sec of secs) {
+      const name = sec.dataset.globe, top = sec.getBoundingClientRect().top + scrollY, h = sec.offsetHeight;
+      const c = Math.min(maxY, Math.max(0, top + h / 2 - vh / 2));
+      if (name === 'hero') out.push({ y: 0, s: 'hero' });
+      else if (name === 'timeline') { tmTop = top; tmEnd = top + h - vh; out.push({ y: tmTop, s: 'timeline' }, { y: tmEnd, s: 'timeline' }); }
+      else if (name === 'beyond') out.push({ y: top + h * 0.3 - vh / 2, s: 'beyond' }, { y: Math.min(maxY, top + h * 0.8 - vh / 2), s: 'moon' });
+      else { out.push({ y: c, s: name }); if (name === 'growth') growthY = c; }
     }
-    $('#replay').classList.toggle('on', stateName === 'reentry');
+    KEYS = out.sort((a, b) => a.y - b.y);
   };
-  lenis.on('scroll', pickState); window.__pickState = pickState;
+  measure();
+  // fonts, split headings and charts change the page height after setup, so measure again whenever it changes
+  let mq = 0; new ResizeObserver(() => { cancelAnimationFrame(mq); mq = requestAnimationFrame(() => { measure(); onScroll(); }); }).observe(document.body);
+
+  // Globe state, camera pose and year, all from the scroll position
+  const onScroll = () => {
+    const y = scrollY, mid = innerHeight * 0.5;
+    for (const sec of secs) { const r = sec.getBoundingClientRect(); if (r.top <= mid && r.bottom > mid) { goState(sec.dataset.globe); break; } }
+    poseAt(y);
+    if (!introRunning) {
+      if (y > growthY && y < tmTop) {
+        // the catalog runs back to October 1957 while the time machine slides into place
+        const p = (y - growthY) / (tmTop - growthY);
+        yearTarget = NOW + (Y0 - NOW) * smooth(p); yearRate = 16;
+        emit('rewind', { progress: p });
+      } else if (y >= tmTop && (y <= tmEnd || stateName === 'timeline')) {
+        yearTarget = Y0 + (NOW - Y0) * clamp01((y - tmTop) / (tmEnd - tmTop)); yearRate = 16;
+      } else if (stateName === 'reentry') {
+        // the reentry section replays January 2024 to today as it scrolls past
+        const r = reSec.getBoundingClientRect(), p = clamp01((mid - r.top) / r.height);
+        yearTarget = 2024 + (NOW - 2024) * p; yearRate = 10;
+      } else if (stateName === 'owner') {
+        // the owner section runs the globe forward from 1962, colored by owner
+        const r = ownSec.getBoundingClientRect(), p = clamp01((mid - r.top) / r.height);
+        yearTarget = 1962 + (NOW - 1962) * smooth(clamp01((p - 0.12) / 0.7)); yearRate = 5;
+      } else if (stateName === 'hero' || stateName === 'growth') { yearTarget = NOW; yearRate = 4; }
+    }
+    const rOn = stateName === 'reentry' || stateName === 'owner';
+    replay.classList.toggle('on', rOn);
+    if (rOn && replay.dataset.s !== stateName) {
+      replay.dataset.s = stateName;
+      const P = GLOBE_PAL.dark;
+      replayK.textContent = stateName === 'owner' ? 'Objects in orbit by owner' : 'Replaying reentries';
+      replayKeys.innerHTML = stateName === 'owner' ? [[P.us, 'United States'], [P.ru, 'Russia (USSR)'], [P.cn, 'China'], [P.other, 'Everyone else']].map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('') : '';
+    }
+  };
+  lenis.on('scroll', onScroll); window.__pickState = onScroll;
+
   // Charts play once when their panel comes into view
   $$('.finding .chart').forEach((el) => {
     const key = el.id.slice(2);
-    ScrollTrigger.create({ trigger: el, start: 'top 85%', once: true, onEnter: () => charts[key]?.play?.() });
+    ScrollTrigger.create({ trigger: el, start: 'top 85%', once: true, onEnter: () => { charts[key]?.play?.(); emit('reveal', { what: 'chart', id: key }); } });
   });
-  // Headings: lines rise out of a mask
+  // Headings: each character rises out of its line's mask while its width and weight open up
   $$('.finding h2').forEach((h) => {
-    const st = new SplitText(h, { type: 'lines', linesClass: 'line-mask-inner', mask: 'lines' });
-    gsap.from(st.lines, { yPercent: 105, duration: 1.1, ease: 'expo.out', stagger: 0.08, scrollTrigger: { trigger: h, start: 'top 82%' } });
+    const st = new SplitText(h, { type: 'lines,words,chars', mask: 'lines', charsClass: 'hc' });
+    gsap.set(st.chars, { '--wd': 50, '--wg': 200 });
+    const section = h.closest('[data-globe]').dataset.globe;
+    gsap.timeline({ scrollTrigger: { trigger: h, start: 'top 84%' }, onStart: () => emit('reveal', { what: 'heading', section }) })
+      .from(st.chars, { yPercent: 115, duration: 1.0, ease: 'expo.out', stagger: 0.011 }, 0)
+      .to(st.chars, { '--wd': 104, '--wg': 650, duration: 1.5, ease: 'expo.out', stagger: 0.011 }, 0.06);
   });
-  // Hero title stretches narrow as it leaves
-  gsap.to('#hero-title', { scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true }, yPercent: -30, opacity: 0.2 });
+  // Full-bleed numerals: width, weight and height follow the scroll through the section
+  const splitChars = (el) => { const t = el.textContent; el.textContent = ''; return [...t].map((ch) => { const s = document.createElement('span'); s.className = 'c'; s.textContent = ch; el.appendChild(s); return s; }); };
+  $$('.bignum').forEach((el) => {
+    const text = el.textContent, cs = splitChars(el), sec = el.closest('section');
+    gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 0.8, onEnter: () => emit('reveal', { what: 'numeral', text }) } })
+      .fromTo(cs, { '--wd': 55, '--wg': 100, yPercent: 40 }, { '--wd': 125, '--wg': 900, yPercent: -40, stagger: 0.14, ease: 'none', duration: 1 });
+  });
+  // Closing numeral rises into place as the page ends
+  const closeEl = $('#close-num'), closeCs = splitChars(closeEl);
+  const closeGhost = closeEl.cloneNode(true); closeGhost.removeAttribute('id'); closeGhost.classList.add('ghost'); closeGhost.setAttribute('aria-hidden', 'true');
+  closeEl.parentNode.appendChild(closeGhost);
+  const closeAll = closeCs.concat($$('.c', closeGhost)), CN = closeCs.length;
+  gsap.timeline({ scrollTrigger: { trigger: '.closing', start: 'top bottom', end: 'bottom bottom', scrub: 0.6 } })
+    .fromTo(closeAll, { yPercent: 70, '--wd': 50, '--wg': 120 }, { yPercent: 0, '--wd': 125, '--wg': 760, stagger: (i) => (i % CN) * 0.07, ease: 'power2.out', duration: 1 });
+  gsap.ticker.add(() => { if (stateName === 'close' || stateName === 'notes') discMask(closeEl, closeGhost); });
+  ScrollTrigger.create({ trigger: '.closing', start: 'top 55%', once: true, onEnter: () => emit('finale') });
+  // Hero title: pushed up and dimmed as it leaves (its letters narrow in heroTitle)
+  gsap.to('.title-wrap', { scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true }, yPercent: -30, opacity: 0.2 });
 
-  // The timeline: scroll position maps to the year shown on the globe
+  // The time machine: the year on the globe drives the big year, the counts, the notes and the chart
   const earthIdx = []; for (let i = 0; i < D.n; i++) { const c = D.center[i]; if (c === 'EA' || /^\d+$/.test(c)) earthIdx.push(i); }
   const yearEl = $('#tm-year'), hudO = $('#hud-orbit'), hudP = $('#hud-pay'), hudD = $('#hud-deb');
   const payByYear = Object.fromEntries(REP.by_year.years.map((y, i) => [y, REP.by_year.Payload[i]]));
@@ -1672,44 +2134,63 @@ function setupScroll(D) {
   const box = $('#tm-annot');
   annots.forEach(([, w, t]) => { const a = document.createElement('div'); a.className = 'a'; a.innerHTML = `<div class="when">${w}</div><p>${t}</p>`; box.appendChild(a); });
   const aEls = $$('.a', box);
-  let lastYearInt = 0, wdth = 60, vel = 0, activeA = -1;
-  const Y0 = 1957.75, Y1 = NOW;
-  const tmUpdate = (p) => {
-    const yr = Y0 + (Y1 - Y0) * p;
-    gsap.killTweensOf(U.uYear);   // a tween started by another section must not overwrite the scrubbed year
-    U.uYear.value = yr; tmYear = yr;
+  let activeA = -1;
+  // one note at a time: the old one leaves upward out of the masked box, then the new one rises in
+  const showAnnot = (k) => {
+    if (k === activeA) return;
+    const prev = aEls[activeA], next = aEls[k], dir = k > activeA ? 1 : -1;
+    activeA = k;
+    aEls.forEach((el) => { if (el !== prev && el !== next) { gsap.killTweensOf(el); gsap.set(el, { opacity: 0, yPercent: 0 }); } });
+    if (prev) gsap.to(prev, { yPercent: -120 * dir, opacity: 0, duration: 0.28, ease: 'power2.in', overwrite: true });
+    if (next) gsap.fromTo(next, { yPercent: 120 * dir, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.7, delay: prev ? 0.24 : 0, ease: 'expo.out', overwrite: true });
+  };
+  // the three breakups that get a flash on the timeline, with their cataloged piece counts
+  const bk = (id) => REP.breakups.find((b) => b.launch_id === id);
+  const TM_EVENTS = [
+    { id: '1999-025', y: 2007.03, name: 'Fengyun 1C', pieces: bk('1999-025').debris },
+    { id: '1993-036', y: 2009.11, name: 'Cosmos 2251 and Iridium 33', pieces: bk('1993-036').debris + bk('1997-051').debris },
+    { id: '1982-092', y: 2021.87, name: 'Cosmos 1408', pieces: bk('1982-092').debris },
+  ].map((e) => ({ ...e, g: SAT.evMap[e.id] }));
+  let lastYearInt = 0, wdth = 60, stageYear = -1;
+  const updateStage = (yr, inTm) => {
     const yi = Math.floor(yr);
     yearEl.textContent = yi;
     let o = 0, pn = 0, dn = 0;
     for (const i of earthIdx) { if (D.appear[i] <= yr && D.decay[i] > yr) { o++; if (D.type[i] === 0) pn++; else if (D.type[i] === 2) dn++; } }
     hudO.textContent = fmt(o); hudP.textContent = fmt(pn); hudD.textContent = fmt(dn);
-    charts.growth.set?.(yr);
-    let k = -1; annots.forEach(([ay], j) => { if (yr >= ay) k = j; });
-    if (k !== activeA) { aEls.forEach((el, j) => el.classList.toggle('on', j === k)); activeA = k; }
+    charts.tm.set?.(yr);
+    let k = -1; if (inTm) annots.forEach(([ay], j) => { if (yr >= ay) k = j; });
+    showAnnot(k);
     if (yi !== lastYearInt) {
       const n = payByYear[yi] || 0;
-      if (lastYearInt) sound.pluck(noteFor(Math.min(14, Math.round(Math.log2(n + 1) * 1.2))), 0.25 + Math.min(n / 3000, 0.6));
+      if (lastYearInt && inTm) { sound.pluck(noteFor(Math.min(14, Math.round(Math.log2(n + 1) * 1.2))), 0.25 + Math.min(n / 3000, 0.6)); emit('year', { year: yi, payloads: n }); }
       lastYearInt = yi;
     }
   };
-  ScrollTrigger.create({
-    trigger: '#tm', start: 'top top', end: 'bottom bottom', scrub: true,
-    onUpdate: (s) => { tmUpdate(s.progress); vel = s.getVelocity(); },
-  });
+  // Runs every frame after the year moves: the stage readouts, the breakup flashes, reentry burn-up counts
+  yearTick = (y0, y1) => {
+    const y = scrollY, inTm = y >= tmTop - 2 && (y <= tmEnd + 2 || stateName === 'timeline');
+    if (y > tmTop - innerHeight && y < tmEnd + innerHeight && Math.abs(y1 - stageYear) > 1e-5) { stageYear = y1; updateStage(y1, inTm); }
+    if (inTm && y1 > y0) for (const e of TM_EVENTS) if (y0 < e.y && y1 >= e.y) impact(e.g, { source: 'timeline', name: e.name, year: e.y, pieces: e.pieces });
+    if (stateName === 'reentry' && y1 !== y0) {
+      if (y1 > y0) { let c = 0; const L = SAT.life; for (let k = 0; k < SAT.n; k++) { const dy = L[k * 2 + 1]; if (dy > y0 && dy <= y1) c++; } if (c) emit('burn', { count: c, year: y1 }); }
+      const yy = Math.floor(y1), mm = Math.min(11, Math.floor((y1 - yy) * 12)); replayD.textContent = `${MONTHS[mm]} ${yy}`;
+    }
+    if (stateName === 'owner') replayD.textContent = Math.floor(y1);
+  };
   // year digits stretch with scroll speed, then spring back
   gsap.ticker.add(() => {
-    const target = 60 + Math.min(Math.abs(vel) / 22, 90);
-    wdth += (target - wdth) * 0.12; vel *= 0.9;
+    const target = 60 + Math.min(Math.abs(lenis.velocity) * 2.4, 90);
+    wdth += (target - wdth) * 0.12;
     yearEl.style.fontVariationSettings = `"wdth" ${wdth.toFixed(1)}, "wght" ${(200 + (wdth - 60) * 4).toFixed(0)}`;
   });
-  tmUpdate(0);
-
-
+  onScroll();
   return lenis;
 }
+let introRunning = false;
 
 /* =====================================================================
-   8. Hero: per-letter entrance, then weight follows the cursor
+   8. Hero: per-letter entrance, weight follows the cursor, letters narrow and thin as the hero leaves
    ===================================================================== */
 function heroTitle() {
   const h1 = $('#hero-title');
@@ -1718,30 +2199,36 @@ function heroTitle() {
     const t = ln.textContent; ln.textContent = '';
     for (const ch of t) { const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch === ' ' ? '\u00a0' : ch; ln.appendChild(s); chars.push(s); }
   });
+  // the outlined copy that shows where the title crosses the globe
+  const ghost = h1.cloneNode(true); ghost.removeAttribute('id'); ghost.classList.add('ghost'); ghost.setAttribute('aria-hidden', 'true');
+  h1.parentNode.appendChild(ghost);
+  const gch = $$('.ch', ghost), N = chars.length;
   const st = chars.map(() => ({ w: 800, wd: 125 }));
-  gsap.from(chars, { yPercent: 110, duration: 1.5, ease: 'expo.out', stagger: 0.035, delay: 0.1 });
-  gsap.fromTo(st, { wd: 50, w: 200 }, { wd: 125, w: 800, duration: 2.2, ease: 'expo.out', stagger: 0.035, delay: 0.1 });
+  gsap.from(chars.concat(gch), { yPercent: 110, duration: 1.5, ease: 'expo.out', stagger: (i) => (i % N) * 0.035, delay: 0.5 });
+  gsap.fromTo(st, { wd: 50, w: 200 }, { wd: 125, w: 800, duration: 2.2, ease: 'expo.out', stagger: 0.035, delay: 0.5 });
   let rects = []; const measure = () => { rects = chars.map((c) => c.getBoundingClientRect()); };
-  setTimeout(measure, 1800); addEventListener('resize', measure); addEventListener('scroll', () => { rects = []; }, { passive: true });
+  setTimeout(measure, 2400); addEventListener('resize', measure); addEventListener('scroll', () => { rects = []; }, { passive: true });
   gsap.ticker.add(() => {
     if (!rects.length && scrollY < 50) measure();
+    const exitP = clamp01(scrollY / (innerHeight * 0.8));
     chars.forEach((c, i) => {
-      let tw = 800, twd = 125;
+      let tw = 800 - 560 * exitP, twd = 125 - 70 * exitP;
       const r = rects[i];
-      if (r && scrollY < innerHeight) {
+      if (r && exitP < 0.02) {
         const dx = mouse.x - (r.left + r.width / 2), dy = mouse.y - (r.top + r.height / 2);
         const f = Math.exp(-(dx * dx + dy * dy) / (2 * 150 * 150));
         tw = 800 - 650 * f; twd = 125 + 25 * f;
       }
       if (!gsap.isTweening(st[i])) { st[i].w += (tw - st[i].w) * 0.12; st[i].wd += (twd - st[i].wd) * 0.12; }
-      c.style.fontVariationSettings = `"wght" ${st[i].w.toFixed(0)}, "wdth" ${st[i].wd.toFixed(1)}`;
+      c.style.fontVariationSettings = gch[i].style.fontVariationSettings = `"wght" ${st[i].w.toFixed(0)}, "wdth" ${st[i].wd.toFixed(1)}`;
     });
+    if (scrollY < innerHeight * 1.2) discMask(h1, ghost);
   });
   // headline numbers count up
   $$('#readouts .v').forEach((el, i) => {
     const target = +el.dataset.count, dec = +(el.dataset.dec || 0), suf = el.dataset.suffix || '';
     const o = { v: 0 };
-    gsap.to(o, { v: target, duration: 2.4, delay: 0.5 + i * 0.12, ease: 'expo.out',
+    gsap.to(o, { v: target, duration: 2.4, delay: 0.9 + i * 0.12, ease: 'expo.out',
       onUpdate: () => { el.innerHTML = (dec ? o.v.toFixed(dec) : fmt(Math.round(o.v))) + (suf ? `<small>${suf}</small>` : ''); } });
   });
 }
@@ -1761,12 +2248,15 @@ function heroTitle() {
   const D = await loadData((p) => { ld.p = p * 0.92; });
   ld.D = D;
   buildSatellites(D, REP);
+  buildMoonObjects(D);
+  lblMoon.el.textContent = `The Moon and the ${REP.beyond['The Moon']} objects sent to it`; lblMoon.w = -1;
   setMode('type', true); currentMode = 'type';
   writeMode('type', SAT.colA);
   renderCharts();
   ld.p = 1;
   requestAnimationFrame(frame);
-  rig.dist = 16; rig.elev = 0.9; stateName = 'hero';   // hold the camera far out until the loader leaves
+  stateName = 'hero';   // the camera holds far out (the intro pose) until the loader leaves
+  introRunning = true;
   const lenis = setupScroll(D);
   window.__lenis = lenis;
   // hold the loader long enough for the count to land
@@ -1780,10 +2270,30 @@ function heroTitle() {
     const onKey = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
     enter.addEventListener('click', go, { once: true }); addEventListener('keydown', onKey);
   });
+  emit('enter');
   if (soundWanted) sound.set(true);
   enter.classList.remove('show');
   const first = stateName; stateName = null; goState(first);
-  gsap.to('#loader', { clipPath: 'circle(0% at 50% 50%)', duration: 1.3, ease: 'expo.inOut', onComplete: () => $('#loader').remove() });
+  // The fly-in: the camera dives from far out while the catalog assembles from October 1957 to today,
+  // each new object rising from the ground, and the loader opens as an iris centred on the globe
+  U.uYear.value = 1957.8; yearTarget = NOW; yearRate = 0.85;
+  gsap.fromTo(U.uFlash, { value: 1 }, { value: 0, duration: 2.5, delay: 2.8, overwrite: true });
+  gsap.to(intro, { k: 1, duration: 3.0, ease: 'expo.inOut' });
+  gsap.fromTo(intro, { zoom: 0.3 }, { zoom: 0, duration: 2.8, ease: 'power2.inOut' });
+  gsap.delayedCall(4.6, () => { introRunning = false; window.__pickState?.(); });
+  const loader = $('#loader'), irisEl = document.createElement('div'); irisEl.className = 'ld-iris'; document.body.appendChild(irisEl);
+  gsap.to('.ld-wrap, .ld-entry, .ld-msg', { opacity: 0, scale: 0.94, duration: 0.45, ease: 'power2.in' });
+  const iris = { r: 0 }, maxR = Math.hypot(innerWidth, innerHeight) * 1.05;
+  gsap.to(iris, { r: maxR, duration: 2.0, delay: 0.15, ease: 'power3.inOut',
+    onUpdate: () => {
+      const x = globeUV.x * innerWidth, y = (1 - globeUV.y) * innerHeight, r = iris.r;
+      const m = `radial-gradient(circle at ${x.toFixed(1)}px ${y.toFixed(1)}px, transparent ${r.toFixed(1)}px, #000 ${(r + 1.5).toFixed(1)}px)`;
+      loader.style.webkitMaskImage = m; loader.style.maskImage = m;
+      irisEl.style.width = irisEl.style.height = `${2 * r}px`;
+      irisEl.style.transform = `translate(${x - r}px, ${y - r}px)`;
+      irisEl.style.opacity = 1 - sstep(0.3, 1, r / maxR);
+    },
+    onComplete: () => { loader.remove(); irisEl.remove(); } });
   heroTitle();
   window.__ready = true;
 })().catch((e) => { console.error(e); $('#ld-msg').textContent = 'The page could not read its data: ' + e.message; });

@@ -17,7 +17,7 @@ and the site is live at https://apach008.github.io/space/.
 
 | Path | What it is |
 |---|---|
-| `index.html` | The report page: title, headline numbers, ten findings with a chart each, the scroll-driven timeline from 1957 to 2026, and the notes on the data. The page carries its own copy of the data (see below), so it opens directly from disk. |
+| `index.html` | The report page: title, headline numbers, ten findings with a chart each, the scroll-driven timeline from 1957 to 2026, the notes on the data and a closing view. The globe's camera, year and colors follow the scroll, and hovering a chart lights up the matching objects on the globe. The page carries its own copy of the data (see below), so it opens directly from disk. |
 | `dashboard.html` | The dashboard page: filters for launch year, owner, launch site, object type, orbit and status; five summary numbers; a measure switch and a breakdown switch; a yearly chart, a bar chart, a decade heatmap, an altitude and inclination scatter plot, a globe of the filtered objects; and a sortable table of the numbers behind the view with a CSV download. The current view is kept in the page address. |
 | `fetch_data.py` | Downloads the raw files into `data/`. Running it again replaces the snapshot with the current catalog. |
 | `prepare_data.py` | Labels the catalog, prints every table the report quotes, writes the three built files below, and copies them into both HTML pages between the `data-satcat`, `data-report` and `data-land` script tags. |
