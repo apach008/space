@@ -366,7 +366,7 @@ site.to_csv(DATA / "satcat_site.csv", index=False, lineterminator="\n")
 report["breakup_ids"] = [e["launch_id"] for e in report["breakups"]]
 report["owner_names"] = {c: n for c, n in df[["owner", "owner_name"]].drop_duplicates().values}
 report["site_names"] = {c: n for c, n in df[["launch_site", "site_name"]].drop_duplicates().values}
-(DATA / "report_numbers.json").write_text(json.dumps(report, indent=1))
+(DATA / "report_numbers.json").write_text(json.dumps(report, indent=1), newline="\n")
 print(f"\nWrote data/satcat_site.csv ({len(site):,} rows, {site.shape[1]} columns)")
 
 # ---------------------------------------------------------------------------
