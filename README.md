@@ -8,7 +8,7 @@ its cataloged orbit. The dashboard page (`dashboard.html`) lets the reader
 filter all 70,745 objects and recomputes every number, chart and table row in
 the browser.
 
-By Alejandro Pacheco, designed and built with Claude Opus 5.5.
+By Alejandro Pacheco.
 
 Once the repository is public with GitHub Pages serving the `main` branch,
 the site is at https://apach008.github.io/space/.
