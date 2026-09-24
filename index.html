@@ -1752,7 +1752,7 @@ function modeColor(mode, k, P) {
   const typeHex = [P.pay, P.rb, P.deb, P.unk][t];
   switch (mode) {
     case 'type': return [typeHex, t === 2 ? 0.55 : 0.8];
-    case 'starlink': return D.starlink[i] ? [P.sl, 1] : t === 0 ? [P.pay, 0.7] : [P.dim, 0.05];
+    case 'starlink': return D.starlink[i] ? [P.sl, 1] : t === 0 ? [P.pay, 1] : [P.dim, 0.05];
     case 'paydeb': return t === 0 ? [P.pay, 0.95] : t === 2 ? [P.deb, 0.95] : [P.dim, 0.08];
     case 'events': { const e = SAT.evIdx[k]; if (!e) return [P.dim, 0.05]; const g = EVENT_GROUP[e]; return [g === undefined ? P.ev[4] : P.ev[g], 1]; }
     case 'owner': return [[P.us, P.ru, P.cn, P.other][SAT.og[k]], SAT.og[k] === 3 ? 0.45 : 0.9];
