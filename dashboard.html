@@ -160,6 +160,7 @@ button { background: none; border: 0; }
 .kpi .v small { font-size: .42em; margin-left: 4px; color: var(--ink-2); font-weight: 400; }
 .kpi .spark { flex: 1; max-width: 190px; height: 44px; overflow: visible; }
 .spark .ctx { fill: none; stroke: var(--ink-3); stroke-width: 1; opacity: .45; }
+.spark .gh { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 3; }
 .spark .ln { fill: none; stroke: var(--glow); stroke-width: 1.6; }
 .spark .ar { fill: url(#spark-grad); }
 .kpi .k { display: block; margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
@@ -208,6 +209,11 @@ button { background: none; border: 0; }
 .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .chart svg { display: block; width: 100%; overflow: visible; }
 #ch-time svg, #ch-scatter svg { overflow: hidden; }
+#ch-time { position: relative; }
+#ch-time canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+#ch-time svg { position: relative; z-index: 1; }
+#ch-time path.ln { filter: drop-shadow(0 0 2px rgba(4, 7, 22, .95)); }
+.band-l { font: 500 11.5px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink-3); }
 .axis text { font: 400 11.5px var(--font-display); font-variation-settings: "wdth" 90; fill: var(--ink-3); }
 .axis path, .axis line { stroke: var(--line-2); }
 .gridl line { stroke: var(--line); } .gridl path { display: none; }
@@ -233,6 +239,7 @@ tr[data-g].hi td { color: var(--ink); background: color-mix(in oklab, var(--ink)
 
 #globe-wrap { position: relative; flex: 1; min-height: 380px; margin: 0 -18px -12px; overflow: hidden; background: var(--viewport); }
 #globe { position: absolute; inset: 0; width: 100%; height: 100%; }
+.g-ring { position: absolute; left: 0; top: 0; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; pointer-events: none; opacity: 0; }
 #globe-note { position: absolute; left: 18px; bottom: 14px; right: 18px; font: italic 400 15px/1.4 var(--font-text); color: var(--ink-2); pointer-events: none; }
 .globe-hint { position: absolute; right: 16px; bottom: 12px; font-size: 12px; color: var(--ink-3); pointer-events: none; transition: opacity .4s; }
 .globe-obj { position: absolute; left: 18px; top: 14px; max-width: 70%; font-size: 13px; line-height: 1.4; color: var(--ink-2); pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .25s, transform .35s; }
@@ -366,18 +373,18 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
       <div class="chart" id="ch-time"></div>
     </div>
     <div class="card c-4"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t">Objects in the view that are in Earth orbit</div><div class="card-n" id="globe-n"></div></div>
-      <div class="legend" id="lg-globe"></div>
-      <div id="globe-wrap"><canvas id="globe"></canvas><div class="globe-obj" id="globe-obj"></div><div id="globe-note"></div><div class="globe-hint" id="globe-hint">Drag to turn. Click, then scroll to zoom.</div></div>
+      <div class="card-h"><div class="card-t" id="t-bars"></div><div class="card-n">Click a bar to filter to it</div></div>
+      <div class="chart" id="ch-bars"></div>
     </div>
-    <div class="card c-8"><span class="reg-b"></span>
+    <div class="card c-6"><span class="reg-b"></span>
       <div class="card-h"><div class="card-t">Altitude and inclination of each object</div><div class="card-n" id="n-scatter"></div></div>
       <div class="legend" id="lg-scatter"></div>
       <div class="chart scatter-wrap" id="ch-scatter"><canvas id="sc-canvas"></canvas></div>
     </div>
-    <div class="card c-4"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t" id="t-bars"></div><div class="card-n">Click a bar to filter to it</div></div>
-      <div class="chart" id="ch-bars"></div>
+    <div class="card c-6"><span class="reg-b"></span>
+      <div class="card-h"><div class="card-t">Objects in the view that are in Earth orbit</div><div class="card-n" id="globe-n"></div></div>
+      <div class="legend" id="lg-globe"></div>
+      <div id="globe-wrap"><canvas id="globe"></canvas><div class="globe-obj" id="globe-obj"></div><div id="globe-note"></div><div class="globe-hint" id="globe-hint">Drag to turn. Click, then scroll to zoom.</div></div>
     </div>
     <div class="card c-12"><span class="reg-b"></span>
       <div class="card-h"><div class="card-t" id="t-heat"></div><div class="card-n heat-n"><span class="heat-key" id="heat-key"></span><span>By launch decade. Click a cell to filter to it</span></div></div>
@@ -1013,10 +1020,10 @@ function applyFocus() {
   for (const el of document.querySelectorAll('[data-g]')) el.classList.toggle('dim', f !== null && el.getAttribute('data-g') !== f);
   for (const el of document.querySelectorAll('#tbl tr[data-g]')) { el.classList.toggle('hi', f !== null && el.getAttribute('data-g') === f); el.classList.remove('dim'); }
   const k = f === null || !CUR_SPEC ? -1 : (CUR_SPEC.index.get(f) ?? -1);
-  for (const U of [G.U, SC.U]) {
+  for (const U of [G.U, SC.U, TP.U]) {
     if (!U) continue;
-    if (k >= 0) { U.uFocus.value = k; gsap.to(U.uFocusAmt, { value: 1, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; } }); }
-    else gsap.to(U.uFocusAmt, { value: 0, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; } });
+    if (k >= 0) { U.uFocus.value = k; gsap.to(U.uFocusAmt, { value: 1, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; TP.dirty = true; } }); }
+    else gsap.to(U.uFocusAmt, { value: 0, duration: 0.35, overwrite: true, onUpdate: () => { SC.dirty = true; TP.dirty = true; } });
   }
 }
 function legend(id, spec, order) {
@@ -1181,6 +1188,7 @@ const CAT = {};
 const ARROW = '<svg viewBox="0 0 10 10"><path d="M5 1L9.2 8.6H.8Z" fill="currentColor"/></svg>';
 function deltaLine(id, diff, unit, digits, eps) {
   const el = document.getElementById(id);
+  el.style.visibility = isDefaultFilters() ? 'hidden' : '';   // the whole catalog has nothing to compare against
   if (!isFinite(diff)) { el.className = 'dl flat'; el.innerHTML = ''; return; }
   const flat = Math.abs(diff) < eps;
   el.className = 'dl ' + (flat ? 'flat' : diff > 0 ? 'up' : 'down');
@@ -1215,17 +1223,21 @@ function sparkData(ctx) {
   return { orbit: [...orbit], active: [...active], peri: by.map((ix) => medianOf(ix, D.peri, MIN_N)), life: by.map((ix) => medianOf(ix, D.life, MIN_N)) };
 }
 function interpArr(a, b) { return (t) => b.map((v, k) => (isFinite(v) && isFinite(a[k]) ? a[k] + (v - a[k]) * t : v)); }
-function spark(id, vals) {
+// ghost: the same number for the whole catalog, drawn on the same scale, so the view reads against it
+function spark(id, vals, ghost) {
   const svg = d3.select('#' + id); const w = svg.node().getBoundingClientRect().width || 180, h = 44;
   svg.attr('viewBox', `0 0 ${w} ${h}`);
   const x = d3.scaleLinear().domain([Y0, Y1]).range([1, w - 1]);
-  const y = d3.scaleLinear().domain([0, d3.max(vals.filter(isFinite)) || 1]).range([h - 2, 3]);
+  const showGhost = !isDefaultFilters();
+  const y = d3.scaleLinear().domain([0, d3.max([...vals, ...(showGhost ? ghost : [])].filter(isFinite)) || 1]).range([h - 2, 3]);
   const line = (v) => d3.line().defined((d) => isFinite(d)).x((d, k) => x(Y0 + k)).y((d) => y(d)).curve(d3.curveMonotoneX)(v);
   const area = (v) => d3.area().defined((d) => isFinite(d)).x((d, k) => x(Y0 + k)).y0(h - 2).y1((d) => y(d)).curve(d3.curveMonotoneX)(v);
   const cid = 'clip-' + id;
   svg.selectAll('clipPath').data([0]).join('clipPath').attr('id', cid).selectAll('rect').data([0]).join('rect').attr('y', -4).attr('height', h + 8);
   const node = svg.node(); const prev = node.__v || vals.map(() => 0); node.__v = vals; SP[id] = x;
   const ip = interpArr(prev, vals);
+  const gl = d3.line().defined((d) => isFinite(d)).x((d, k) => x(Y0 + k)).y((d) => y(d)).curve(d3.curveMonotoneX);
+  svg.selectAll('path.gh').data([0]).join('path').attr('class', 'gh').lower().transition().duration(900).ease(d3.easeCubicOut).attr('d', gl(ghost) || '').style('opacity', showGhost ? 0.55 : 0);
   svg.selectAll('path.ctx').data([0]).join('path').attr('class', 'ctx').transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => line(ip(t)) || '');
   svg.selectAll('path.ar').data([0]).join('path').attr('class', 'ar').attr('clip-path', `url(#${cid})`).transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => area(ip(t)) || '');
   svg.selectAll('path.ln').data([0]).join('path').attr('class', 'ln').attr('clip-path', `url(#${cid})`).transition().duration(900).ease(d3.easeCubicOut).attrTween('d', () => (t) => line(ip(t)) || '');
@@ -1274,29 +1286,56 @@ const M = () => MEASURES.find((m) => m.id === S.measure);
 const byLabel = () => BYS.find((b) => b.id === S.by).label.toLowerCase();
 const needIdx = () => !!MEDIAN_FIELD[S.measure];
 
+const ALLG = 'All objects in the view';
+const TIME_H = 340, TIME_M = { t: 34, r: 12, b: 26, l: 52 };
+// Debris dated by the parent's launch: the three breakups known as single events get their year. The year is
+// kept only where the data agree: most of the pieces entered the catalog that same year (REP.breakups.appeared).
+const BREAKUP_EVENT = { '1999-025': 2007, '1993-036': 2009, '1982-092': 2021 };
+function breakupYear(id) {
+  const y = BREAKUP_EVENT[id], b = REP.breakups.find((e) => e.launch_id === id);
+  return y && b && +b.appeared.slice(0, 4) === y ? y : null;
+}
+// alternating bands, one per launch decade, when the breakdown is by decade
+function decadeBands(f, x, bw) {
+  const on = S.by === 'decade' && S.measure !== 'count';
+  const data = on ? DECADES.map((d) => parseInt(d, 10)).filter((d) => d + 9 >= Y0 && d <= Y1).map((d, k) => ({ d, k, x0: x(Math.max(Y0, d)) - 1, x1: x(Math.min(Y1, d + 9)) + bw + 1 })) : [];
+  const g = f.g.selectAll('g.bands').data([0]).join('g').attr('class', 'bands').lower();
+  const b = g.selectAll('g.band').data(data, (d) => d.d);
+  b.exit().transition().duration(300).attr('opacity', 0).remove();
+  const e = b.enter().append('g').attr('class', 'band').attr('opacity', 0);
+  e.append('rect'); e.append('text');
+  const m = e.merge(b);
+  m.transition().duration(500).attr('opacity', 1);
+  m.select('rect').attr('x', (d) => d.x0).attr('width', (d) => d.x1 - d.x0).attr('y', 0).attr('height', f.ih).attr('fill', (d) => (d.k % 2 ? 'rgba(170,182,235,0.045)' : 'rgba(170,182,235,0.015)'));
+  m.select('text').attr('x', (d) => (d.x0 + d.x1) / 2).attr('y', 14).attr('text-anchor', 'middle').attr('class', 'band-l').text((d) => `${d.d}s`);
+}
 // Chart 1: every launch year is drawn; the chosen years are lit and a brush picks them
 const TC = { mode: null, syncing: false, downX: null };
 function chartTime(ctx, spec) {
   const m = M(), isCount = S.measure === 'count', keep = needIdx();
   $('#t-time').textContent = `${m.label} by launch year and ${byLabel()}`;
   $('#n-time').textContent = S.measure === 'life' ? 'Objects still in orbit count their years up to today, so recent launch years run low' : 'Drag across years to filter, or click one year';
-  const f = frame('ch-time', 340, { t: 34, r: 12, b: 26, l: 52 });
+  const f = frame('ch-time', TIME_H, TIME_M);
+  // by decade, a median or share is one line (each launch year sits in one decade); the decades are marked as bands
+  const oneLine = S.by === 'decade' && !isCount;
+  const keyOf = oneLine ? () => ALLG : spec.key;
+  const colorG = (g) => (g === ALLG ? css('--glow') : spec.color(g));
   const cells = YEARS.map(() => new Map());
   let hasOther = false;
-  for (const i of ctx) { const k = D.year[i] - Y0; if (k < 0 || k >= YEARS.length) continue; const g = spec.key(i); if (g === 'Other' && !spec.index.has('Other')) hasOther = true; let a = cells[k].get(g); if (!a) cells[k].set(g, a = acc(keep)); add(a, i); }
-  const groups = hasOther ? [...spec.order, 'Other'] : spec.order;
+  for (const i of ctx) { const k = D.year[i] - Y0; if (k < 0 || k >= YEARS.length) continue; const g = keyOf(i); if (g === 'Other' && !spec.index.has('Other')) hasOther = true; let a = cells[k].get(g); if (!a) cells[k].set(g, a = acc(keep)); add(a, i); }
+  const groups = oneLine ? [ALLG] : hasOther ? [...spec.order, 'Other'] : spec.order;
   const rows = YEARS.map((yy, k) => { const o = { y: yy, k }; for (const g of groups) o[g] = measureOf(cells[k].get(g), S.measure); return o; });
   const x = d3.scaleBand().domain(YEARS).range([0, f.iw]).padding(0.18), bw = x.bandwidth();
   let y;
   if (isCount) y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1) * 1.05]).nice();
   else if (S.measure === 'orbit') y = d3.scaleLinear().domain([0, 1]);
-  else if (S.measure === 'peri') {
-    const vals = rows.flatMap((r) => groups.map((g) => r[g])).filter((v) => isFinite(v) && v > 0);
-    y = d3.scaleLog().domain(vals.length ? [Math.max(80, d3.min(vals) * 0.8), d3.max(vals) * 1.25] : [100, 1000]).clamp(true);
-  } else y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.max(groups, (g) => (isFinite(r[g]) ? r[g] : 0))) || 1) * 1.08]).nice();
+  // medians are drawn over every object's own value, so the axes span the whole catalog
+  else if (S.measure === 'peri') y = d3.scaleLog().domain([100, 60000]).clamp(true);
+  else if (S.measure === 'inc') y = d3.scaleLinear().domain([0, 150]);
+  else y = d3.scaleLinear().domain([0, 70]);
   y.range([f.ih, 0]);
   const tv = S.measure === 'peri' ? [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000].filter((v) => v >= y.domain()[0] && v <= y.domain()[1])
-    : isCount ? y.ticks(5).filter(Number.isInteger) : y.ticks(5);
+    : isCount ? y.ticks(5).filter(Number.isInteger) : S.measure === 'inc' ? [0, 30, 60, 90, 120, 150] : y.ticks(5);
   f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(-f.iw).tickFormat(''));
   f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(0).tickPadding(8).tickFormat(m.axis)).on('end', function () { d3.select(this).select('.domain').remove(); });
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`)
@@ -1312,7 +1351,7 @@ function chartTime(ctx, spec) {
     const sel = layer.selectAll('rect.b').data(flat, (d) => d.g + '|' + d.y);
     sel.exit().interrupt().transition().duration(350).attr('opacity', 0).remove();
     sel.enter().append('rect').attr('class', 'b').attr('x', (d) => x(d.y)).attr('width', bw).attr('y', f.ih).attr('height', 0)
-      .merge(sel).attr('data-g', (d) => d.g).attr('fill', (d) => spec.color(d.g))
+      .merge(sel).attr('data-g', (d) => d.g).attr('fill', (d) => colorG(d.g)).attr('fill-opacity', 0.42)
       .transition(T()).delay((d) => (from === 'bars' ? 0 : 120) + d.k * 7)
       .attr('opacity', 1).attr('x', (d) => x(d.y)).attr('width', bw).attr('y', (d) => y(d.y1)).attr('height', (d) => Math.max(0, y(d.y0) - y(d.y1) - (bw > 4 ? 1 : 0)));
   } else {
@@ -1325,20 +1364,20 @@ function chartTime(ctx, spec) {
     const many = lines.length > 4;
     const sel = layer.selectAll('path.ln').data(lines, (d) => d.g);
     sel.exit().interrupt().transition().duration(350).attr('opacity', 0).remove();
-    sel.enter().append('path').attr('class', 'ln').attr('fill', 'none').attr('data-g', (d) => d.g).attr('stroke', (d) => spec.color(d.g))
+    sel.enter().append('path').attr('class', 'ln').attr('fill', 'none').attr('data-g', (d) => d.g).attr('stroke', (d) => colorG(d.g))
       .attr('stroke-width', many ? 1.7 : 2.2).attr('stroke-opacity', many ? 0.8 : 1).attr('stroke-linejoin', 'round').attr('d', (d) => gen(d.ys)).each(function (d) { this.__ys = d.ys; })
       .attr('stroke-dasharray', function () { const L = this.getTotalLength() || 1; return `${L} ${L}`; })
       .attr('stroke-dashoffset', function () { return this.getTotalLength() || 1; })
       .transition().delay(from === 'bars' ? 280 : 60).duration(1200).ease(d3.easeCubicInOut).attr('stroke-dashoffset', 0)
       .on('end', function () { d3.select(this).attr('stroke-dasharray', null).attr('stroke-dashoffset', null); });
-    sel.attr('data-g', (d) => d.g).attr('stroke', (d) => spec.color(d.g)).attr('stroke-width', many ? 1.7 : 2.2).attr('opacity', 1)
+    sel.attr('data-g', (d) => d.g).attr('stroke', (d) => colorG(d.g)).attr('stroke-width', many ? 1.7 : 2.2).attr('opacity', 1)
       .transition(T()).attrTween('d', function (d) { const ip = interpArr(this.__ys || d.ys, d.ys); this.__ys = d.ys; return (t) => gen(ip(t)); });
     // points that have no neighbor (or every point, when a line is short) get a dot
     const pts = lines.flatMap((l) => { const n = l.ys.filter(isFinite).length; return l.ys.map((v, k) => ({ g: l.g, k, v })).filter((p) => isFinite(p.v) && (n < 25 || (!isFinite(l.ys[p.k - 1]) && !isFinite(l.ys[p.k + 1])))); });
     const cs = layer.selectAll('circle.pt').data(pts, (d) => d.g + '|' + d.k);
     cs.exit().interrupt().transition().duration(300).attr('r', 0).remove();
     cs.enter().append('circle').attr('class', 'pt').attr('r', 0).attr('cx', (d) => x(YEARS[d.k]) + bw / 2).attr('cy', (d) => d.v)
-      .merge(cs).attr('data-g', (d) => d.g).attr('fill', (d) => spec.color(d.g)).attr('stroke', css('--panel-solid')).attr('stroke-width', 1.5)
+      .merge(cs).attr('data-g', (d) => d.g).attr('fill', (d) => colorG(d.g)).attr('stroke', css('--panel-solid')).attr('stroke-width', 1.5)
       .transition(T()).delay((d) => 300 + d.k * 6).attr('r', 3.2).attr('cx', (d) => x(YEARS[d.k]) + bw / 2).attr('cy', (d) => d.v);
   }
   // debris annotations: the largest groups of debris pieces in the view, named after the cataloged parent
@@ -1351,11 +1390,11 @@ function chartTime(ctx, spec) {
       const [yy, name] = [+key.split('|')[0], launchName(key.slice(key.indexOf('|') + 1))];
       if (c < 250 || c < ymax * 0.08 || yy < Y0 || yy > Y1) return;
       const top = d3.sum(groups, (g) => rows[yy - Y0][g] || 0);
-      ann.push({ key, name, c, cx: x(yy) + bw / 2, ty: y(top) });
+      ann.push({ key, name, c, cx: x(yy) + bw / 2, ty: y(top), ev: breakupYear(key.slice(key.indexOf('|') + 1)) });
     });
     ann.sort((a, b) => a.cx - b.cx);
     ann.forEach((a, k) => {
-      a.ly = Math.max(-16, a.ty - 30);
+      a.ly = Math.max(a.ev ? -2 : -16, a.ty - 30);
       const p = ann[k - 1];
       if (p && a.cx - p.cx < 170 && Math.abs(a.ly - p.ly) < 28) a.ly = p.ly + 30 < a.ty - 8 ? p.ly + 30 : Math.max(-16, p.ly - 30);
       a.anchor = a.cx > f.iw - 130 ? 'end' : a.cx < 110 ? 'start' : 'middle';
@@ -1365,11 +1404,12 @@ function chartTime(ctx, spec) {
   const as = ag.selectAll('g.ann').data(ann, (d) => d.key);
   as.exit().transition().duration(250).attr('opacity', 0).remove();
   const ae = as.enter().append('g').attr('class', 'ann').attr('opacity', 0);
-  ae.append('line'); ae.append('text').attr('class', 'n'); ae.append('text').attr('class', 's');
+  ae.append('line'); ae.append('text').attr('class', 'n'); ae.append('text').attr('class', 's'); ae.append('text').attr('class', 's e');
   const am = ae.merge(as);
   am.select('line').attr('x1', (d) => d.cx).attr('x2', (d) => d.cx).attr('y1', (d) => d.ty - 4).attr('y2', (d) => d.ly + 4);
-  am.select('text.n').attr('x', (d) => d.cx).attr('y', (d) => d.ly - 13).attr('text-anchor', (d) => d.anchor).text((d) => d.name);
-  am.select('text.s').attr('x', (d) => d.cx).attr('y', (d) => d.ly + 1).attr('text-anchor', (d) => d.anchor).text((d) => `${fmt(d.c)} debris pieces`);
+  am.select('text.n').attr('x', (d) => d.cx).attr('y', (d) => d.ly - (d.ev ? 27 : 13)).attr('text-anchor', (d) => d.anchor).text((d) => d.name);
+  am.select('text.s').attr('x', (d) => d.cx).attr('y', (d) => d.ly - (d.ev ? 13 : -1)).attr('text-anchor', (d) => d.anchor).text((d) => `${fmt(d.c)} debris pieces`);
+  am.select('text.e').attr('x', (d) => d.cx).attr('y', (d) => d.ly + 1).attr('text-anchor', (d) => d.anchor).text((d) => (d.ev ? `destroyed ${d.ev}` : ''));
   am.transition().delay(700).duration(500).attr('opacity', 1);
   // shade the years outside the filter
   const sh = f.g.selectAll('g.shades').data([0]).join('g').attr('class', 'shades');
@@ -1415,12 +1455,14 @@ function chartTime(ctx, spec) {
     let fg = null;
     if (isCount) { const v = y.invert(my); let s = 0; for (const g of groups) { const w = r[g] || 0; if (w && v >= s && v <= s + w) { fg = g; break; } s += w; } }
     else { let best = 24; for (const g of groups) { const v = r[g]; if (isFinite(v) && Math.abs(y(v) - my) < best) { best = Math.abs(y(v) - my); fg = g; } } }
-    setFocus(fg);
+    setFocus(oneLine ? null : fg);
     const tot = isCount ? row('', 'Total', fmt(d3.sum(groups, (g) => r[g] || 0))) : '';
     const out = r.y < S.y0 || r.y > S.y1 ? '<div class="note">Outside the chosen years</div>' : '';
-    showTip(`<div class="t">${r.y}</div>${groups.filter((g) => isFinite(r[g]) && r[g]).map((g) => row(spec.color(g), g, m.fmt(r[g]), g === fg)).join('') || '<div class="note">No values</div>'}${tot}${out}`, ev);
+    showTip(`<div class="t">${r.y}</div>${groups.filter((g) => isFinite(r[g]) && r[g]).map((g) => row(colorG(g), g, m.fmt(r[g]), g === fg)).join('') || '<div class="note">No values</div>'}${tot}${out}`, ev);
   }).on('pointerleave.hover', () => { hideTip(); hl.style('opacity', 0); setFocus(null); });
-  legend('#lg-time', spec, groups.filter((g) => rows.some((r) => isFinite(r[g]) && r[g])));
+  legend('#lg-time', { ...spec, color: colorG }, groups.filter((g) => rows.some((r) => isFinite(r[g]) && r[g])));
+  decadeBands(f, x, bw);
+  timeParticles(ctx, spec, groups, keyOf, x, y, f, from);
   emptyNote(f, !ctx.length ? 'No objects match the filters' : rows.some((r) => groups.some((g) => isFinite(r[g]))) ? '' : `Fewer than ${MIN_N} values in every year`);
 }
 function timeShade() {
@@ -1437,10 +1479,10 @@ function chartBars(groupAcc, spec) {
   const tot = d3.sum([...groupAcc.values()], (a) => a.n);
   const data = spec.order.map((g) => ({ g, v: measureOf(groupAcc.get(g), S.measure), n: groupAcc.get(g)?.n || 0 })).filter((d) => d.n > 0);
   if (S.by !== 'decade' && S.by !== 'status' && S.by !== 'regime') data.sort((a, b) => (isFinite(b.v) ? b.v : -1) - (isFinite(a.v) ? a.v : -1));
-  const scH = $('#ch-scatter').getBoundingClientRect().height + $('#lg-scatter').getBoundingClientRect().height + 8;
-  const h = Math.max(220, scH, data.length * 50);
+  // the bars fill the height of the yearly chart beside them: fewer groups get thicker bars, not a gap
+  const h = TIME_H + $('#lg-time').getBoundingClientRect().height + 8;
   const f = frame('ch-bars', h, { t: 4, r: 2, b: 4, l: 2 });
-  const step = Math.min(100, f.ih / Math.max(5, data.length)), barH = Math.min(16, step * 0.24);
+  const step = f.ih / Math.max(4, data.length), barH = clamp(step * 0.3, 8, 22);
   const x = d3.scaleLinear().domain([0, S.measure === 'orbit' ? 1 : (d3.max(data, (d) => (isFinite(d.v) ? d.v : 0)) || 1)]).range([0, f.iw]);
   const sel = f.g.selectAll('g.b').data(data, (d) => d.g);
   sel.exit().interrupt().transition().duration(300).attr('opacity', 0).remove();
@@ -1451,7 +1493,7 @@ function chartBars(groupAcc, spec) {
   en.append('rect').attr('class', 'hit').attr('fill', 'transparent');
   const all = en.merge(sel).attr('data-g', (d) => d.g);
   all.transition(T()).delay((d, k) => k * 45).attr('opacity', 1).attr('transform', (d, k) => `translate(0,${k * step})`);
-  const by = step * 0.5 + 4;
+  const by = step * 0.5 - barH / 2 + 8;
   all.select('rect.trk').attr('x', 0).attr('y', by).attr('height', barH).attr('width', f.iw);
   all.select('rect.bar').attr('y', by).attr('height', barH).attr('fill', (d) => spec.color(d.g))
     .transition(T()).delay((d, k) => 80 + k * 45).attr('width', (d) => (isFinite(d.v) ? Math.max(barH, x(d.v)) : 0));
@@ -1474,7 +1516,7 @@ function applyGroupFilter(g, spec) {
   else if (S.by === 'site' && spec.codeOfName?.[g]) S.site = new Set([spec.codeOfName[g]]);
 }
 function drill(g, spec) {
-  if (g === 'Other') return;
+  if (g === 'Other' || g === ALLG) return;
   applyGroupFilter(g, spec);
   emit('drill', { by: S.by, group: g });
   update();
@@ -1550,7 +1592,7 @@ function chartHeat(sel, spec) {
 const SC = { dirty: false, until: 0, lastObj: -1 };
 // drop the object under the pointer: the globe orbit, its label and the object event
 function clearObject() { if (SC.lastObj >= 0) { SC.lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } }
-const SC_H = 470, SC_M = { t: 8, r: 12, b: 28, l: 46 };
+const SC_H = 500, SC_M = { t: 8, r: 12, b: 28, l: 46 };
 const L0 = Math.log10(150), L1 = Math.log10(420000);
 function initScatter() {
   const canvas = $('#sc-canvas');
@@ -1751,6 +1793,153 @@ $('#dl').addEventListener('click', () => {
   blip(11);
 });
 
+/* ================= Every object as a particle in the yearly chart =================
+   Each cataloged object is one point. Counting, the points pack the stacked bars, one slot per object;
+   for a median they spread over their own value in their launch year, under the median lines; for the
+   share in orbit they fill each year from the bottom, objects in orbit first. A switch or a filter moves
+   every point from where it is to its new slot. */
+const TP = { dirty: false, until: 0 };
+function initTimeParticles() {
+  const host = $('#ch-time');
+  const canvas = document.createElement('canvas'); canvas.id = 'tm-canvas'; host.prepend(canvas);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, premultipliedAlpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0x000000, 0);
+  const n = D.n, dyn = (arr, k) => { const b = new THREE.BufferAttribute(arr, k); b.setUsage(THREE.DynamicDrawUsage); return b; };
+  const P0 = new Float32Array(n * 2), P1 = new Float32Array(n * 2), A = new Float32Array(n * 2), Sz = new Float32Array(n * 2), C0 = new Float32Array(n * 3), C1 = new Float32Array(n * 3), Gi = new Float32Array(n).fill(-1), Dl = new Float32Array(n);
+  for (let i = 0; i < n; i++) Dl[i] = hash01(D.norad[i], 21);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const aP0 = dyn(P0, 2), aP1 = dyn(P1, 2), aA = dyn(A, 2), aS = dyn(Sz, 2), aC0 = dyn(C0, 3), aC1 = dyn(C1, 3), aG = dyn(Gi, 1);
+  Object.entries({ aP0, aP1, aA, aS, aC0, aC1, aG }).forEach(([k, b]) => geom.setAttribute(k, b));
+  geom.setAttribute('aD', new THREE.BufferAttribute(Dl, 1));
+  const U = { uMix: { value: 1 }, uArc: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }, uPR: { value: renderer.getPixelRatio() }, uFocus: { value: -1 }, uFocusAmt: { value: 0 } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `uniform float uMix, uArc, uPR, uFocus, uFocusAmt; uniform vec2 uRes; attribute vec2 aP0, aP1, aA, aS; attribute vec3 aC0, aC1; attribute float aG, aD; varying vec4 vC;
+      void main(){
+        float t = clamp((uMix - aD * 0.4) / 0.6, 0.0, 1.0); float te = t * t * (3.0 - 2.0 * t);
+        float a = mix(aA.x, aA.y, te);
+        if (a < 0.004) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+        vec2 p = mix(aP0, aP1, te);
+        // in flight each point swings on its own arc
+        float fl = sin(3.14159265 * te) * uArc * step(0.5, length(aP1 - aP0));
+        p += fl * vec2(sin(aD * 91.0) * 14.0, -10.0 - 34.0 * aD);
+        gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, 1.0 - p.y / uRes.y * 2.0, 0.0, 1.0);
+        float isF = 1.0 - step(0.5, abs(aG - uFocus));
+        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.08, 1.4, isF), uFocusAmt);
+        vC = vec4(mix(aC0, aC1, te), a * f * (1.0 + 0.8 * fl));
+        gl_PointSize = uPR * mix(aS.x, aS.y, te) * (1.0 + 0.6 * fl);
+      }`,
+    fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; float k = 1.0 - smoothstep(0.2, 0.5, d); gl_FragColor = vec4(vC.rgb * vC.a * k * 0.55, 1.0); }`,
+  });
+  const scene = new THREE.Scene(); const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; scene.add(pts);
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false });
+  // density to color with a soft shoulder, written as premultiplied alpha over the card
+  const post = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms: { tAcc: { value: rt.texture } }, depthTest: false, depthWrite: false, transparent: true, blending: THREE.NoBlending,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `uniform sampler2D tAcc; varying vec2 vUv;
+      void main(){ vec3 a = texture2D(tAcc, vUv).rgb; float L = max(max(a.r, a.g), a.b);
+        vec3 c = L > 0.0 ? a * (1.0 - exp(-L * 1.8)) / L : vec3(0.0);
+        c = mix(c, vec3(max(max(c.r, c.g), c.b)), smoothstep(3.0, 16.0, L) * 0.35);
+        gl_FragColor = vec4(c, clamp(max(max(c.r, c.g), c.b) * 1.15, 0.0, 1.0)); }`,
+  }));
+  const postScene = new THREE.Scene(); postScene.add(post);
+  Object.assign(TP, { renderer, scene, cam, rt, postScene, canvas, U, P0, P1, A, Sz, C0, C1, Gi, Dl, aP0, aP1, aA, aS, aC0, aC1, aG, w: 0, h: 0 });
+  gsap.ticker.add(() => {
+    if (!(TP.dirty || performance.now() < TP.until)) return;
+    TP.dirty = false;
+    renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, cam);
+    renderer.setRenderTarget(null); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(postScene, cam);
+  });
+}
+function timeParticles(ctx, spec, groups, keyOf, x, y, f, from) {
+  if (!TP.renderer) return;
+  const { P0, P1, A, Sz, C0, C1, Gi, Dl } = TP, n = D.n;
+  if (TP.w !== f.iw || TP.h !== f.ih) {
+    TP.w = f.iw; TP.h = f.ih; TP.renderer.setSize(f.iw, f.ih, false);
+    const pr = TP.renderer.getPixelRatio(); TP.rt.setSize(Math.round(f.iw * pr), Math.round(f.ih * pr));
+    TP.U.uRes.value.set(f.iw, f.ih);
+  }
+  Object.assign(TP.canvas.style, { width: f.iw + 'px', height: f.ih + 'px', left: TIME_M.l + 'px', top: TIME_M.t + 'px' });
+  // freeze every point where it is now, then aim it at its next slot
+  const mix = TP.U.uMix.value;
+  for (let i = 0; i < n; i++) {
+    const t = smooth(clamp((mix - Dl[i] * 0.4) / 0.6, 0, 1));
+    P0[i * 2] += (P1[i * 2] - P0[i * 2]) * t; P0[i * 2 + 1] += (P1[i * 2 + 1] - P0[i * 2 + 1]) * t;
+    A[i * 2] += (A[i * 2 + 1] - A[i * 2]) * t; Sz[i * 2] += (Sz[i * 2 + 1] - Sz[i * 2]) * t;
+    for (let j = 0; j < 3; j++) C0[i * 3 + j] += (C1[i * 3 + j] - C0[i * 3 + j]) * t;
+  }
+  const gIndex = new Map(groups.map((g, k) => [g, k])), G = groups.length;
+  const single = groups[0] === ALLG;
+  const cols = groups.map((g) => (g === ALLG ? rgb01(css('--glow')) : rgb01(spec.color(g))));
+  const decCol = new Map();
+  const colOfObj = (i, gk) => {
+    if (!single) return cols[gk];
+    const g = spec.key(i); let c = decCol.get(g); if (!c) decCol.set(g, c = rgb01(spec.color(g))); return c;
+  };
+  const bw = x.bandwidth(), step = x.step(), isCount = S.measure === 'count', H = f.ih;
+  const place = new Uint8Array(n);   // 1 = in the chart this time
+  // bucket the objects of the chart by launch year and group, in stack order
+  const bucket = YEARS.map(() => Array.from({ length: G }, () => []));
+  for (const i of ctx) {
+    const k = D.year[i] - Y0; if (k < 0 || k >= YEARS.length) continue;
+    const gk = gIndex.get(keyOf(i)); if (gk === undefined) continue;
+    bucket[k][gk].push(i); place[i] = 1;
+  }
+  const lit = (i) => (D.year[i] >= S.y0 && D.year[i] <= S.y1 ? 1 : 0.28);
+  const setP = (i, px, py, a, sz, col, gk) => {
+    P1[i * 2] = px; P1[i * 2 + 1] = py; A[i * 2 + 1] = a; Sz[i * 2 + 1] = sz;
+    C1[i * 3] = col[0]; C1[i * 3 + 1] = col[1]; C1[i * 3 + 2] = col[2];
+    Gi[i] = single ? (spec.index.get(spec.key(i)) ?? -1) : (spec.index.get(groups[gk]) ?? -1);
+  };
+  for (let k = 0; k < YEARS.length; k++) {
+    const x0 = x(YEARS[k]), list = bucket[k];
+    let tot = 0; for (let g = 0; g < G; g++) tot += list[g].length;
+    if (!tot) continue;
+    if (isCount || S.measure === 'orbit') {
+      // pack the column: the object's slot in the stack sets its row
+      const nc = Math.max(1, Math.round(bw / 1.7)), dx = bw / nc, rows = Math.ceil(tot / nc);
+      const top = isCount ? y(tot) : 0, rowH = (H - top) / rows;
+      const sz = clamp(Math.min(dx, rowH) * 1.25, 1.4, 6);
+      let s = 0;
+      const put = (i, gk) => {
+        const r = Math.floor(s / nc), c = s % nc;
+        const a = isCount ? lit(i) : lit(i) * (D.orb[i] ? 0.95 : 0.13);
+        setP(i, x0 + (c + 0.5) * dx, H - (r + 0.5) * rowH, a, sz, colOfObj(i, gk), gk);
+        s++;
+      };
+      if (isCount) { for (let g = 0; g < G; g++) for (const i of list[g]) put(i, g); }
+      else {
+        for (let g = 0; g < G; g++) for (const i of list[g]) if (D.orb[i]) put(i, g);
+        for (let g = 0; g < G; g++) for (const i of list[g]) if (!D.orb[i]) put(i, g);
+      }
+    } else {
+      // a strip of every object's own value in its launch year
+      const field = D[MEDIAN_FIELD[S.measure]];
+      for (let g = 0; g < G; g++) for (const i of list[g]) {
+        const v = field[i];
+        if (!(v === v)) { setP(i, x0 + bw / 2, H + 6, 0, 1.5, colOfObj(i, g), g); continue; }
+        const yy = clamp(y(Math.max(v, S.measure === 'peri' ? 100 : 0)), 0, H);
+        const jx = (hash01(D.norad[i], 22) - 0.5) * step * 0.92, jy = (hash01(D.norad[i], 23) - 0.5) * 2.4;
+        setP(i, x0 + bw / 2 + jx, yy + jy, lit(i) * 0.7, 1.7, colOfObj(i, g), g);
+      }
+    }
+  }
+  // points leaving the chart drop out of sight; points joining it rise from the baseline
+  for (let i = 0; i < n; i++) {
+    if (!place[i]) { A[i * 2 + 1] = 0; P1[i * 2] = P0[i * 2]; P1[i * 2 + 1] = P0[i * 2 + 1] + 28; Sz[i * 2 + 1] = Sz[i * 2]; for (let j = 0; j < 3; j++) C1[i * 3 + j] = C0[i * 3 + j]; }
+    else if (A[i * 2] < 0.004) { P0[i * 2] = P1[i * 2]; P0[i * 2 + 1] = H + 4; Sz[i * 2] = Sz[i * 2 + 1]; for (let j = 0; j < 3; j++) C0[i * 3 + j] = C1[i * 3 + j]; }
+  }
+  ['aP0', 'aP1', 'aA', 'aS', 'aC0', 'aC1', 'aG'].forEach((k) => { TP[k].needsUpdate = true; });
+  const bigMove = TP.lastM !== undefined && TP.lastM !== S.measure; TP.lastM = S.measure;
+  TP.U.uArc.value = bigMove ? 1 : 0.35;
+  TP.U.uMix.value = 0;
+  gsap.to(TP.U.uMix, { value: 1, duration: bigMove ? 1.6 : 1.2, ease: 'none', overwrite: true });
+  TP.until = performance.now() + 1900; TP.dirty = true;
+}
+
 /* ================= The globe of the current view ================= */
 // Objects that leave the view fall and burn up; objects that join it rise from the surface.
 const G = {};
@@ -1791,7 +1980,9 @@ function initGlobe(landImg) {
         float d = length(vec2((lon - lonc) * cos(lat) / cell, (lat - latc) / cell)); float aa = fwidth(d) * 0.8;
         float isLand = step(0.5, land) * (1.0 - smoothstep(0.34 - aa, 0.34 + aa, d));
         vec3 N = normalize(vN); vec3 V = normalize(cameraPosition - vWP); float day = smoothstep(-0.2, 0.45, dot(N, uSun)); float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
-        vec3 col = mix(vec3(0.004, 0.008, 0.03), vec3(0.01, 0.025, 0.08), day) + isLand * mix(vec3(0.03, 0.03, 0.05), vec3(0.14, 0.22, 0.5), day) + vec3(0.1, 0.25, 0.8) * fres * 0.6;
+        vec3 col = mix(vec3(0.004, 0.008, 0.03), vec3(0.012, 0.03, 0.09), day) + isLand * mix(vec3(0.025, 0.03, 0.06), vec3(0.2, 0.32, 0.72), day) + vec3(0.1, 0.25, 0.8) * fres * 0.6;
+        // a warm band along the terminator, where day turns to night
+        float tz = dot(N, uSun); col += vec3(1.0, 0.45, 0.2) * 0.07 * exp(-tz * tz / 0.01) * (0.35 + 0.65 * isLand);
         gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0); }`,
   });
   const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 72), earthMat); scene.add(earth);
@@ -1847,10 +2038,19 @@ function initGlobe(landImg) {
     fragmentShader: `uniform float uO; void main(){ float d = length(gl_PointCoord - 0.5); float a = (smoothstep(0.5, 0.0, d) * 0.5 + smoothstep(0.12, 0.0, d)) * uO; gl_FragColor = vec4(vec3(1.0, 0.55, 0.6) * a, a); }`,
   }));
   marker.frustumCulled = false; scene.add(marker);
+  // altitude guides in the equatorial plane: 2,000 km (the top of low Earth orbit), 20,200 km (navigation), geosynchronous
+  const RINGS = [[2000, '2,000 km'], [20200, '20,200 km'], [35786, 'Geosynchronous, 35,786 km']].map(([alt, lab]) => {
+    const r = 1 + alt / R_KM, pts = [];
+    for (let k = 0; k <= 180; k++) { const a = k / 180 * Math.PI * 2; pts.push(new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a))); }
+    const m = new THREE.LineBasicMaterial({ color: rawColor(css('--glow')), transparent: true, opacity: 0, depthWrite: false });
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), m); line.frustumCulled = false; scene.add(line);
+    const el = document.createElement('div'); el.className = 'g-ring'; el.textContent = lab; $('#globe-wrap').append(el);
+    return { r, m, el };
+  });
   // post: bloom, then a light chromatic aberration, grain and vignette
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.4, 0.8); composer.addPass(bloom);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.35, 0.86); composer.addPass(bloom);
   const fin = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) } },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -1883,6 +2083,14 @@ function initGlobe(landImg) {
     const want = Math.max(G.target, G.fit); G.dist += (want - G.dist) * (1 - Math.exp(-dt * 2.4));
     camera.position.set(G.dist * Math.cos(G.elev) * Math.sin(G.azim), G.dist * Math.sin(G.elev), G.dist * Math.cos(G.elev) * Math.cos(G.azim)); camera.lookAt(0, 0, 0);
     if (G.hover >= 0) { keplerXYZ(G.hoverEl, G.sim, tmp); G.marker.geometry.attributes.position.array.set([tmp.x, tmp.y, tmp.z]); G.marker.geometry.attributes.position.needsUpdate = true; }
+    // a guide shows once the camera is well outside it; its label sits where it crosses the right side
+    const rx = Math.cos(G.azim), rz = -Math.sin(G.azim), W = wrap.clientWidth, Hh = wrap.clientHeight;
+    for (const g of RINGS) {
+      const o = 0.3 * clamp((G.dist - g.r * 1.15) / (g.r * 0.6), 0, 1); g.m.opacity = o;
+      tmp.set(g.r * rx, 0, g.r * rz).project(camera);
+      g.el.style.opacity = o > 0.05 ? Math.min(1, o * 3) : 0;
+      g.el.style.transform = `translate(${((tmp.x + 1) / 2 * W + 6).toFixed(1)}px, ${((1 - tmp.y) / 2 * Hh - 16).toFixed(1)}px)`;
+    }
     composer.render(); requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -2043,7 +2251,7 @@ function render() {
   syncMeasure(); syncBy(); syncType(); syncRegime(); syncStatus(); syncYears(); dds.owner.label(); dds.site.label();
   $$('.dd.open').forEach((p) => { const k = p.parentElement.dataset.dd; dds[k].draw(); });
   kpiNumbers(all);
-  const sd = sparkData(ctx); spark('sp-orbit', sd.orbit); spark('sp-active', sd.active); spark('sp-peri', sd.peri); spark('sp-life', sd.life);
+  const sd = sparkData(ctx); spark('sp-orbit', sd.orbit, CAT.sd.orbit); spark('sp-active', sd.active, CAT.sd.active); spark('sp-peri', sd.peri, CAT.sd.peri); spark('sp-life', sd.life, CAT.sd.life);
   chartTime(ctx, spec); chartScatter(spec); chartBars(groupAcc, spec); chartHeat(sel, spec); table(groupAcc, all, spec);
   globeUpdate(spec); heroUpdate(spec);
   FOCUS = null; applyFocus(); hideTip();
@@ -2067,13 +2275,13 @@ let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(
   // reference values for the whole catalog, for the KPI comparisons
   const every = d3.range(D.n);
   CAT.orbit = d3.sum(every, (i) => D.orb[i]) / D.n; CAT.active = d3.sum(every, (i) => D.act[i]) / D.n;
-  CAT.peri = medianOf(every, D.peri); CAT.life = medianOf(every, D.life);
+  CAT.peri = medianOf(every, D.peri); CAT.life = medianOf(every, D.life); CAT.sd = sparkData(every);
   dropdown('owner'); dropdown('site');
   hashToState();
   yearHist();
   const landBytes = await unpack('data-land', false);
   const img = new Image(); img.src = URL.createObjectURL(new Blob([landBytes], { type: 'image/png' })); await img.decode();
-  initGlobe(img); initScatter(); initHero();
+  initGlobe(img); initScatter(); initTimeParticles(); initHero();
   render();
   document.fonts.ready.then(() => { syncMeasure(); syncBy(); });
   $('#loading').style.opacity = 0; setTimeout(() => $('#loading').remove(), 500);
