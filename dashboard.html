@@ -93,7 +93,9 @@ button { background: none; border: 0; }
 
 /* rolling digits: the real digit sets the width, the column of digits rolls in a pseudo element */
 .odo { display: inline-flex; align-items: baseline; font-variant-numeric: tabular-nums; transition: font-variation-settings .5s cubic-bezier(.2,.9,.3,1); white-space: nowrap; }
-.odo .dg { position: relative; display: inline-block; height: 1.05em; line-height: 1.05; overflow: hidden; color: transparent; vertical-align: bottom; }
+.odo .dg { position: relative; display: inline-block; height: 1.05em; line-height: 1.05; overflow: hidden; color: transparent; vertical-align: bottom;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 13%, #000 87%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 13%, #000 87%, transparent 100%); }
+.odo.rolling .dg::before { filter: blur(.45px); }
 .odo .dg::before { content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"; white-space: pre; position: absolute; left: 0; top: 0; width: 100%; text-align: center; line-height: 1.05; color: var(--dg-color, var(--ink));
   transform: translateY(calc(var(--d, 0) * -1.05em)); transition: transform .95s cubic-bezier(.22,1.25,.36,1) var(--delay, 0s), color .9s ease; }
 .odo .dg.flash::before { color: var(--glow); transition: transform .95s cubic-bezier(.22,1.25,.36,1) var(--delay, 0s), color .05s; }
@@ -179,6 +181,7 @@ button { background: none; border: 0; }
 .switches.stuck .sw-sum { opacity: 1; transform: none; pointer-events: auto; }
 .sw-sum span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
 .sw-sum span b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 1640px) { .sw-sum span { display: none; } .switches { gap: 16px 20px; } .switches.stuck .seg button { padding: 0 10px; } }
 .seg-l { font-size: 13px; color: var(--ink-3); margin-right: 10px; }
 .seg { display: inline-flex; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; position: relative; }
 .seg button { position: relative; z-index: 1; height: 30px; padding: 0 13px; border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: color .3s; white-space: nowrap; }
@@ -196,6 +199,7 @@ button { background: none; border: 0; }
 .c-8 { grid-column: span 8; } .c-4 { grid-column: span 4; } .c-6 { grid-column: span 6; } .c-12 { grid-column: span 12; }
 .card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 8px; }
 .card-t { font-weight: 650; font-size: 15px; color: var(--ink); }
+.card-t .tw { white-space: nowrap; } .card-t .tc { display: inline-block; }
 .card-n { font-size: 12.5px; color: var(--ink-3); text-align: right; }
 .card-n button { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 #ch-heat .ya text { font-size: 13px; fill: var(--ink-2); font-variation-settings: "wdth" 94; }
@@ -283,7 +287,19 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 .foot p { max-width: 110ch; font: 400 15px/1.55 var(--font-text); color: var(--ink-3); }
 .foot a { color: var(--ink-2); }
 
-#loading { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg); font: italic 400 18px var(--font-text); color: var(--ink-2); transition: opacity .45s; }
+/* loader: the report's dial at a smaller size; it reads the catalog out, then an iris opens on the live count */
+#loading { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg); }
+.ld-iris { position: fixed; left: 0; top: 0; z-index: 2001; pointer-events: none; border-radius: 50%; border: 1px solid rgba(237, 240, 251, .7); box-shadow: 0 0 40px 4px rgba(127, 178, 255, .35), inset 0 0 40px 4px rgba(127, 178, 255, .25); }
+.ld-wrap { position: relative; width: 260px; height: 260px; display: grid; place-items: center; }
+.ld-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ld-tick { stroke: var(--line-2); stroke-width: 1.2; transition: stroke .2s; }
+.ld-tick.on { stroke: var(--ink); }
+.ld-sat { fill: var(--pencil); }
+.ld-orbit { fill: none; stroke: var(--line); stroke-width: 1; }
+.ld-core { text-align: center; }
+.ld-n { display: block; font: 300 46px/1 var(--font-display); font-variation-settings: "wdth" 70; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--ink); }
+.ld-of { display: block; margin-top: 8px; font: 400 13px/1.3 var(--font-display); font-variation-settings: "wdth" 95; color: var(--ink-2); letter-spacing: .02em; }
+.ld-msg { position: absolute; bottom: 9vh; left: 0; right: 0; text-align: center; font: italic 400 17px/1.4 var(--font-text); color: var(--ink-3); }
 
 @media (max-width: 1300px) {
   .filters { grid-template-columns: repeat(3, 1fr); }
@@ -306,7 +322,33 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 </script>
 </head>
 <body>
-<div id="loading">Reading the satellite catalog</div>
+<div id="loading">
+  <div class="ld-wrap"><svg viewBox="-130 -130 260 260" id="ld-svg"><circle class="ld-orbit" cx="0" cy="0" r="112"></circle></svg>
+    <div class="ld-core"><span class="ld-n" id="ld-n">0</span><span class="ld-of">cataloged objects</span></div></div>
+  <div class="ld-msg" id="ld-msg">Reading the satellite catalog</div>
+</div>
+<script>
+// the dial runs before the page's modules arrive; the page sets __ld.n once the rows are read
+(function () {
+  var svg = document.getElementById('ld-svg'), NS = 'http://www.w3.org/2000/svg', T = 72, ticks = [];
+  for (var i = 0; i < T; i++) {
+    var a = i / T * Math.PI * 2 - Math.PI / 2, r1 = 119, r2 = i % 6 === 0 ? 129 : 124, l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', Math.cos(a) * r1); l.setAttribute('y1', Math.sin(a) * r1); l.setAttribute('x2', Math.cos(a) * r2); l.setAttribute('y2', Math.sin(a) * r2);
+    l.setAttribute('class', 'ld-tick'); svg.appendChild(l); ticks.push(l);
+  }
+  var sat = document.createElementNS(NS, 'circle'); sat.setAttribute('r', 3.5); sat.setAttribute('class', 'ld-sat'); svg.appendChild(sat);
+  var ld = window.__ld = { n: 0, shown: 0, t0: performance.now(), stop: false }, num = document.getElementById('ld-n');
+  (function loop(t) {
+    if (ld.stop) return;
+    var ang = t / 800 - Math.PI / 2; sat.setAttribute('cx', Math.cos(ang) * 112); sat.setAttribute('cy', Math.sin(ang) * 112);
+    var clock = Math.min(1, (t - ld.t0) / 1100), target = ld.n ? 1 - Math.pow(1 - clock, 3) : 0;
+    ld.shown += (target - ld.shown) * 0.18;
+    var k = Math.round(ld.shown * T); for (var j = 0; j < T; j++) ticks[j].classList.toggle('on', j < k);
+    num.textContent = Math.round(ld.shown * ld.n).toLocaleString('en-US');
+    requestAnimationFrame(loop);
+  })(performance.now());
+})();
+</script>
 <svg class="grain" aria-hidden="true"><filter id="grainf"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#grainf)"/></svg>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb2ff" stop-opacity=".32"/><stop offset="1" stop-color="#7fb2ff" stop-opacity="0"/></linearGradient></defs></svg>
 <div class="cursor" id="cursor"><div class="ring"></div><div class="dot"></div></div>
@@ -1036,6 +1078,16 @@ function legend(id, spec, order) {
   });
 }
 
+/* ================= Card titles: a changed title sets in letter by letter ================= */
+function retitle(el, text) {
+  if (el.__t === text) return;
+  const first = el.__t === undefined; el.__t = text;
+  if (first) { el.textContent = text; return; }
+  el.innerHTML = text.split(' ').map((w) => `<span class="tw">${[...w].map((c) => `<span class="tc">${c}</span>`).join('')}</span>`).join(' ');
+  $$('.tc', el).forEach((sp, k) => sp.animate(
+    [{ opacity: 0, transform: 'translateY(.45em)', filter: 'blur(3px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }],
+    { duration: 460, delay: k * 11, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' }));
+}
 /* ================= Rolling digits ================= */
 function odo(el, text) {
   if (el.__t === text) return;
@@ -1079,7 +1131,10 @@ function syncSummary(n) {
     pick('regime', (v) => REGIMES[v], 'orbits'), pick('status', (v) => STATUSES[v], 'statuses'), S.box ? 'scatter box' : null].filter(Boolean);
   $('#sw-sum').innerHTML = `<b>${fmt(n)}</b> objects, ${parts.join(', ')}`;
 }
-const stuckCheck = () => swBar.classList.toggle('stuck', swBar.getBoundingClientRect().top <= 65 && scrollY > 300);
+const stuckCheck = () => {
+  const on = swBar.getBoundingClientRect().top <= 65 && scrollY > 300;
+  if (on !== swBar.classList.contains('stuck')) { swBar.classList.toggle('stuck', on); requestAnimationFrame(() => { syncMeasure(); syncBy(); }); }
+};
 addEventListener('scroll', stuckCheck, { passive: true });
 $('#sw-edit').addEventListener('click', () => { blip(9); scrollTo({ top: Math.max(0, $('#filters').getBoundingClientRect().top + scrollY - 90), behavior: 'smooth' }); });
 
@@ -1313,7 +1368,7 @@ function decadeBands(f, x, bw) {
 const TC = { mode: null, syncing: false, downX: null };
 function chartTime(ctx, spec) {
   const m = M(), isCount = S.measure === 'count', keep = needIdx();
-  $('#t-time').textContent = `${m.label} by launch year and ${byLabel()}`;
+  retitle($('#t-time'), `${m.label} by launch year and ${byLabel()}`);
   $('#n-time').textContent = S.measure === 'life' ? 'Objects still in orbit count their years up to today, so recent launch years run low' : 'Drag across years to filter, or click one year';
   const f = frame('ch-time', TIME_H, TIME_M);
   // by decade, a median or share is one line (each launch year sits in one decade); the decades are marked as bands
@@ -1475,7 +1530,7 @@ function timeShade() {
 // Chart 2: measure by group, one labeled bar per row
 function chartBars(groupAcc, spec) {
   const m = M();
-  $('#t-bars').textContent = `${m.label} by ${byLabel()}`;
+  retitle($('#t-bars'), `${m.label} by ${byLabel()}`);
   const tot = d3.sum([...groupAcc.values()], (a) => a.n);
   const data = spec.order.map((g) => ({ g, v: measureOf(groupAcc.get(g), S.measure), n: groupAcc.get(g)?.n || 0 })).filter((d) => d.n > 0);
   if (S.by !== 'decade' && S.by !== 'status' && S.by !== 'regime') data.sort((a, b) => (isFinite(b.v) ? b.v : -1) - (isFinite(a.v) ? a.v : -1));
@@ -1533,8 +1588,9 @@ function heatScale(vals) {
   if (S.measure === 'life') return d3.scaleSequentialSqrt(interp).domain(HEAT_DOMAIN.life).clamp(true);
   return d3.scaleSequential(interp).domain(HEAT_DOMAIN[S.measure]).clamp(true);
 }
-function heatKey(col) {
+function heatKey(col, has) {
   const [a, b] = col.domain(), m = M();
+  $('#heat-key').style.visibility = has ? '' : 'hidden';
   const lab = (v) => (S.measure === 'count' ? fmt(Math.round(v)) : S.measure === 'orbit' ? Math.round(v * 100) + '%' : S.measure === 'peri' ? (v >= 1000 ? fmt(v / 1000) + 'k km' : v + ' km') : S.measure === 'inc' ? v + ' deg' : v + ' yr');
   const stops = d3.range(0, 1.0001, 0.1).map((t) => col(S.measure === 'peri' ? a * Math.pow(b / a, t) : S.measure === 'life' || S.measure === 'count' ? a + (b - a) * t * t : a + (b - a) * t));
   $('#heat-key').innerHTML = `<span>${lab(a)}</span><i style="background:linear-gradient(90deg,${stops.join(',')})"></i><span>${lab(b)}${S.measure === 'count' || S.measure === 'orbit' ? '' : ' or more'}</span>`;
@@ -1542,7 +1598,7 @@ function heatKey(col) {
 }
 function chartHeat(sel, spec) {
   const m = M(), keep = needIdx();
-  $('#t-heat').textContent = `${m.label} by ${byLabel()} and decade`;
+  retitle($('#t-heat'), `${m.label} by ${byLabel()} and decade`);
   const decs = []; for (let d = Math.floor(S.y0 / 10) * 10; d <= S.y1; d += 10) decs.push(d);
   const cells = new Map();
   for (const i of sel) { const k = spec.key(i) + '|' + Math.floor(D.year[i] / 10) * 10; let a = cells.get(k); if (!a) cells.set(k, a = acc(keep)); add(a, i); }
@@ -1557,7 +1613,7 @@ function chartHeat(sel, spec) {
   const y = d3.scaleBand().domain(groups).range([0, f.ih]).padding(0.1);
   const vals = data.map((d) => d.v).filter(isFinite);
   const colC = heatScale(vals);
-  heatKey(colC);
+  heatKey(colC, vals.length > 0);
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickFormat((d) => `${d}s`).tickSize(0).tickPadding(8)).select('.domain').remove();
   const ya = f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya');
   ya.transition(T()).call(d3.axisLeft(y).tickSize(0).tickPadding(12).tickFormat((g) => (g.length > 30 ? g.slice(0, 29) + '...' : g))).on('end', function () { d3.select(this).select('.domain').remove(); });
@@ -1592,7 +1648,7 @@ function chartHeat(sel, spec) {
 const SC = { dirty: false, until: 0, lastObj: -1 };
 // drop the object under the pointer: the globe orbit, its label and the object event
 function clearObject() { if (SC.lastObj >= 0) { SC.lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } }
-const SC_H = 500, SC_M = { t: 8, r: 12, b: 28, l: 46 };
+const SC_H = 500, SC_M = { t: 8, r: 26, b: 28, l: 46 };
 const L0 = Math.log10(150), L1 = Math.log10(420000);
 function initScatter() {
   const canvas = $('#sc-canvas');
@@ -1753,7 +1809,7 @@ function chartScatter(spec) {
 let sortKey = 'n', sortDir = -1, lastTable = [];
 const MCOL = { count: 'n', orbit: 'orbitPct', peri: 'peri', inc: 'inc', life: 'life' };
 function table(groupAcc, all, spec) {
-  $('#t-table').textContent = `The numbers behind the view, by ${byLabel()}`;
+  retitle($('#t-table'), `The numbers behind the view, by ${byLabel()}`);
   const cols = [
     ['g', BYS.find((b) => b.id === S.by).label], ['n', 'Objects'], ['share', 'Share of view'], ['orbit', 'In Earth orbit'],
     ['orbitPct', 'Share in Earth orbit'], ['active', 'Active payloads'], ['peri', 'Median perigee, km'], ['inc', 'Median inclination, deg'], ['life', 'Median years since launch'],
@@ -2067,6 +2123,8 @@ function initGlobe(landImg) {
   const wrap = $('#globe-wrap');
   G.size = () => { const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); fin.uniforms.uRes.value.set(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
   G.size();
+  // the card can change size without a window resize (layout, fonts): keep the camera's aspect in step
+  new ResizeObserver(() => G.size()).observe(wrap);
   let dragging = false, lx = 0, ly = 0;
   canvas.addEventListener('pointerdown', (e) => { dragging = true; G.armed = true; $('#globe-hint').style.opacity = 0; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => { if (!dragging) return; G.vaz = -(e.clientX - lx) * 0.006; G.vel = (e.clientY - ly) * 0.005; lx = e.clientX; ly = e.clientY; });
@@ -2089,7 +2147,8 @@ function initGlobe(landImg) {
       const o = 0.3 * clamp((G.dist - g.r * 1.15) / (g.r * 0.6), 0, 1); g.m.opacity = o;
       tmp.set(g.r * rx, 0, g.r * rz).project(camera);
       g.el.style.opacity = o > 0.05 ? Math.min(1, o * 3) : 0;
-      g.el.style.transform = `translate(${((tmp.x + 1) / 2 * W + 6).toFixed(1)}px, ${((1 - tmp.y) / 2 * Hh - 16).toFixed(1)}px)`;
+      const lw = g.lw || (g.lw = g.el.offsetWidth);
+      g.el.style.transform = `translate(${Math.min((tmp.x + 1) / 2 * W + 6, W - lw - 12).toFixed(1)}px, ${((1 - tmp.y) / 2 * Hh - 16).toFixed(1)}px)`;
     }
     composer.render(); requestAnimationFrame(loop);
   };
@@ -2187,8 +2246,12 @@ function initHero() {
     ctx.globalCompositeOperation = 'source-over';
     // altitude guides
     ctx.font = '400 11px Anybody, sans-serif'; ctx.textAlign = 'left';
+    // a guide that would run through the big count stops short of it
+    const cr = cv.getBoundingClientRect(), nb = $('#showing-n').getBoundingClientRect();
+    const nl = nb.left - cr.left - 22, nt = nb.top - cr.top - 6, nbm = nb.bottom - cr.top + 6;
     for (const [alt, lab] of [[200, '200 km'], [2000, '2,000 km'], [35786, 'Geosynchronous, 35,786 km']]) {
-      const yy = ly(Math.log10(alt)); ctx.fillStyle = 'rgba(170,182,235,0.10)'; ctx.fillRect(W * 0.7, yy, W * 0.3, 1);
+      const yy = ly(Math.log10(alt)), x1 = yy > nt && yy < nbm ? Math.max(W * 0.7, nl) : W;
+      ctx.fillStyle = 'rgba(170,182,235,0.10)'; ctx.fillRect(W * 0.7, yy, x1 - W * 0.7, 1);
       ctx.fillStyle = 'rgba(170,182,235,0.5)'; ctx.fillText(lab, W * 0.7, yy - 5);
     }
     for (let k = 0; k < HF.n; k++) {
@@ -2281,13 +2344,40 @@ let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(
   yearHist();
   const landBytes = await unpack('data-land', false);
   const img = new Image(); img.src = URL.createObjectURL(new Blob([landBytes], { type: 'image/png' })); await img.decode();
-  initGlobe(img); initScatter(); initTimeParticles(); initHero();
+  initGlobe(img); initScatter(); initTimeParticles();
   render();
   document.fonts.ready.then(() => { syncMeasure(); syncBy(); });
-  $('#loading').style.opacity = 0; setTimeout(() => $('#loading').remove(), 500);
-  gsap.from('.filters, .kpi, .switches, .card', { opacity: 0, y: 26, duration: 1.1, ease: 'expo.out', stagger: 0.06, delay: 0.15, clearProps: 'transform,opacity' });
+  await openLoader();
+  initHero(); heroUpdate(CUR_SPEC);
+  // the counts roll up from zero as the page opens
+  for (const id of ['showing-n', 'k-orbit', 'k-active', 'k-peri', 'k-life']) { const el = $('#' + id), t = el.__t; el.__t = null; el.__sig = null; odo(el, t); }
+  gsap.from('.filters, .kpi, .switches, .card', { opacity: 0, y: 26, duration: 1.1, ease: 'expo.out', stagger: 0.06, delay: 0.1, clearProps: 'transform,opacity' });
   window.__ready = true;
-})().catch((e) => { console.error(e); $('#loading').textContent = 'The page could not read its data: ' + e.message; });
+})().catch((e) => { console.error(e); $('#ld-msg').textContent = 'The page could not read its data: ' + e.message; });
+// the dial finishes reading out the catalog, then an iris opens from the live count
+function openLoader() {
+  const ld = window.__ld || { shown: 1 }; ld.n = D.n;
+  return new Promise((resolve) => {
+    const wait = () => {
+      if (ld.shown < 0.985) { requestAnimationFrame(wait); return; }
+      ld.stop = true; $('#ld-n').textContent = fmt(D.n);
+      const loader = $('#loading'), irisEl = document.createElement('div'); irisEl.className = 'ld-iris'; document.body.appendChild(irisEl);
+      gsap.to('.ld-wrap, .ld-msg', { opacity: 0, scale: 0.94, duration: 0.35, ease: 'power2.in' });
+      const b = $('#showing-n').getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+      const iris = { r: 0 }, maxR = Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy)) * 1.05;
+      gsap.to(iris, { r: maxR, duration: 1.3, delay: 0.1, ease: 'power3.inOut',
+        onUpdate: () => {
+          const r = iris.r, m = `radial-gradient(circle at ${cx.toFixed(1)}px ${cy.toFixed(1)}px, transparent ${r.toFixed(1)}px, #000 ${(r + 1.5).toFixed(1)}px)`;
+          loader.style.webkitMaskImage = m; loader.style.maskImage = m;
+          irisEl.style.width = irisEl.style.height = `${2 * r}px`; irisEl.style.transform = `translate(${cx - r}px, ${cy - r}px)`;
+          irisEl.style.opacity = 1 - smooth(clamp((r / maxR - 0.3) / 0.7, 0, 1));
+        },
+        onComplete: () => { loader.remove(); irisEl.remove(); } });
+      setTimeout(resolve, 250);
+    };
+    wait();
+  });
+}
 
 /* Events fired on window (all CustomEvent, detail shown):
    orbit:update  { n, prevN, catalog, share, measure, by, ms }  after every full render
