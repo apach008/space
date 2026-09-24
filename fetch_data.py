@@ -34,8 +34,7 @@ for page, out, cols in [
     html = get(f"https://celestrak.org/satcat/{page}.php").decode("utf-8", errors="replace")
     t = pd.read_html(io.StringIO(html))[0]
     t.columns = cols
-    t.to_csv(DATA / out, index=False, lineterminator="
-")
+    t.to_csv(DATA / out, index=False, lineterminator="\n")
 
 # 3. Land outlines for the globe, from Natural Earth (public domain).
 (DATA / "ne_50m_land.geojson").write_bytes(get(
