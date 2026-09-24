@@ -80,7 +80,8 @@ button { background: none; border: 0; }
 #hero-field { position: absolute; left: 0; top: -34px; width: 100%; height: calc(100% + 34px); pointer-events: none;
   -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.35) 30%, #000 58%); mask-image: linear-gradient(90deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.35) 30%, #000 58%); }
 .hero-l, .hero-r { position: relative; z-index: 1; }
-.title { font: 800 clamp(46px, 4.4vw, 84px)/.98 var(--font-display); letter-spacing: -.028em; padding-bottom: .04em; overflow: hidden; }
+.title { font: 800 clamp(46px, 4.4vw, 84px)/.98 var(--font-display); letter-spacing: -.028em; padding-bottom: .04em; }
+.title .line { display: block; white-space: nowrap; }
 .title .w { display: inline-block; white-space: nowrap; }
 .title .ch { display: inline-block; font-variation-settings: "wdth" var(--w, 118); }
 .title .sp { display: inline-block; width: .26em; }
@@ -2264,7 +2265,10 @@ function initGlobe(landImg) {
   // the card can change size without a window resize (layout, fonts): keep the camera's aspect in step
   new ResizeObserver(() => G.size()).observe(wrap);
   let dragging = false, lx = 0, ly = 0;
-  canvas.addEventListener('pointerdown', (e) => { dragging = true; G.armed = true; $('#globe-hint').style.opacity = 0; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+  // after a drag the globe holds its angle until 4 s pass with no mouse or key input, then the slow turn resumes
+  let lastInput = 0, touched = false, spinK = 1;
+  for (const t of ['pointermove', 'pointerdown', 'wheel', 'keydown']) addEventListener(t, () => { lastInput = performance.now(); }, { passive: true });
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; touched = true; G.armed = true; $('#globe-hint').style.opacity = 0; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => { if (!dragging) return; G.vaz = -(e.clientX - lx) * 0.006; G.vel = (e.clientY - ly) * 0.005; lx = e.clientX; ly = e.clientY; });
   canvas.addEventListener('pointerup', () => { dragging = false; });
   canvas.addEventListener('pointerleave', () => { if (!dragging) { G.armed = false; $('#globe-hint').style.opacity = 1; } });
@@ -2275,7 +2279,10 @@ function initGlobe(landImg) {
   const loop = (now) => {
     const dt = Math.min((now - last) / 1000, 0.05); last = now; G.sim += dt * 60; U.uTime.value = G.sim; fin.uniforms.uTime.value = now / 1000;
     earth.rotation.y = G.sim * 7.2921e-5 + 2.1;
-    G.azim += 0.05 * dt + G.vaz; G.elev = clamp(G.elev + G.vel, -1.4, 1.4); G.vaz *= 0.92; G.vel *= 0.9;
+    const held = dragging || (touched && performance.now() - lastInput < 4000);
+    if (!held) touched = false;
+    spinK += ((held ? 0 : 1) - spinK) * (1 - Math.exp(-dt * (held ? 8 : 0.7)));
+    G.azim += 0.05 * dt * spinK + G.vaz; G.elev = clamp(G.elev + G.vel, -1.4, 1.4); G.vaz *= 0.92; G.vel *= 0.9;
     const want = Math.max(G.target, G.fit); G.dist += (want - G.dist) * (1 - Math.exp(-dt * 2.4));
     camera.position.set(G.dist * Math.cos(G.elev) * Math.sin(G.azim), G.dist * Math.sin(G.elev), G.dist * Math.cos(G.elev) * Math.cos(G.azim)); camera.lookAt(0, 0, 0);
     if (G.hover >= 0) { keplerXYZ(G.hoverEl, G.sim, tmp); G.marker.geometry.attributes.position.array.set([tmp.x, tmp.y, tmp.z]); G.marker.geometry.attributes.position.needsUpdate = true; }
@@ -2347,6 +2354,22 @@ function initHero() {
   const title = $('#title'); const words = title.textContent.split(' ');
   title.innerHTML = words.map((w) => `<span class="w">${[...w].map((ch) => `<span class="ch">${ch}</span>`).join('')}</span>`).join('<span class="sp"> </span>');
   HF.letters = $$('.ch', title).map((el) => ({ el, w: 118 }));
+  // The lines are fixed at the resting letter widths, so letters swelling near the cursor
+  // can never re-wrap the title and shift the page below it
+  const lockLines = () => {
+    $$('.line', title).forEach((ln) => ln.replaceWith(...ln.childNodes));
+    HF.letters.forEach((l) => { l.w = 118; l.el.style.setProperty('--w', '118'); });
+    const lines = []; let cur = [], top = null;
+    for (const kid of [...title.children]) {
+      if (kid.classList.contains('w')) { const t = kid.offsetTop; if (top !== null && t > top + 2) { lines.push(cur); cur = []; } top = t; }
+      cur.push(kid);
+    }
+    lines.push(cur);
+    for (const ln of lines) { const box = document.createElement('span'); box.className = 'line'; title.appendChild(box); ln.forEach((kid) => box.appendChild(kid)); }
+  };
+  lockLines();
+  document.fonts.ready.then(lockLines);
+  let lockT = 0; addEventListener('resize', () => { clearTimeout(lockT); lockT = setTimeout(lockLines, 150); });
   gsap.from(HF.letters.map((l) => l.el), { yPercent: 105, opacity: 0, duration: 1.1, ease: 'expo.out', stagger: 0.022, delay: 0.1 });
   gsap.ticker.add(() => {
     const r = title.getBoundingClientRect(); const near = mouse.y > r.top - 140 && mouse.y < r.bottom + 140 && mouse.x > r.left - 140 && mouse.x < r.right + 140;

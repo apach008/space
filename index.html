@@ -1247,7 +1247,7 @@ const U = {
   uBurst: { value: 1 },            // 0: each breakup cloud gathered at one point, 1: spread over its orbits
   uCut: { value: 0 }, uAltX: { value: 2.5 },   // age section: slice through the globe, heights exaggerated
   uFar: { value: 0 },              // 0 near the Earth, 1 when the camera is out at the Moon
-  uHi: { value: 0 }, uHiKind: { value: 0 }, uHiLo: { value: 0 }, uHiHi: { value: 0 },   // chart hover highlight
+  uHi: { value: 0 }, uHiKind: { value: 0 }, uHiLo: { value: 0 }, uHiHi: { value: 0 }, uHiType: { value: -1 },   // chart hover highlight
   uMoonA: { value: 0 },
   uSqrt: { value: 0 },             // altitude section: heights drawn on a square-root scale, so the low shells separate
   uDens: { value: 1 },             // fades the crowded low orbits as the camera pulls back, so they never burn out to white
@@ -1580,7 +1580,7 @@ function buildSatellites(D, REP) {
   const ORBIT = `
       uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash;
       uniform float uTrail; uniform float uTrailLen; uniform float uBurst; uniform float uCut; uniform float uAltX; uniform float uFar;
-      uniform float uHi; uniform float uHiKind; uniform float uHiLo; uniform float uHiHi;
+      uniform float uHi; uniform float uHiKind; uniform float uHiLo; uniform float uHiHi; uniform float uHiType;
       uniform float uSqrt; uniform float uDens; uniform vec3 uCutN;
       attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec2 aLife; attribute vec4 aColA; attribute vec4 aColB;
       attribute vec4 aKey; attribute vec2 aEv; attribute vec4 aBurst;
@@ -1627,12 +1627,25 @@ function buildSatellites(D, REP) {
         p *= mix(1.0, 1.0 / r, max(sink, rise) * 0.985);
         return p;
       }
-      // chart hover: objects inside the hovered band brighten, the rest fade
+      // chart hover: objects inside the hovered band (and of the chart's type, if it counts one) brighten, the rest fade
+      float hiMatch(){
+        float v = uHiKind < 1.5 ? aKey.x : uHiKind < 2.5 ? aKey.y : uHiKind < 3.5 ? aKey.z : aEv.x;
+        float t = uHiType < -0.5 ? 1.0 : 1.0 - step(0.5, abs(aKey.w - uHiType));
+        return step(uHiLo, v) * (1.0 - step(uHiHi, v)) * t;
+      }
       float highlight(){
         if (uHi < 0.001) return 1.0;
-        float v = uHiKind < 1.5 ? aKey.x : uHiKind < 2.5 ? aKey.y : uHiKind < 3.5 ? aKey.z : aEv.x;
-        float m = step(uHiLo, v) * (1.0 - step(uHiHi, v));
-        return mix(1.0, m > 0.5 ? 1.3 : 0.06, uHi);
+        return mix(1.0, hiMatch() > 0.5 ? 1.3 : 0.06, uHi);
+      }
+      // how strongly this object is picked out by a chart hover: picked objects skip the
+      // crowding fade and draw larger, so a band of a few objects still shows
+      float hiPick(){ return uHi < 0.001 ? 0.0 : uHi * hiMatch(); }
+      // a picked object that the section's coloring had dimmed turns bright, so it shows whatever the mode
+      vec4 pickCol(vec4 c, float hp){
+        float dim = 1.0 - smoothstep(0.2, 0.5, c.a);
+        c.rgb = mix(c.rgb, vec3(0.85, 0.92, 1.0), hp * dim);
+        c.a = mix(c.a, max(c.a, 0.9), hp);
+        return c;
       }
       // age section: keep only a slab along the plane the Earth is cut open on
       float sliceFade(vec3 p){
@@ -1653,16 +1666,17 @@ function buildSatellites(D, REP) {
         float sink; vec3 p = orbitPos(0.0, s, born, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
-        vec4 col = mix(aColA, aColB, uMix);
+        float hp = hiPick();
+        vec4 col = pickCol(mix(aColA, aColB, uMix), hp);
         float sel = highlight();
         // reentry: a flare as the sinking object meets the atmosphere
         float flare = sink * smoothstep(1.14, 1.01, length(p));
         vHot = min(hotness(born, s, sel) + flare * 1.4, 2.0);
         vCol = col;
-        vA = min(sel, 1.4) * sliceFade(p) * crowd() * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * mix(crowd(), 1.0, hp) * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
         if (aEv.x > 0.5) vA *= mix(0.16, 1.0, smoothstep(0.0, 0.5, s));   // a gathered cloud would otherwise burn out to white
-        float sz = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink) * mix(1.0, 0.45, uFar);
-        gl_PointSize = clamp(sz * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR);
+        float sz = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink) * mix(1.0, 0.45, uFar) * (1.0 + 1.4 * hp);
+        gl_PointSize = clamp(sz * 9.0 / -mv.z, mix(1.1, 2.6, hp) * uPR, 16.0 * uPR);
       }`,
     fragmentShader: `
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vA;
@@ -1706,10 +1720,11 @@ function buildSatellites(D, REP) {
         float sink; vec3 p = orbitPos(aT * lagMax, s, born, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
-        vCol = mix(aColA, aColB, uMix);
+        float hp = hiPick(), cr = mix(crowd(), 1.0, hp);
+        vCol = pickCol(mix(aColA, aColB, uMix), hp);
         float sel = highlight();
         vHot = hotness(born, s, sel); vT = aT;
-        vA = min(sel, 1.4) * sliceFade(p) * crowd() * crowd() * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * cr * cr * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
       }`,
     fragmentShader: `
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT; varying float vA;
@@ -1737,7 +1752,7 @@ function modeColor(mode, k, P) {
   const typeHex = [P.pay, P.rb, P.deb, P.unk][t];
   switch (mode) {
     case 'type': return [typeHex, t === 2 ? 0.55 : 0.8];
-    case 'starlink': return D.starlink[i] ? [P.sl, 1] : [P.dim, 0.06];
+    case 'starlink': return D.starlink[i] ? [P.sl, 1] : t === 0 ? [P.pay, 0.7] : [P.dim, 0.05];
     case 'paydeb': return t === 0 ? [P.pay, 0.95] : t === 2 ? [P.deb, 0.95] : [P.dim, 0.08];
     case 'events': { const e = SAT.evIdx[k]; if (!e) return [P.dim, 0.05]; const g = EVENT_GROUP[e]; return [g === undefined ? P.ev[4] : P.ev[g], 1]; }
     case 'owner': return [[P.us, P.ru, P.cn, P.other][SAT.og[k]], SAT.og[k] === 3 ? 0.45 : 0.9];
@@ -1784,7 +1799,11 @@ const rig = { ld: Math.log(16), elev: 0.9, azim: 0.6, film: 0, tx: 0, ty: 0, tz:
 const pose = { ld: Math.log(4.9), elev: 0.3, film: 0.5, tx: 0, ty: 0, tz: 0, spin: 0.02, cut: 0, sq: 0 };
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const intro = { k: 0, ld: Math.log(16), elev: 0.9, zoom: 0 };   // the fly-in after Enter blends from this pose
-const drag = { on: false, vx: 0, vy: 0, lx: 0, ly: 0, az: 0, el: 0 };
+const drag = { on: false, vx: 0, vy: 0, lx: 0, ly: 0, az: 0, el: 0, touched: false, spinK: 1 };
+// after the reader turns the globe, it holds that angle until 4 s pass with no mouse or key input
+let lastInput = 0;
+const HOLD_MS = 4000;
+for (const t of ['pointermove', 'pointerdown', 'wheel', 'keydown']) addEventListener(t, () => { lastInput = performance.now(); }, { passive: true });
 const par = { x: 0, y: 0 };
 const shake = { amp: 0 };
 const wide = () => innerWidth > 900;
@@ -1808,6 +1827,8 @@ const STATES = {
   close:    { dist: 9.2, elev: 0.38, film: 0.0, mode: 'type', year: NOW, spin: 0.03, target: new THREE.Vector3(0, -1.25, 0) },
 };
 let stateName = null;
+let hiYear = 0;   // set while a chart hover asks for a range of years (see hiOn)
+let hiLd = -1;    // log camera distance a chart hover needs to bring its objects into frame, or -1
 let yearTarget = NOW, yearRate = 3;   // the globe's year chases this target; the rate sets how fast
 function goState(name) {
   const st = STATES[name]; if (!st || name === stateName) return;
@@ -1899,7 +1920,7 @@ function burstEvents() {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
-  drag.on = true; drag.lx = e.clientX; drag.ly = e.clientY; canvas.setPointerCapture(e.pointerId);
+  drag.on = true; drag.touched = true; drag.lx = e.clientX; drag.ly = e.clientY; canvas.setPointerCapture(e.pointerId);
   cursor.classList.add('drag');
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -1916,13 +1937,18 @@ let lastLd = Math.log(16), zoomDolly = 0;
 function updateCamera(dt) {
   // the rig chases the scroll pose; log distance so long pulls feel even
   const k = 1 - Math.exp(-dt * 5.5);
-  for (const f in pose) rig[f] += (pose[f] - rig[f]) * k;
-  // inertia on drag, eased back toward zero when released
+  // a chart hover whose objects lie outside the frame pulls the camera back (more gently) until they fit
+  const pull = hiLd > pose.ld, kp = 1 - Math.exp(-dt * 2.2);
+  for (const f in pose) rig[f] += ((f === 'ld' && pull ? hiLd : pose[f]) - rig[f]) * (f === 'ld' && pull ? kp : k);
+  // inertia on drag; the chosen angle holds while the reader is active, then eases back
   drag.az += drag.vx; drag.el = Math.max(-1.2, Math.min(1.2, drag.el + drag.vy));
   const damp = drag.on ? 0.6 : 0.93; drag.vx *= damp; drag.vy *= damp;
-  if (!drag.on) drag.el *= 0.985;
-  rig.azim += rig.spin * dt;
-  par.x += (mouse.nx - par.x) * 0.04; par.y += (mouse.ny - par.y) * 0.04;
+  const held = drag.on || (drag.touched && performance.now() - lastInput < HOLD_MS);
+  if (!held) { drag.el *= Math.exp(-dt * 0.8); if (Math.abs(drag.el) < 1e-3) drag.touched = false; }
+  // the slow turn stops while the angle is held and picks up again gently afterwards
+  drag.spinK += ((held ? 0 : 1) - drag.spinK) * (1 - Math.exp(-dt * (held ? 8 : 0.7)));
+  rig.azim += rig.spin * dt * drag.spinK;
+  if (!held) { par.x += (mouse.nx - par.x) * 0.04; par.y += (mouse.ny - par.y) * 0.04; }
   const ik = intro.k;
   const ld = intro.ld + (rig.ld - intro.ld) * ik, dist = Math.exp(ld);
   const az = rig.azim + drag.az + par.x * 0.08;
@@ -2149,8 +2175,11 @@ function frame(now) {
   earthSpin.rotation.y = simT * 7.2921e-5 + 2.1;
   // the globe's year chases its target: fast while scrubbed, slower when a section changes it
   const y0 = U.uYear.value;
-  U.uYear.value += (yearTarget - y0) * (1 - Math.exp(-dt * yearRate));
-  if (Math.abs(yearTarget - U.uYear.value) < 1e-5) U.uYear.value = yearTarget;
+  // while a chart hover picks a range of years, the globe runs forward at least to its end,
+  // so the objects it asks for exist (the rewind and the owner replay can sit earlier)
+  const yt = hiYear > 0 && hiYear > yearTarget ? hiYear : yearTarget, yr = hiYear > 0 && hiYear > yearTarget ? 6 : yearRate;
+  U.uYear.value += (yt - y0) * (1 - Math.exp(-dt * yr));
+  if (Math.abs(yt - U.uYear.value) < 1e-5) U.uYear.value = yt;
   yearTick(y0, U.uYear.value);
   updateCamera(dt);
   finalPass.uniforms.uZoom.value = Math.max(intro.zoom, zoomDolly);
@@ -2224,13 +2253,34 @@ const typeColor = () => [css('--c-pay'), css('--c-rb'), css('--c-deb'), css('--c
 // kind 1: inclination in degrees, 2: mean altitude in km, 3: year entered the catalog, 4: breakup group
 let hiKey = '';
 // v: the hovered bar's value as a share of the chart's scale, for the sound
-function hiOn(kind, lo, hi, v) {
-  const k = `${kind}:${lo}:${hi}`; if (k === hiKey) return; hiKey = k;
-  U.uHiKind.value = kind; U.uHiLo.value = lo; U.uHiHi.value = hi;
+// type: limit the highlight to one object type (0 payloads), for charts that count only that type
+function hiOn(kind, lo, hi, v, type = -1) {
+  const k = `${kind}:${lo}:${hi}:${type}`; if (k === hiKey) return; hiKey = k;
+  U.uHiKind.value = kind; U.uHiLo.value = lo; U.uHiHi.value = hi; U.uHiType.value = type;
+  hiYear = kind === 3 ? Math.min(NOW, hi) : 0;
+  hiLd = hiFit(kind, lo, hi, type);
   gsap.to(U.uHi, { value: 1, duration: 0.35, overwrite: true });
   emit('highlight', { kind, lo, hi, v });
 }
-function hiOff() { hiKey = ''; gsap.to(U.uHi, { value: 0, duration: 0.5, overwrite: true }); }
+// The camera distance that frames most of the hovered objects (-1 when the current view already does)
+function hiFit(kind, lo, hi, type) {
+  if (!SAT || U.uFar.value > 0.2) return -1;
+  const yr = Math.max(U.uYear.value, hiYear), K = SAT.key, L = SAT.life, O = SAT.orb, rr = [];
+  for (let k = 0; k < SAT.n; k++) {
+    if (L[k * 2] > yr || L[k * 2 + 1] <= yr) continue;
+    if (type >= 0 && K[k * 4 + 3] !== type) continue;
+    const v = kind === 1 ? K[k * 4] : kind === 2 ? K[k * 4 + 1] : kind === 3 ? K[k * 4 + 2] : SAT.ev[k * 2];
+    if (!(v >= lo && v < hi)) continue;
+    const a = O[k * 4], h = Math.max(0, a - 1);
+    rr.push(1 + (rig.sq > 0.5 ? 1.6 * Math.sqrt(h) : h * (rig.cut > 0.5 ? 2.5 : 1)));
+  }
+  if (!rr.length) return -1;
+  rr.sort((a, b) => a - b);
+  const R = rr[Math.floor(rr.length * 0.85)];
+  const need = (R * 1.3) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  return need > Math.exp(pose.ld) * 1.05 ? Math.log(Math.min(need, 40)) : -1;
+}
+function hiOff() { hiKey = ''; hiYear = 0; hiLd = -1; gsap.to(U.uHi, { value: 0, duration: 0.5, overwrite: true }); }
 const leave = () => { hideTip(); hiOff(); };
 
 // 1. Payloads per year, the growth section
@@ -2250,7 +2300,7 @@ charts.growth = () => {
   f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y) - 1).attr('width', x.bandwidth() + 2)
     .attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(css('--c-pay'), 'Payloads launched', fmt(e.v))}`, ev); hiOn(3, e.y, e.y + 1, e.v / 4700); }).on('pointerleave', leave);
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(css('--c-pay'), 'Payloads launched', fmt(e.v))}`, ev); hiOn(3, e.y, e.y + 1, e.v / 4700, 0); }).on('pointerleave', leave);
   animateGrow(f, 'growth');
 };
 
@@ -2308,7 +2358,7 @@ charts.starlink = () => {
   partLabel(f, x(PART_YEAR) + x.bandwidth() / 2, y(last.ot + last.sl) - 7, 'to Sep 21', 'middle');
   f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(cS, 'Starlink', fmt(e.sl))}${row(cO, 'Other payloads', fmt(e.ot))}${row('', 'Starlink share', (e.sl / (e.sl + e.ot) * 100).toFixed(1) + '%')}`, ev); hiOn(3, e.y, e.y + 1, (e.sl + e.ot) / 4800); })
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(cS, 'Starlink', fmt(e.sl))}${row(cO, 'Other payloads', fmt(e.ot))}${row('', 'Starlink share', (e.sl / (e.sl + e.ot) * 100).toFixed(1) + '%')}`, ev); hiOn(3, e.y, e.y + 1, (e.sl + e.ot) / 4800, 0); })
     .on('pointerleave', leave);
   animateGrow(f, 'starlink');
 };
@@ -2408,7 +2458,7 @@ charts.owners = () => {
     .selectAll('rect').data((s) => s).join('rect').attr('class', 'grow').attr('x', (e) => x(e.data.dec)).attr('width', x.bandwidth())
     .attr('y', (e) => y(e[1]) + 1).attr('height', (e) => Math.max(0, y(e[0]) - y(e[1]) - 2));
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.dec)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
-    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.dec}s, ${fmt(e.tot)} payloads</div>${keys.map((k, i) => row(cols[i], k, `${(e[k] * 100).toFixed(1)}%  (${fmt(e[k + '_n'])})`)).join('')}`, ev); hiOn(3, e.dec, e.dec + 10, e.tot / d3.max(d, (q) => q.tot)); })
+    .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.dec}s, ${fmt(e.tot)} payloads</div>${keys.map((k, i) => row(cols[i], k, `${(e[k] * 100).toFixed(1)}%  (${fmt(e[k + '_n'])})`)).join('')}`, ev); hiOn(3, e.dec, e.dec + 10, e.tot / d3.max(d, (q) => q.tot), 0); })
     .on('pointerleave', leave);
   animateGrow(f, 'owners');
 };
