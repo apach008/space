@@ -57,19 +57,33 @@ fonts from Google Fonts. Both pages are designed for desktop screens.
     python prepare_data.py    # rebuilds data/ and the data inside both pages
 
 The scripts need pandas, lxml and Pillow. After a new snapshot, the numbers
-written in the report text have to be updated by hand from the tables
-`prepare_data.py` prints.
+written in both pages have to be updated by hand from the section
+`NUMBERS QUOTED IN THE PAGES` that `prepare_data.py` prints.
 
 ## Definitions
 
 The notes at the end of the report page give every definition used. In short:
 an object is in Earth orbit when it has no decay date and its orbit is
-centered on Earth; an active payload has operational status +, P, B, S or X;
-a Starlink satellite is one whose name starts with STARLINK; mean altitude is
-the average of apogee and perigee; debris is dated by the estimated day it
-entered the catalog rather than by its parent's launch date; and the 416
-payloads released from the International Space Station are counted in the
-year they entered the catalog instead of the station's 1998 launch year. The
-globes draw each object on an ellipse with its cataloged apogee, perigee and
-inclination, with the orbit's orientation and the object's position along it
-assigned at random, since the catalog does not record them.
+centered on Earth, and it counts as in orbit on a given date when it entered
+the catalog on or before that date and had not reentered by then; an active
+payload is a payload with operational status +, P, B, S or X (two rocket
+bodies that carry + are not counted); a Starlink satellite is a payload whose
+name starts with STARLINK; mean altitude is the average of apogee and perigee;
+a near-circular orbit has an eccentricity below 0.25.
+
+Payloads and rocket bodies enter the catalog on their launch date. Debris
+carries the launch date of its parent, and the 416 payloads released from the
+International Space Station carry the station's 1998 launch date, so for
+these (and for unidentified objects) the date they entered the catalog is
+estimated from the catalog number. Catalog numbers are handed out in order:
+taking the payloads and rocket bodies in catalog-number order, the estimate
+is a rolling median of their launch dates over 51 neighbors, then a running
+maximum so it never goes back in time as the numbers rise, then interpolated
+at each catalog number. An object enters on the later of its launch date and
+that estimate less 30 days (new objects often receive their numbers some days
+after they are first tracked), and never after its reentry date. The station
+payloads are counted in the year they entered the catalog instead of 1998.
+
+The globes draw each object on an ellipse with its cataloged apogee, perigee
+and inclination, with the orbit's orientation and the object's position along
+it assigned at random, since the catalog does not record them.

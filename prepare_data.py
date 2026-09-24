@@ -94,51 +94,66 @@ regime[df.orbit_center != "EA"] = "Beyond Earth orbit"
 regime[df.orbit_center.str.fullmatch(r"\d+")] = "Docked"
 df["regime"] = regime
 
+# An active payload is a payload with an active operational status. The
+# status applies to payloads only: the two rocket bodies that carry "+" in
+# this snapshot are not counted as active.
 ACTIVE = {"+", "P", "B", "S", "X"}
+is_pay = df.type == "Payload"
 status = pd.Series("No status (debris, stages)", index=df.index)
-status[df.ops_status_code.isin(ACTIVE)] = "Active"
-status[df.ops_status_code == "-"] = "Inactive"
+status[is_pay & df.ops_status_code.isin(ACTIVE)] = "Active"
+status[is_pay & (df.ops_status_code == "-")] = "Inactive"
 status[df.decayed] = "Reentered"
 df["status"] = status
 
 df["in_orbit"] = ~df.decayed
 df["in_earth_orbit"] = ~df.decayed & ((df.orbit_center == "EA") | df.orbit_center.str.fullmatch(r"\d+"))
-df["starlink"] = df.object_name.str.startswith("STARLINK", na=False)
+# A Starlink satellite is a payload whose name starts with STARLINK (two debris
+# pieces also carry the name and are left out).
+df["starlink"] = is_pay & df.object_name.str.startswith("STARLINK", na=False)
 df["launch_id"] = df.object_id.str[:8]
 df["mean_alt"] = (df.apogee + df.perigee) / 2
 end = df.decay_date.fillna(SNAP)
 df["years_in_orbit"] = ((end - df.launch_date).dt.days / 365.25).round(2)
 
+# Payloads released from the space station carry its launch date (1998-11-20).
+from_station = (df.type == "Payload") & (df.launch_date == "1998-11-20") & (df.norad_cat_id != 25544)
+
 # When each object entered the catalog.
-# A debris piece carries the launch date of the object it broke off, which can
-# be decades before the breakup (Fengyun 1C debris is dated 1999, the breakup
-# was in 2007). Catalog numbers are handed out in order, so the date a piece
-# entered the catalog is estimated from the launch dates of the payloads and
-# rocket bodies numbered around it: a rolling median over 51 neighbors, made
-# non-decreasing, then interpolated at each catalog number. An object counts
-# as in orbit from the later of its launch date and that estimate, less a
-# 30-day allowance for the time it takes to catalog a new launch.
-ref = df[df.type != "Debris"].sort_values("norad_cat_id")
+# Payloads and rocket bodies enter on their launch date. A debris piece carries
+# the launch date of the object it broke off, which can be decades before the
+# breakup (Fengyun 1C debris is dated 1999, the breakup was in 2007), and the
+# payloads released from the space station carry the station's 1998 date. For
+# those, and for unidentified objects, the date is estimated from the catalog
+# number: catalog numbers are handed out in order, so the estimate is taken
+# from the launch dates of the payloads and rocket bodies numbered around it.
+# In catalog-number order: a rolling median over 51 neighbors, then a running
+# maximum (so the estimate never goes back in time as the numbers rise), then
+# interpolated at each catalog number. The object enters on the later of its
+# launch date and that estimate less 30 days (new objects often receive
+# numbers some days after they are first tracked), and never after its
+# reentry date.
+ref = df[df.type.isin(["Payload", "Rocket body"]) & ~from_station].sort_values("norad_cat_id")
 ref_days = (ref.launch_date - pd.Timestamp("1957-01-01")).dt.days
 ref_days = ref_days.rolling(51, center=True, min_periods=1).median().cummax()
 est = np.interp(df.norad_cat_id, ref.norad_cat_id, ref_days)
 df["cataloged"] = pd.Timestamp("1957-01-01") + pd.to_timedelta(est.round(), unit="D")
-df["appear"] = df.launch_date.where(df.launch_date >= df.cataloged - pd.Timedelta(days=30),
-                                    df.cataloged - pd.Timedelta(days=30))
-df.loc[df.decayed & (df.appear > df.decay_date), "appear"] = df.launch_date
+estimated = df.type.isin(["Debris", "Unknown"]) | from_station
+guess = df.launch_date.where(df.launch_date >= df.cataloged - pd.Timedelta(days=30),
+                             df.cataloged - pd.Timedelta(days=30))
+guess = guess.where(~(df.decayed & (guess > df.decay_date)), df.decay_date)
+df["appear"] = df.launch_date.where(~estimated, guess)
 late = df[df.appear > df.launch_date + pd.Timedelta(days=365)]
-print(f"\nObjects that appear more than a year after their launch date: {len(late):,} "
+print(f"\nObjects that enter the catalog more than a year after their launch date: {len(late):,} "
       f"({late.type.value_counts().to_dict()})")
+print(f"Estimated entries capped at the reentry date: {int((estimated & df.decayed & (df.appear == df.decay_date)).sum()):,}")
 for nm in ["FENGYUN 1C DEB", "COSMOS 1408 DEB", "IRIDIUM 33 DEB", "COSMOS 2251 DEB"]:
     x = df[df.object_name == nm].appear
     print(f"  {nm}: appear median {x.median().date()}, 10th pct {x.quantile(.1).date()}")
 
-# Payloads released from the space station carry its launch date (1998-11-20),
-# so those are counted in the year they entered the catalog. Every other
-# object is counted in its launch year.
-from_station = (df.type == "Payload") & (df.launch_date == "1998-11-20") & (df.norad_cat_id != 25544)
+# The station payloads are counted in the year they entered the catalog.
+# Every other object is counted in its launch year.
 df["year"] = df.launch_year.where(~from_station, df.appear.dt.year)
-print(f"Payloads with the station launch date: {((df.type == 'Payload') & (df.launch_date == '1998-11-20')).sum()}")
+print(f"Payloads with the station launch date (station itself excluded): {int(from_station.sum())}")
 
 print(f"Rows: {len(df):,}   columns in the raw file: {raw.shape[1]}")
 print(f"Launch dates {df.launch_date.min().date()} to {df.launch_date.max().date()}")
@@ -192,11 +207,15 @@ report["starlink"] = {"years": sl.index.tolist(), "starlink": sl.Starlink.tolist
 
 # 3. Objects in Earth orbit at the start of each year, by type -----------------
 earthish = df[(df.orbit_center == "EA") | df.orbit_center.str.fullmatch(r"\d+")]
+def in_orbit_at(t):
+    """Objects in Earth orbit at time t: entered on or before t and not yet reentered.
+    The same rule as both pages (appear <= t < decay)."""
+    return earthish[(earthish.appear <= t) & (earthish.decay_date.isna() | (earthish.decay_date > t))]
 years = list(range(1958, 2027))
 rows = []
 for y in years:
     t = pd.Timestamp(f"{y}-01-01")
-    alive = earthish[(earthish.appear < t) & (earthish.decay_date.isna() | (earthish.decay_date >= t))]
+    alive = in_orbit_at(t)
     rows.append(alive.type.value_counts().reindex(TYPE_NAMES.values(), fill_value=0))
 alive_df = pd.DataFrame(rows, index=years)
 alive_df.loc[2026.72] = eo.type.value_counts().reindex(TYPE_NAMES.values(), fill_value=0)
@@ -206,7 +225,7 @@ print("\n[3] Objects in Earth orbit on 1 January (selected years)\n",
 months = pd.date_range("1958-01-01", SNAPSHOT, freq="MS")
 lead = []
 for t in months:
-    alive = earthish[(earthish.appear < t) & (earthish.decay_date.isna() | (earthish.decay_date >= t))]
+    alive = in_orbit_at(t)
     lead.append((alive.type == "Payload").sum() > (alive.type == "Debris").sum())
 lead = pd.Series(lead, index=months)
 flips = lead[lead != lead.shift()]
@@ -292,7 +311,7 @@ eo_age["band"] = pd.cut(eo_age.mean_alt, [0, 400, 500, 600, 700, 800, 900, 1000,
 eo_age["age"] = (SNAP - eo_age.appear).dt.days / 365.25
 eo_age["appear_year"] = eo_age.appear.dt.year
 age = eo_age.groupby("band", observed=True).agg(
-    objects=("norad_cat_id", "size"), median_year=("appear_year", "median"),
+    objects=("norad_cat_id", "size"), median_year=("appear", lambda s: int(s.median().year)),
     median_age=("age", "median"),
     before_2000=("appear_year", lambda s: round((s < 2000).mean() * 100, 1)))
 print("\n[8] Objects below 2,000 km by altitude band (age from catalog entry)\n", age)
@@ -336,6 +355,173 @@ df["decade"] = df.launch_year // 10 * 10
 ls = pd.crosstab(df[df.type == "Payload"].site_name, df[df.type == "Payload"].decade)
 print("\n[11] Payloads by launch site and decade (top 10 sites)\n",
       ls.loc[ls.sum(axis=1).sort_values(ascending=False).index[:10]])
+
+# ---------------------------------------------------------------------------
+# Every number the two pages quote, in page order
+# ---------------------------------------------------------------------------
+print("\n" + "=" * 78 + "\nNUMBERS QUOTED IN THE PAGES\n" + "=" * 78)
+def q(label, value):
+    if isinstance(value, float):
+        value = f"{value:,.1f}"
+    elif isinstance(value, (int, np.integer)):
+        value = f"{int(value):,}"
+    print(f"  {label}: {value}")
+def pct(a, b):
+    return f"{a:,} of {b:,} ({a / b * 100:.1f}%)"
+
+allpay = df[df.type == "Payload"]
+eo_all = df[df.in_earth_orbit]
+act = df[df.status == "Active"]
+print("\nHero and headline numbers")
+q("Objects cataloged", len(df))
+for t in TYPE_NAMES.values():
+    q(f"  {t}", int((df.type == t).sum()))
+q("Reentered", pct(int(df.decayed.sum()), len(df)))
+q("In Earth orbit", len(eo_all))
+q("Active payloads", len(act))
+q("Starlink among active payloads", pct(int(act.starlink.sum()), len(act)))
+q("Debris in Earth orbit", int((eo_all.type == "Debris").sum()))
+q("Payloads in Earth orbit", int((eo_all.type == "Payload").sum()))
+q("Rocket bodies in Earth orbit", int((eo_all.type == "Rocket body").sum()))
+q("Launch dates", f"{df.launch_date.min().date()} to {df.launch_date.max().date()}")
+q("Last reentry date", str(df.decay_date.max().date()))
+q("Payloads released from the space station", int(from_station.sum()))
+
+print("\nGrowth")
+q("Payloads 1957-2019", int(pay_year.loc[:2019].sum()))
+for y in [2019, 2020, 2025, 2026]:
+    q(f"Payloads in {y}", int(pay_year.loc[y]))
+q("Largest year", f"{pay_year.idxmax()} ({pay_year.max():,})")
+q("Payloads 2020 or later", pct(int(pay_year.loc[2020:].sum()), int(pay_year.sum())))
+
+print("\nStarlink")
+slp = df[df.starlink]
+q("Starlink satellites launched", len(slp))
+q("  first launch", str(slp.launch_date.min().date()))
+q("  active", int((slp.status == "Active").sum()))
+q("  reentered", int(slp.decayed.sum()))
+q("  launched in 2019", int(slp[slp.year == 2019].shape[0]))
+p19 = allpay[allpay.year >= 2019]
+q("Share of payloads launched 2019 on that are Starlink", pct(int(p19.starlink.sum()), len(p19)))
+for c in ["US", "PRC", "UK", "CIS"]:
+    q(f"Active payloads owned by {c}", int((act.owner == c).sum()))
+ow = act[act.owner == "UK"]
+q("  UK active that are OneWeb", int(ow.object_name.str.startswith("ONEWEB", na=False).sum()))
+
+print("\nPayloads and debris in Earth orbit (first day of each month, rule appear <= t < decay)")
+mon = pd.date_range("1958-01-01", SNAPSHOT, freq="MS")
+mrows = []
+for t in mon:
+    a = in_orbit_at(t)
+    mrows.append(((a.type == "Payload").sum(), (a.type == "Debris").sum()))
+mdf = pd.DataFrame(mrows, index=mon, columns=["payloads", "debris"])
+q("Debris peak (monthly)", f"{mdf.debris.idxmax().date()} ({mdf.debris.max():,})")
+q("Debris on 1 January 2022", int(mdf.loc["2022-01-01", "debris"]))
+q("Payloads on 1 January 2020", int(mdf.loc["2020-01-01", "payloads"]))
+q("Payloads on 1 January 2015", int(mdf.loc["2015-01-01", "payloads"]))
+ahead = mdf.payloads > mdf.debris
+ch = ahead[ahead != ahead.shift()]
+print("  Months in which the lead changes (True = payloads ahead):")
+for t, v in ch.items():
+    r = mdf.loc[t]
+    print(f"    {t.date()}  payloads ahead: {v}  ({r.payloads:,} payloads, {r.debris:,} debris)")
+for t in pd.date_range("2024-03-01", "2025-01-01", freq="MS"):
+    r = mdf.loc[t]
+    print(f"    {t.date()}  payloads {r.payloads:,}  debris {r.debris:,}  lead {r.payloads - r.debris:+,}")
+report["in_orbit_monthly"] = {"months": [t.strftime("%Y-%m-%d") for t in mon[mon >= "2015-01-01"]],
+                              "payloads": mdf.payloads[mdf.index >= "2015-01-01"].astype(int).tolist(),
+                              "debris": mdf.debris[mdf.index >= "2015-01-01"].astype(int).tolist()}
+
+print("\nBreakups")
+q("Debris pieces", len(deb))
+q("Launches with any debris", len(ev))
+q("From the ten largest sources", pct(int(top_ev.debris.sum()), len(deb)))
+for i, r in top_ev.iterrows():
+    print(f"    {i}  {r['name']:<14} launched {r.launched.date()}  pieces {r.debris:,}  "
+          f"in orbit {r.in_orbit:,} ({r.share_in_orbit}%)  median mean altitude of those up {deb[(deb.launch_id == i) & deb.in_orbit].mean_alt.median():.0f} km")
+q("Iridium 33 and Cosmos 2251 pieces together",
+  int(ev.loc["1993-036", "debris"] + ev.loc["1997-051", "debris"]))
+
+print("\nOwners (payloads by decade)")
+for dcd in own.index:
+    tot = int(own.loc[dcd].sum())
+    print(f"    {dcd}s  total {tot:,}  " + "  ".join(f"{g} {own.loc[dcd, g]:,} ({own_pct.loc[dcd, g]}%)" for g in own.columns))
+p20 = pay[(pay.decade == 2020) & (pay.owner == "US")]
+q("U.S. payloads of the 2020s that are Starlink", f"{int(p20.starlink.sum()):,} of {len(p20):,}")
+nosl = (own_nosl.div(own_nosl.sum(axis=1), axis=0) * 100).round(1).loc[2020]
+q("2020s without Starlink", ", ".join(f"{g} {v}%" for g, v in nosl.items()))
+q("Distinct owners by decade", ", ".join(f"{d}s {n}" for d, n in nown.items()))
+q("1960s: U.S. and USSR payloads", f"{int(own.loc[1960, ['United States', 'Russia (USSR)']].sum()):,} of {int(own.loc[1960].sum()):,}")
+q("1970s: USSR payloads", f"{int(own.loc[1970, 'Russia (USSR)']):,} of {int(own.loc[1970].sum()):,}")
+
+print("\nAltitude")
+q("In Earth orbit with a cataloged perigee and apogee", len(eo))
+q("  of those, with an inclination too (drawn on the globes)", int(eo.inclination.notna().sum()))
+q("  missing an inclination", ", ".join(f"{n} ({r})" for n, r in eo[eo.inclination.isna()][["object_name", "regime"]].values))
+q("Below 2,000 km mean altitude", pct(len(leo), len(eo)))
+b450 = eo[(eo.mean_alt >= 450) & (eo.mean_alt < 500)]
+q("450 to 500 km", f"{len(b450):,}, Starlink {int(b450.starlink.sum()):,}")
+b700 = eo[(eo.mean_alt >= 700) & (eo.mean_alt < 900)]
+q("700 to 900 km", f"{len(b700):,}, debris {int((b700.type == 'Debris').sum()):,}")
+hp = eo[eo.perigee >= 35000]
+q("Perigee of 35,000 km or more", len(hp))
+nc = hp[hp.eccentricity < 0.25]
+q("  near-circular (eccentricity below 0.25)", len(nc))
+q("  mean altitude within 500 km of 35,786 km", int(((nc.mean_alt - 35786).abs() < 500).sum()))
+
+print("\nInclination (objects in Earth orbit with a known inclination)")
+bands = {}
+for lo, hi in [(43, 44), (53, 54), (97, 99)]:
+    bd = eo_inc[(eo_inc.inclination >= lo) & (eo_inc.inclination < hi)]
+    bands[(lo, hi)] = len(bd)
+    q(f"{lo} to {hi} degrees", f"{len(bd):,}, Starlink {int(bd.starlink.sum()):,}")
+q("The three bands together", pct(sum(bands.values()), len(eo_inc)))
+
+print("\nAge (below 2,000 km, years since entering the catalog)")
+print(age.to_string())
+for lo, hi in [(400, 500), (700, 900), (1000, 1200), (1500, 2000)]:
+    bd = eo_age[(eo_age.mean_alt >= lo) & (eo_age.mean_alt < hi)]
+    q(f"Median age {lo} to {hi} km", f"{bd.age.median():.1f} years ({len(bd):,} objects)")
+b12 = eo_age[(eo_age.mean_alt >= 1000) & (eo_age.mean_alt < 1200)]
+mega = {"OneWeb": "ONEWEB", "Qianfan": "QIANFAN", "Hulianwang": "HULIANWANG"}
+tot_mega = 0
+for k, pre in mega.items():
+    m = b12[b12.object_name.str.startswith(pre, na=False)]
+    tot_mega += len(m)
+    q(f"  1,000 to 1,200 km, {k}", f"{len(m):,} (entered 2025 or 2026: {int((m.appear.dt.year >= 2025).sum()):,})")
+q("  1,000 to 1,200 km, the three together", pct(tot_mega, len(b12)))
+q("  1,000 to 1,200 km, entered 2025 or 2026", pct(int((b12.appear.dt.year >= 2025).sum()), len(b12)))
+rest = b12[~b12.object_name.str.startswith(tuple(mega.values()), na=False)]
+q("  1,000 to 1,200 km without the three", f"median {rest.age.median():.1f} years ({len(rest):,} objects)")
+print("  Most common names in 1,000 to 1,200 km:",
+      b12.object_name.str.extract(r"^([A-Z]+)")[0].value_counts().head(6).to_dict())
+van = df[df.object_name == "VANGUARD 1"].iloc[0]
+q("Vanguard 1", f"launched {van.launch_date.date()}, orbit {van.perigee:,.0f} by {van.apogee:,.0f} km")
+q("Oldest object still in orbit", eo.sort_values("launch_date").iloc[0].object_name)
+
+print("\nReentries")
+for y in [2020, 2025]:
+    q(f"Payloads reentered in {y}", int(ree.loc[y, "Payload"]))
+q("Starlink reentered in 2025", int(ree.loc[2025, "Starlink"]))
+d25 = dec[(dec.year == 2025) & dec.starlink]
+q("  median years in orbit of those", float(d25.years_in_orbit.median()))
+q("Median years in orbit, every reentered Starlink", float(dec[dec.starlink].years_in_orbit.median()))
+q("All objects reentered in 2025", int(ree.loc[2025, list(TYPE_NAMES.values())].sum()))
+q("Debris reentries peak", f"{ree.Debris.idxmax()} ({ree.Debris.max():,})")
+rbd = dec[dec.type == "Rocket body"]
+q("Median days from launch to reentry, rocket bodies", int((rbd.decay_date - rbd.launch_date).dt.days.median()))
+globe = df[df.regime.isin(["Low Earth orbit", "Medium Earth orbit", "Geosynchronous and above", "Highly elliptical", "Docked"])
+           & df.perigee.notna() & df.apogee.notna() & df.inclination.notna()]
+q("Objects on the globe that reentered from 1 January 2024 to the snapshot",
+  int((globe.decay_date >= "2024-01-01").sum()))
+
+print("\nBeyond Earth orbit")
+q("Objects", len(beyond))
+for c, sub in beyond.groupby("center"):
+    print(f"    {c}: {len(sub):,}  " + ", ".join(f"{k} {v}" for k, v in sub.type.value_counts().items())
+          + "  |  " + ", ".join(f"{k} {v}" for k, v in sub.orbit_type.value_counts().items()))
+q("Owned by the United States", int((beyond.owner == "US").sum()))
+q("Owned by Russia (USSR)", int((beyond.owner == "CIS").sum()))
 
 # ---------------------------------------------------------------------------
 # The slim file both pages load
