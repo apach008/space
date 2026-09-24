@@ -10,8 +10,8 @@ the browser.
 
 By Alejandro Pacheco.
 
-Once the repository is public with GitHub Pages serving the `main` branch,
-the site is at https://apach008.github.io/space/.
+GitHub Pages serves the `main` branch,
+and the site is live at https://apach008.github.io/space/.
 
 ## Files
 
@@ -29,6 +29,7 @@ the site is at https://apach008.github.io/space/.
 | `data/report_numbers.json` | Built by `prepare_data.py`: the yearly, decade and altitude tables behind the report charts. |
 | `data/land_mask.png` | Built by `prepare_data.py`: a 1024 by 512 land and sea mask the globe shaders read. |
 | `.gitattributes`, `.gitignore` | Keep line endings consistent and keep scratch files out of the repository. |
+| `.nojekyll` | Tells GitHub Pages to serve the files as they are, without running Jekyll. |
 
 ## Where the data comes from
 
