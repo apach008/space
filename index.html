@@ -104,7 +104,7 @@ a, button { cursor: none; color: inherit; }
 .probe .mark { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 1.5px solid var(--pencil); border-radius: 50%; }
 .probe .mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: var(--pencil); }
 .probe .card {
-  position: absolute; left: 22px; top: -8px; min-width: 230px; padding: 10px 12px 11px;
+  position: absolute; left: 22px; top: -8px; width: 262px; padding: 10px 12px 11px;
   background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--line); border-left: 2px solid var(--pencil);
 }
@@ -150,7 +150,12 @@ a, button { cursor: none; color: inherit; }
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 64px;
   display: flex; align-items: center; gap: 28px; padding: 0 clamp(18px, 3vw, 44px);
-  background: linear-gradient(180deg, color-mix(in oklab, var(--bg) 82%, transparent), transparent);
+}
+.nav::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 78px; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--bg) 88%, transparent) 0%, color-mix(in oklab, var(--bg) 70%, transparent) 70%, transparent 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent); mask-image: linear-gradient(180deg, #000 62%, transparent);
 }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .brand svg { width: 30px; height: 30px; overflow: visible; }
@@ -184,21 +189,21 @@ main a, main button, main .panel, main .prose, main .hud, main .chart-legend, ma
 section { position: relative; }
 
 /* ---------- Hero ---------- */
-.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding-top: 110px; padding-bottom: 5vh; }
+.hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding-top: 88px; padding-bottom: 3.5vh; }
 .hero h1 {
   font-family: var(--font-display); font-weight: 800; font-variation-settings: "wdth" 125;
-  font-size: clamp(64px, 11.2vw, 216px); line-height: .84; letter-spacing: -.035em;
+  font-size: clamp(64px, min(11.2vw, 17vh), 216px); line-height: .84; letter-spacing: -.035em;
   color: var(--ink); margin-left: -.04em;
 }
 .hero h1 .ln { display: block; overflow: hidden; padding-bottom: .02em; }
 .hero h1 .ch { display: inline-block; will-change: transform, font-variation-settings; }
-.hero-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 34px 0 18px; font: 500 15px/1.3 var(--font-display); font-variation-settings: "wdth" 104; color: var(--ink-2); letter-spacing: .01em; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 26px 0 16px; font: 500 15px/1.3 var(--font-display); font-variation-settings: "wdth" 104; color: var(--ink-2); letter-spacing: .01em; }
 .hero-meta b { color: var(--ink); font-weight: 600; }
-.hero-summary { max-width: 38rem; font-size: 20px; line-height: 1.6; color: var(--ink-2); }
+.hero-summary { max-width: min(46rem, 47vw); font-size: clamp(18px, 1.3vw, 20px); line-height: 1.6; color: var(--ink-2); }
 .hero-summary strong { color: var(--ink); font-weight: 500; }
 
 .readouts {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-top: 7vh;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-top: 4.5vh;
   border-top: 1px solid var(--line-2);
 }
 .readout { padding: 20px 22px 0 0; position: relative; }
@@ -209,7 +214,7 @@ section { position: relative; }
 }
 .readout .v small { font-size: .5em; font-weight: 400; margin-left: 2px; }
 .readout .k { display: block; margin-top: 10px; font: 400 14px/1.35 var(--font-display); font-variation-settings: "wdth" 96; color: var(--ink-2); max-width: 24ch; }
-.scroll-cue { display: flex; align-items: center; gap: 14px; margin-top: 5vh; font: italic 400 16px/1 var(--font-text); color: var(--ink-3); }
+.scroll-cue { display: flex; align-items: center; gap: 14px; margin-top: 3vh; font: italic 400 16px/1 var(--font-text); color: var(--ink-3); }
 .scroll-cue i { display: block; width: 64px; height: 1px; background: var(--line-2); position: relative; overflow: hidden; }
 .scroll-cue i::after { content: ""; position: absolute; inset: 0; background: var(--ink); transform: translateX(-100%); animation: cue 2.4s cubic-bezier(.6,0,.2,1) infinite; }
 @keyframes cue { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
@@ -385,7 +390,7 @@ footer a { color: var(--ink-2); }
     <h1 id="hero-title"><span class="ln">Everything</span><span class="ln">in orbit</span></h1>
     <div class="hero-meta"><span>The public satellite catalog, <b>October 1957 to September 2026</b></span><span>By <b>Alejandro Pacheco</b></span></div>
     <p class="hero-summary prose">
-      The U.S. Space Force keeps a catalog of every object it tracks in orbit around Earth, and CelesTrak publishes it as a single public file. It lists <strong>70,745 objects</strong> launched since Sputnik: 27,788 payloads, 6,902 spent rocket bodies, 35,889 pieces of debris and 166 objects nobody has identified, and about half of them have since fallen back into the atmosphere. The report below follows how the catalog grew, who owns the objects and where they sit. Two thirds of all payloads ever launched went up after 2019, most of them Starlink satellites, and in late 2024 payloads came to outnumber debris in orbit for the first time since 1961.
+      The U.S. Space Force keeps a catalog of every object it tracks in orbit around Earth, and CelesTrak publishes it as a single public file. It lists <strong>70,745 objects</strong> launched since Sputnik: 27,788 payloads, 6,902 spent rocket bodies, 35,889 pieces of debris and 166 objects nobody has identified, and about half of them have since fallen back into the atmosphere. The report below follows how the catalog grew, who owns the objects and where they sit. Two thirds of all payloads ever launched went up after 2019, most of them Starlink satellites, and in June 2024 payloads in orbit outnumbered debris for the first time since 1961. They have stayed ahead since October 2024.
     </p>
     <div class="readouts" id="readouts">
       <div class="readout"><span class="v" data-count="70745">0</span><span class="k">objects cataloged since October 1957</span></div>
@@ -441,9 +446,9 @@ footer a { color: var(--ink-2); }
   <!-- ============================== 3. PAYLOADS VS DEBRIS ============================== -->
   <section class="finding wrap" data-globe="paydeb">
     <div class="col prose">
-      <h2>Payloads have outnumbered debris in orbit since late 2024, for the first time since 1961</h2>
+      <h2>Payloads have outnumbered debris in orbit since October 2024</h2>
       <p>For most of the space age, fragments were the largest group of objects in orbit. Tracked debris in Earth orbit peaked at <strong>14,844 pieces</strong> at the start of 2022, just after the Cosmos 1408 test, and has since fallen to 12,521, because more low fragments reentered than new ones were cataloged. Over the same years the number of payloads in orbit went from 5,255 at the start of 2020 to <strong>19,956</strong> today.</p>
-      <p>Payloads passed debris for good in October 2024; the last time they had been ahead was in mid-1961. Spent rocket bodies grew slowly throughout and stand at 2,299.</p>
+      <p>In June 2024 payloads in orbit outnumbered debris for the first time since mid-1961. Debris was briefly ahead again in September, and payloads have stayed ahead since October 2024. Spent rocket bodies grew slowly throughout and stand at 2,299.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Objects in Earth orbit, by type</div><div class="chart-note">1 January of each year, then today</div></div>
         <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-rb)"></i>Rocket bodies</span><span><i style="background:var(--c-deb)"></i>Debris</span><span><i style="background:var(--c-unk)"></i>Unknown</span></div>
@@ -485,7 +490,7 @@ footer a { color: var(--ink-2); }
     <div class="col prose">
       <h2>84% of the objects in orbit are below 2,000 km, in two crowded bands</h2>
       <p>Of the 34,500 objects in Earth orbit with a known orbit, <strong>28,996 (84.0%)</strong> circle below 2,000 km. The busiest band is 450 to 500 km, with 9,963 objects, of which 9,198 are Starlink satellites. A second band, from 700 to 900 km, holds 5,652 objects, and 4,665 of them are debris; this is where the Fengyun 1C test and the 2009 collision took place.</p>
-      <p>Farther out, 1,740 objects have a perigee of 35,000 km or more, and 1,511 of them sit within 500 km of the geosynchronous altitude of 35,786 km, the ring drawn around the globe. At that altitude an orbit takes one day, so a satellite over the equator stays above the same point on the ground.</p>
+      <p>Farther out, 1,755 objects have a perigee of 35,000 km or more. Of the 1,740 among them on near-circular orbits, 1,511 have a mean altitude within 500 km of the geosynchronous altitude of 35,786 km, the ring drawn around the globe. At that altitude an orbit takes one day, so a satellite over the equator stays above the same point on the ground.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Objects below 2,000 km, by mean altitude</div><div class="chart-note">25 km bands</div></div>
         <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-rb)"></i>Rocket bodies</span><span><i style="background:var(--c-deb)"></i>Debris</span><span><i style="background:var(--c-unk)"></i>Unknown</span></div>
@@ -524,7 +529,7 @@ footer a { color: var(--ink-2); }
   <section class="finding wrap" data-globe="reentry">
     <div class="col prose">
       <h2>Payload reentries rose from 116 in 2020 to 1,111 in 2025</h2>
-      <p><strong>1,111 payloads</strong> reentered in 2025, and 671 of them were Starlink satellites, which stayed in orbit a median of 3.6 years before reentering. Counting every type, 1,905 objects reentered in 2025. Debris reentries peaked at 2,055 in 2022, the year after the Cosmos 1408 test.</p>
+      <p><strong>1,111 payloads</strong> reentered in 2025, and 671 of them were Starlink satellites, which had been in orbit for a median of 4.0 years when they came down. Counting every type, 1,905 objects reentered in 2025. Debris reentries peaked at 2,055 in 2022, the year after the Cosmos 1408 test.</p>
       <p>Rocket bodies come down fastest: the median rocket body that has reentered did so 28 days after launch, since most upper stages are left in low orbits. While this section is on screen the globe replays January 2024 to today: the 5,123 objects with a cataloged orbit that reentered in that time are drawn in orange, and each one sinks into the atmosphere as its decay date passes.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Objects reentering per year, by type</div><div class="chart-note">2026 through Sep 23</div></div>
@@ -554,13 +559,14 @@ footer a { color: var(--ink-2); }
       <div class="cols">
         <div class="blk"><h3>Source</h3><p>The data is the satellite catalog (SATCAT) that CelesTrak publishes at <a href="https://celestrak.org/pub/satcat.csv">celestrak.org/pub/satcat.csv</a>, downloaded on September 23, 2026. CelesTrak builds it from the U.S. Space Force catalog released on Space-Track.org. Owner and launch site names come from CelesTrak's code tables, and the land shapes on the globe from Natural Earth.</p></div>
         <div class="blk"><h3>What one row is</h3><p>One row is one cataloged object: a payload, a rocket body, a piece of debris or an unidentified object. Each row carries the catalog number and international designator, the object type, owner, launch date and launch site, the decay date if the object has reentered, an operational status for payloads, and the latest orbit: period, inclination, apogee and perigee. The file has 70,745 rows and 17 columns, with launch dates from October 4, 1957 to September 21, 2026.</p></div>
-        <div class="blk"><h3>Rows left out</h3><p>No rows are dropped from the counts. The altitude, inclination and age sections, and the globe, use only objects in Earth orbit with a cataloged orbit (34,500 of the 34,831 objects in Earth orbit). The 411 objects beyond Earth orbit appear only in their own section. The radar cross-section column is not used, because the catalog stopped filling it for objects launched after 2017.</p></div>
+        <div class="blk"><h3>Rows left out</h3><p>No rows are dropped from the counts. The altitude, inclination and age sections, and the globe, use only objects in Earth orbit with a cataloged orbit (34,500 of the 34,831 objects in Earth orbit). The globe also needs an inclination, which 4 geosynchronous satellites lack, so it draws 34,496. The 411 objects beyond Earth orbit appear only in their own section. The radar cross-section column is not used, because the catalog stopped filling it for objects launched after 2017.</p></div>
         <div class="blk"><h3>When an object entered the catalog</h3><p>A debris piece carries the launch date of the object it broke off, which can be decades before the breakup. Catalog numbers are handed out in order, so the date a piece entered the catalog is estimated from the launch dates of the payloads and rocket bodies numbered next to it (a rolling median over 51 neighbors, interpolated at each catalog number). The yearly in-orbit counts, the timeline on the globe and the ages in the altitude section use this date. For almost all payloads and rocket bodies it is the launch date.</p></div>
         <div class="blk"><h3>Definitions</h3><ul>
           <li><b>In Earth orbit</b>: no decay date, and an orbit centered on Earth (objects docked to the space station included).</li>
           <li><b>Active payload</b>: operational status of operational, partially operational, backup, spare or extended mission (codes +, P, B, S, X).</li>
           <li><b>Starlink</b>: the object name starts with STARLINK.</li>
           <li><b>Mean altitude</b>: the average of apogee and perigee, in km above the surface.</li>
+          <li><b>Near-circular orbit</b>: eccentricity below 0.25, computed from apogee, perigee and the Earth's radius.</li>
           <li><b>Russia (USSR)</b>: CelesTrak's owner code CIS, which covers the Soviet Union and Russia.</li>
           <li><b>Median years in orbit</b>: decay date minus launch date, for objects that have reentered.</li>
         </ul></div>
@@ -603,7 +609,6 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = d3.format(',');
 const NOW = 2026 + 265 / 365;          // 23 September 2026, the snapshot day
 const R_KM = 6378.137, MU = 398600.4418;
-const isLight = () => document.documentElement.dataset.theme === 'light';
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 /* =====================================================================
@@ -645,8 +650,8 @@ async function loadData(onProgress) {
   const n = lines.length - 1;
   const D = {
     n, norad: new Int32Array(n), name: new Array(n), intl: new Array(n), launchS: new Array(n), decayS: new Array(n),
-    owner: new Array(n), site: new Array(n), type: new Uint8Array(n), launch: new Float32Array(n), appear: new Float32Array(n),
-    decay: new Float32Array(n), status: new Array(n), regime: new Array(n), center: new Array(n),
+    owner: new Array(n), site: new Array(n), type: new Uint8Array(n), launch: new Float64Array(n), appear: new Float64Array(n),
+    decay: new Float64Array(n), status: new Array(n), regime: new Array(n), center: new Array(n),
     peri: new Float32Array(n), apo: new Float32Array(n), inc: new Float32Array(n), period: new Float32Array(n), starlink: new Uint8Array(n),
   };
   const CH = 6000;
@@ -705,8 +710,6 @@ let ldRAF;
 /* =====================================================================
    3. Theme, sound, cursor
    ===================================================================== */
-const themeListeners = [];
-
 // Sound: a quiet synthesized drone, plus one note per year on the timeline,
 // pitched by how many payloads went up that year. On by default; browsers
 // only allow audio after a click or key press, which the Enter button gives.
@@ -808,12 +811,12 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.01, 5000);
 const lin = (hex) => new THREE.Color(hex);  // THREE converts sRGB hex into the linear working space
 const U = {
-  uTime: { value: 0 }, uYear: { value: NOW }, uLight: { value: isLight() ? 1 : 0 }, uMix: { value: 1 },
+  uTime: { value: 0 }, uYear: { value: NOW }, uMix: { value: 1 },
   uPR: { value: DPR }, uSize: { value: 1 }, uTrail: { value: 0.13 }, uSink: { value: 0 }, uFlash: { value: 0 },
   uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) },
 };
 
-// Background: a gradient sky with drifting nebula noise, or the pale plate
+// Background: a gradient sky with drifting nebula noise
 const NOISE = `
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
@@ -822,7 +825,7 @@ float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a*v
 const bgMat = new THREE.ShaderMaterial({
   uniforms: U, depthTest: false, depthWrite: false,
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.9999, 1.0); }`,
-  fragmentShader: `uniform float uLight; uniform float uTime; uniform vec2 uRes; varying vec2 vUv; ${NOISE}
+  fragmentShader: `uniform float uTime; uniform vec2 uRes; varying vec2 vUv; ${NOISE}
   void main(){
     vec2 p = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
     float t = uTime * 0.00004;
@@ -834,9 +837,7 @@ const bgMat = new THREE.ShaderMaterial({
     col += vec3(0.004, 0.045, 0.07) * pow(n, 4.0) * 1.3;
     float vig = smoothstep(1.25, 0.15, length(p));
     col *= mix(0.45, 1.0, vig);
-    vec3 paper = vec3(0.79, 0.81, 0.75);
-    vec3 plate = paper * mix(0.9, 1.0, vig) - vec3(0.035, 0.03, 0.02) * pow(n2, 2.0);
-    gl_FragColor = vec4(mix(col, plate, uLight), 1.0);
+    gl_FragColor = vec4(col, 1.0);
   }`,
 });
 const bg = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMat); bg.frustumCulled = false; bg.renderOrder = -10; scene.add(bg);
@@ -858,19 +859,12 @@ const bg = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMat); bg.frustumCulle
     vertexShader: `attribute float aSize; attribute float aTw; attribute float aTint; uniform float uTime; uniform float uPR; varying float vA; varying float vT;
       void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv;
         vA = 0.55 + 0.45 * sin(uTime * 0.0009 + aTw); vT = aTint; gl_PointSize = aSize * uPR; }`,
-    fragmentShader: `uniform float uLight; varying float vA; varying float vT;
+    fragmentShader: `varying float vA; varying float vT;
       void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; float a = smoothstep(0.5, 0.0, d) * vA;
         vec3 c = mix(vec3(0.65, 0.75, 1.0), vec3(1.0, 0.85, 0.7), vT);
-        if (uLight > 0.5) gl_FragColor = vec4(vec3(0.0), 0.0); else gl_FragColor = vec4(c * a, a); }`,
+        gl_FragColor = vec4(c * a, a); }`,
   });
   const stars = new THREE.Points(g, m); stars.renderOrder = -5; scene.add(stars);
-  // plate specks: dark dots for the light theme
-  const m2 = new THREE.ShaderMaterial({
-    uniforms: U, transparent: true, depthWrite: false,
-    vertexShader: `attribute float aSize; uniform float uPR; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = aSize * uPR * 0.9; }`,
-    fragmentShader: `uniform float uLight; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5 || uLight < 0.5) discard; gl_FragColor = vec4(0.07, 0.08, 0.14, smoothstep(0.5, 0.2, d) * 0.55); }`,
-  });
-  const specks = new THREE.Points(g, m2); specks.renderOrder = -4; scene.add(specks);
 }
 
 // Earth: a sphere shaded as a dot matrix of land, lit by a fixed Sun
@@ -882,7 +876,7 @@ const earthMat = new THREE.ShaderMaterial({
   extensions: { derivatives: true },
   vertexShader: `varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
     void main(){ vObjN = normal; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uLight; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
+  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
     void main(){
       vec3 n = normalize(vObjN);
       float lat = asin(clamp(n.y, -1.0, 1.0));
@@ -899,18 +893,11 @@ const earthMat = new THREE.ShaderMaterial({
       vec3 N = normalize(vN); vec3 V = normalize(cameraPosition - vWP);
       float ndl = dot(N, uSun); float day = smoothstep(-0.2, 0.45, ndl);
       float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
-      // night
       vec3 ocean = mix(vec3(0.0015, 0.003, 0.012), vec3(0.004, 0.011, 0.036), day);
       vec3 col = ocean + isLand * mix(vec3(0.018, 0.012, 0.008), vec3(0.075, 0.12, 0.3), day);
       col += vec3(0.08, 0.18, 0.6) * fres * (0.15 + 0.5 * day);
       col += vec3(1.0, 0.9, 0.8) * pow(max(dot(reflect(-uSun, N), V), 0.0), 60.0) * 0.05 * (1.0 - isLand);
-      // plate
-      vec3 paper = vec3(0.86, 0.87, 0.83) * (0.8 + 0.2 * day);
-      vec3 ink = vec3(0.012, 0.016, 0.045);
-      float hatch = step(0.62, fract((gl_FragCoord.x - gl_FragCoord.y) / 5.0)) * (1.0 - day) * 0.5;
-      vec3 pc = mix(paper, ink, clamp(isLand * 0.9 + hatch * 0.35, 0.0, 1.0));
-      pc = mix(pc, ink, smoothstep(0.5, 0.95, fres));
-      gl_FragColor = vec4(mix(col, pc, uLight), 1.0);
+      gl_FragColor = vec4(col, 1.0);
     }`,
 });
 const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 160, 120), earthMat);
@@ -920,11 +907,10 @@ earthSpin.add(earth);
 const atmoMat = new THREE.ShaderMaterial({
   uniforms: U, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: `varying vec3 vN; varying vec3 vWP; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform vec3 uSun; uniform float uLight; varying vec3 vN; varying vec3 vWP;
+  fragmentShader: `uniform vec3 uSun; varying vec3 vN; varying vec3 vWP;
     void main(){ vec3 V = normalize(cameraPosition - vWP); float rim = dot(normalize(vN), V);
       float i = pow(smoothstep(0.0, 0.62, rim), 2.2) * smoothstep(1.0, 0.55, rim);
       float lit = 0.35 + 0.65 * smoothstep(-0.4, 0.6, dot(normalize(vN), uSun));
-      if (uLight > 0.5) { gl_FragColor = vec4(0.0); return; }
       gl_FragColor = vec4(vec3(0.16, 0.36, 1.0) * i * lit * 0.55, i); }`,
 });
 world.add(new THREE.Mesh(new THREE.SphereGeometry(1.085, 96, 64), atmoMat));
@@ -945,13 +931,12 @@ const moonDir = new THREE.Vector3(-0.72, 0.1, -0.69).normalize();
 const moonMat = new THREE.ShaderMaterial({
   uniforms: U,
   vertexShader: `varying vec3 vP; varying vec3 vN; varying vec3 vWP; void main(){ vP = position; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform vec3 uSun; uniform float uLight; varying vec3 vP; varying vec3 vN; varying vec3 vWP; ${NOISE}
+  fragmentShader: `uniform vec3 uSun; varying vec3 vP; varying vec3 vN; varying vec3 vWP; ${NOISE}
     void main(){ vec3 p = normalize(vP); float n = fbm(p.xy * 3.0 + p.z * 2.0) * 0.6 + fbm(p.yz * 7.0) * 0.4;
       float maria = smoothstep(0.45, 0.6, fbm(p.xz * 1.6 + 3.0));
       float l = max(dot(normalize(vN), uSun), 0.0);
       vec3 c = vec3(0.55, 0.56, 0.6) * (0.55 + 0.45 * n) * (1.0 - 0.35 * maria) * (0.04 + 0.96 * l);
-      vec3 pc = mix(vec3(0.86, 0.87, 0.83), vec3(0.02, 0.03, 0.06), (1.0 - l) * 0.85 + maria * 0.2);
-      gl_FragColor = vec4(mix(c, pc, uLight), 1.0); }`,
+      gl_FragColor = vec4(c, 1.0); }`,
 });
 const moon = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 64, 48), moonMat);
 moon.position.copy(moonDir).multiplyScalar(60.3); world.add(moon);
@@ -1021,7 +1006,7 @@ function buildSatellites(D, REP) {
   geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   // Shared GLSL: position on the orbit, `lag` radians of mean anomaly behind now.
   const ORBIT = `
-      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash; uniform float uLight; uniform float uTrail;
+      uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash; uniform float uTrail;
       attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec2 aLife; attribute vec4 aColA; attribute vec4 aColB;
       varying vec4 vCol; varying float vHot; varying float vBurn;
       vec3 orbitPos(float lag, float left, out float sink){
@@ -1044,7 +1029,7 @@ function buildSatellites(D, REP) {
     vertexShader: ORBIT + `
       void main(){
         float born = uYear - aLife.x; float left = aLife.y - uYear;
-        if (born < 0.0 || left < 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+        if (born < 0.0 || left <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
         float sink; vec3 p = orbitPos(0.0, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
@@ -1052,22 +1037,17 @@ function buildSatellites(D, REP) {
         vHot = uFlash * exp(-born * 9.0);
         vCol = col;
         float s = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink);
-        gl_PointSize = clamp(s * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR) * mix(1.0, 0.9, uLight);
+        gl_PointSize = clamp(s * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR);
       }`,
     fragmentShader: `
-      uniform float uLight; varying vec4 vCol; varying float vHot; varying float vBurn;
+      varying vec4 vCol; varying float vHot; varying float vBurn;
       void main(){
         float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
         vec3 c = mix(vCol.rgb, vec3(1.0, 0.97, 0.9), clamp(vHot, 0.0, 1.0) * 0.85);
         c = mix(c, vec3(1.0, 0.45, 0.12), vBurn * 0.9);
-        if (uLight > 0.5) {
-          float ink = 1.0 - smoothstep(0.32, 0.5, d);
-          gl_FragColor = vec4(c, ink * (0.18 + 0.82 * vCol.a));
-        } else {
-          float core = pow(1.0 - smoothstep(0.0, 0.5, d), 1.7);
-          float a = core * (0.18 + 0.82 * vCol.a) * (1.0 + vHot);
-          gl_FragColor = vec4(c * a * 1.6, a);
-        }
+        float core = pow(1.0 - smoothstep(0.0, 0.5, d), 1.7);
+        float a = core * (0.18 + 0.82 * vCol.a) * (1.0 + vHot);
+        gl_FragColor = vec4(c * a * 1.6, a);
       }`,
   });
   const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; pts.renderOrder = 2; world.add(pts);
@@ -1089,7 +1069,7 @@ function buildSatellites(D, REP) {
       attribute float aTail; varying float vT;
       void main(){
         float born = uYear - aLife.x; float left = aLife.y - uYear;
-        if (born < 0.0 || left < 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+        if (born < 0.0 || left <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
         float sink; vec3 p = orbitPos(0.0, left, sink); vBurn = sink;
         if (aTail > 0.5) {
           // the tail sits a fixed angle back along the orbit, capped in length so
@@ -1101,12 +1081,11 @@ function buildSatellites(D, REP) {
         vCol = mix(aColA, aColB, uMix); vHot = uFlash * exp(-born * 9.0); vT = aTail;
       }`,
     fragmentShader: `
-      uniform float uLight; varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT;
+      varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT;
       void main(){
         float a = (1.0 - vT) * (0.08 + 0.92 * vCol.a) * (1.0 + vHot);
         vec3 c = mix(vCol.rgb, vec3(1.0, 0.45, 0.12), vBurn * 0.9);
-        if (uLight > 0.5) gl_FragColor = vec4(c, a * 0.55);
-        else gl_FragColor = vec4(c * a * 0.75, a * 0.75);
+        gl_FragColor = vec4(c * a * 0.75, a * 0.75);
       }`,
   });
   const trails = new THREE.LineSegments(tg, tmat); trails.frustumCulled = false; trails.renderOrder = 1; world.add(trails);
@@ -1118,9 +1097,6 @@ const GLOBE_PAL = {
   dark: { pay: '#5aa9ff', rb: '#ffb347', deb: '#ff5c93', unk: '#a594ff', sl: '#39e0a4', dim: '#3a4a86',
           us: '#5aa9ff', ru: '#ff8a4c', cn: '#39e0a4', other: '#8f98bd',
           ev: ['#ff5c93', '#b69cff', '#ffb347', '#39e0a4', '#e8ecff'], seqOld: '#ff7a3d', seqNew: '#9fd0ff', ember: '#ffae5c' },
-  light: { pay: '#1f5fbf', rb: '#9a5a00', deb: '#c2255f', unk: '#5b45c2', sl: '#0f7a53', dim: '#8b90a4',
-           us: '#1f5fbf', ru: '#b8471a', cn: '#0f7a53', other: '#6d7385',
-           ev: ['#c2255f', '#5b45c2', '#9a5a00', '#0f7a53', '#10152b'], seqOld: '#b8471a', seqNew: '#1f5fbf', ember: '#b8471a' },
 };
 const EVENT_GROUP = { 1: 0, 2: 1, 3: 2, 7: 2, 4: 3, 6: 3 }; // Fengyun, Cosmos 1408, the collision pair, the two CZ-6A stages
 function modeColor(mode, k, P) {
@@ -1142,7 +1118,7 @@ function modeColor(mode, k, P) {
 let currentMode = null;
 const cTmp = new THREE.Color(), cA = new THREE.Color(), cB = new THREE.Color();
 function writeMode(mode, target) {
-  const P = GLOBE_PAL[isLight() ? 'light' : 'dark'];
+  const P = GLOBE_PAL.dark;
   cA.set(P.seqOld); cB.set(P.seqNew);
   const arr = target.array;
   for (let k = 0; k < SAT.n; k++) {
@@ -1165,17 +1141,6 @@ function setMode(mode, instant = false) {
   if (instant) { U.uMix.value = 1; return; }
   U.uMix.value = 0; gsap.to(U.uMix, { value: 1, duration: 1.4, ease: 'power2.inOut' });
 }
-themeListeners.push(() => {
-  U.uLight.value = isLight() ? 1 : 0;
-  if (SAT) {
-    [SAT.mat, SAT.tmat].forEach((m) => { m.blending = isLight() ? THREE.NormalBlending : THREE.AdditiveBlending; m.needsUpdate = true; });
-    const m = currentMode; currentMode = null; writeMode(m, SAT.colA); writeMode(m, SAT.colB); currentMode = m; U.uMix.value = 1;
-  }
-  bloom.strength = isLight() ? 0 : BLOOM;
-  [geoRing, leoRing].forEach((r) => r.material.color.set(isLight() ? 0x10152b : (r === geoRing ? 0xff7a8a : 0x8fb4ff)));
-  moonOrbit.material.color.set(isLight() ? 0x10152b : 0x9aa6d8);
-  renderCharts();
-});
 
 // ---------------------------------------------------------------------
 // Camera rig: spherical coordinates around a target, eased between the
@@ -1252,23 +1217,23 @@ const composer = new EffectComposer(renderer);
 composer.setPixelRatio(DPR);
 composer.addPass(new RenderPass(scene, camera));
 const BLOOM = 0.85;
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), isLight() ? 0 : BLOOM, 0.6, 0.22);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), BLOOM, 0.6, 0.22);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const finalPass = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, uTime: U.uTime, uLight: U.uLight, uCA: { value: 0.0035 } },
+  uniforms: { tDiffuse: { value: null }, uTime: U.uTime, uCA: { value: 0.0035 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform float uLight; uniform float uCA; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform float uCA; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-    void main(){ vec2 d = vUv - 0.5; float r2 = dot(d, d); vec2 off = d * r2 * uCA * 8.0 * (1.0 - uLight);
+    void main(){ vec2 d = vUv - 0.5; float r2 = dot(d, d); vec2 off = d * r2 * uCA * 8.0;
       vec3 c = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
       float g = h(vUv * 1000.0 + fract(uTime * 0.013) * 91.0) - 0.5;
-      c += g * mix(0.028, 0.045, uLight);
-      c *= mix(1.0 - r2 * 0.7, 1.0 - r2 * 0.35, uLight);
+      c += g * 0.028;
+      c *= 1.0 - r2 * 0.7;
       gl_FragColor = vec4(c, 1.0); }`,
 });
-// ShaderPass clones its uniforms; point these back at the shared ones so theme and time reach the pass
-finalPass.uniforms.uLight = U.uLight; finalPass.uniforms.uTime = U.uTime;
+// ShaderPass clones its uniforms; point uTime back at the shared one so the grain moves
+finalPass.uniforms.uTime = U.uTime;
 composer.addPass(finalPass);
 
 addEventListener('resize', () => {
@@ -1281,8 +1246,8 @@ addEventListener('resize', () => {
 // Pointing at an object: the same orbit math on the CPU, nearest visible
 // point within 12 px, hidden if the Earth is in front of it.
 // ---------------------------------------------------------------------
-const probe = $('#probe');
-let probeK = -1, probeWait = 0;
+const probe = $('#probe'), probeCard = $('.card', probe);
+let probeK = -1, probeWait = 0, probeW = 240, probeH = 90;
 const pv = new THREE.Vector3();
 function satPos(k, out) {
   const o = SAT.orb, o2 = SAT.orb2;
@@ -1310,9 +1275,9 @@ function pick() {
   if (!SAT || drag.on) return -1;
   const el = document.elementFromPoint(mouse.x, mouse.y);
   if (el !== canvas) return -1;
-  let best = -1, bd = 144; const y = U.uYear.value;
+  let best = -1, bd = 144; const y = Math.fround(U.uYear.value);
   for (let k = 0; k < SAT.n; k++) {
-    if (SAT.life[k * 2] > y || SAT.life[k * 2 + 1] < y) continue;
+    if (SAT.life[k * 2] > y || SAT.life[k * 2 + 1] <= y) continue;
     if (SAT.colB.array[k * 4 + 3] < 0.2 && U.uMix.value > 0.5) continue;
     satPos(k, sp); sp.project(camera);
     if (sp.z > 1) continue;
@@ -1330,6 +1295,7 @@ function showProbe(k) {
     probeK = k;
     $('#pr-nm').textContent = D.name[i] || 'Unnamed object';
     const own = OWN[D.owner[i]] || D.owner[i];
+    probeW = -1;
     $('#pr-sub').innerHTML = `${TYPE_NAME[D.type[i]]}, ${own}<br>Launched <b>${D.launchS[i]}</b>, catalog number ${D.norad[i]}<br>Orbit <b>${fmt(D.peri[i])} by ${fmt(D.apo[i])} km</b>, inclination <b>${D.inc[i].toFixed(1)}</b> degrees`;
     sound.blip(880);
   }
@@ -1338,8 +1304,16 @@ function showProbe(k) {
 function trackProbe() {
   if (probeK < 0) return;
   satPos(probeK, sp); const hidden = occluded(sp.clone()); sp.project(camera);
-  probe.style.transform = `translate(${(sp.x * 0.5 + 0.5) * innerWidth}px, ${(-sp.y * 0.5 + 0.5) * innerHeight}px)`;
-  if (hidden || SAT.life[probeK * 2 + 1] < U.uYear.value) showProbe(-1);
+  const px = (sp.x * 0.5 + 0.5) * innerWidth, py = (-sp.y * 0.5 + 0.5) * innerHeight;
+  probe.style.transform = `translate(${px}px, ${py}px)`;
+  // keep the card on screen: flip it left of the mark near the right edge, lift it near the bottom, keep it below the nav
+  if (probeW < 0) { probeW = probeCard.offsetWidth; probeH = probeCard.offsetHeight; }
+  let top = -8;
+  if (py + top + probeH > innerHeight - 12) top = innerHeight - 12 - probeH - py;
+  if (py + top < 72) top = 72 - py;
+  probeCard.style.left = (px + 22 + probeW > innerWidth - 12 ? -22 - probeW : 22) + 'px';
+  probeCard.style.top = top + 'px';
+  if (hidden || SAT.life[probeK * 2 + 1] <= Math.fround(U.uYear.value)) showProbe(-1);
 }
 
 /* =====================================================================
@@ -1369,7 +1343,7 @@ function frame(now) {
 }
 
 /* =====================================================================
-   6. Charts (D3). Every chart redraws from REP when the theme changes.
+   6. Charts (D3). Every chart redraws from REP when the window is resized.
    ===================================================================== */
 const tip = $('#tip');
 function showTip(html, e) {
@@ -1463,7 +1437,7 @@ charts.inorbit = () => {
   // payloads vs debris crossing, October 2024
   const cx = x(2024.75);
   f.g.append('line').attr('class', 'anno-line').attr('x1', cx).attr('x2', cx).attr('y1', y(33000)).attr('y2', y(20000));
-  f.g.append('text').attr('class', 'anno').attr('x', cx - 6).attr('y', y(33400)).attr('text-anchor', 'end').text('Oct 2024, payloads pass debris');
+  f.g.append('text').attr('class', 'anno').attr('x', cx - 6).attr('y', y(33400)).attr('text-anchor', 'end').text('Oct 2024, payloads pass debris for good');
   const hl = f.g.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', f.ih).style('opacity', 0);
   f.g.append('rect').attr('class', 'hit').attr('width', f.iw).attr('height', f.ih).attr('fill', 'transparent')
     .on('pointermove', (ev) => {
@@ -1473,7 +1447,7 @@ charts.inorbit = () => {
       const label = e.y > 2026.5 ? 'Today (Sep 23, 2026)' : `1 January ${e.y}`;
       showTip(`<div class="t">${label}</div>${TYPE_KEYS.map((k, i) => row(cols[i], k, fmt(e[k]))).join('')}${row('', 'Total', fmt(TYPE_KEYS.reduce((s, k) => s + e[k], 0)))}`, ev);
     }).on('pointerleave', () => { hideTip(); hl.style('opacity', 0); });
-  charts.inorbit.play = () => clip.transition().duration(1800).ease(d3.easeCubicInOut).attr('width', f.w);
+  charts.inorbit.play = () => { played.add('inorbit'); clip.transition().duration(1800).ease(d3.easeCubicInOut).attr('width', f.w); };
   if (played.has('inorbit')) clip.attr('width', f.w);
 };
 
@@ -1692,7 +1666,7 @@ function setupScroll(D) {
     [2009.11, 'February 2009', 'Iridium 33 and Cosmos 2251 collide, leaving 2,372 cataloged pieces.'],
     [2019.37, 'May 2019', 'The first Starlink satellites go up; 120 are launched that year.'],
     [2021.87, 'November 2021', 'A Russian missile test destroys Cosmos 1408. All but 4 of its 1,806 cataloged pieces have since reentered.'],
-    [2024.76, 'October 2024', 'Payloads in orbit outnumber debris for the first time since 1961.'],
+    [2024.42, 'June 2024', 'Payloads in orbit outnumber debris for the first time since 1961. After a short dip in September, they stay ahead from October on.'],
     [2025.3, '2025', '4,506 payloads are launched, the most in any year.'],
   ];
   const box = $('#tm-annot');
@@ -1702,6 +1676,7 @@ function setupScroll(D) {
   const Y0 = 1957.75, Y1 = NOW;
   const tmUpdate = (p) => {
     const yr = Y0 + (Y1 - Y0) * p;
+    gsap.killTweensOf(U.uYear);   // a tween started by another section must not overwrite the scrubbed year
     U.uYear.value = yr; tmYear = yr;
     const yi = Math.floor(yr);
     yearEl.textContent = yi;
@@ -1788,7 +1763,7 @@ function heroTitle() {
   buildSatellites(D, REP);
   setMode('type', true); currentMode = 'type';
   writeMode('type', SAT.colA);
-  themeListeners.forEach((f) => f());   // match materials and charts to the saved theme
+  renderCharts();
   ld.p = 1;
   requestAnimationFrame(frame);
   rig.dist = 16; rig.elev = 0.9; stateName = 'hero';   // hold the camera far out until the loader leaves

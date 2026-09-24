@@ -3,8 +3,8 @@
 A two-page website about the public satellite catalog: every object that has
 been tracked in orbit around Earth, from Sputnik in October 1957 to September
 2026. The report page (`index.html`) is a scrolling set of findings built
-around a WebGL globe that draws each of the 34,500 objects in Earth orbit on
-its cataloged orbit. The dashboard page (`dashboard.html`) lets the reader
+around a WebGL globe that draws each of the 34,496 objects in Earth orbit that
+have a cataloged perigee, apogee and inclination. The dashboard page (`dashboard.html`) lets the reader
 filter all 70,745 objects and recomputes every number, chart and table row in
 the browser.
 
