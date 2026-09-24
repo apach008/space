@@ -1313,6 +1313,8 @@ const finalPass = new ShaderPass({
       c *= mix(1.0 - r2 * 0.7, 1.0 - r2 * 0.35, uLight);
       gl_FragColor = vec4(c, 1.0); }`,
 });
+// ShaderPass clones its uniforms; point these back at the shared ones so theme and time reach the pass
+finalPass.uniforms.uLight = U.uLight; finalPass.uniforms.uTime = U.uTime;
 composer.addPass(finalPass);
 
 addEventListener('resize', () => {
@@ -1837,7 +1839,7 @@ function heroTitle() {
   requestAnimationFrame(frame);
   rig.dist = 16; rig.elev = 0.9; stateName = 'hero';   // hold the camera far out until the loader leaves
   const lenis = setupScroll(D);
-  window.__lenis = lenis; window.__dbg = () => ({ year: U.uYear.value, mix: U.uMix.value, sink: U.uSink.value, state: stateName, mode: currentMode, dist: rig.dist });
+  window.__lenis = lenis;
   // hold the loader long enough for the count to land
   await new Promise((r) => setTimeout(r, Math.max(0, 1900 - (performance.now() - t0))));
   $('#ld-msg').textContent = `${fmt(D.n)} objects read`;
