@@ -660,6 +660,21 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = d3.format(',');
 const NOW = 2026 + 265 / 365;          // 23 September 2026, the snapshot day
+// Time machine notes: [date, label, text, shown until]. A dated note shows until the
+// end of its year and a decade note until the end of its decade.
+const TM_NOTES = [
+  [1957.76, 'October 1957', 'Sputnik 1 and the rocket stage that carried it up are entries 2 and 1 in the catalog.', 1958],
+  [1958.2, 'March 1958', 'Vanguard 1 is launched. It is the oldest object still in orbit.', 1959],
+  [1960, '1960s', 'The United States and the Soviet Union launch 1,023 of the 1,052 payloads of the decade.', 1970],
+  [1970, '1970s', 'The Soviet Union launches 1,037 of the decade\'s 1,415 payloads.', 1980],
+  [1990, '1990s', 'The number of owners launching payloads rises from 26 in the 1980s to 50.', 2000],
+  [2007.03, 'January 2007', 'A Chinese missile test destroys the Fengyun 1C weather satellite. The catalog holds 3,534 pieces from it.', 2008],
+  [2009.11, 'February 2009', 'Iridium 33 and Cosmos 2251 collide, leaving 2,372 cataloged pieces.', 2010],
+  [2019.37, 'May 2019', 'The first Starlink satellites go up; 120 are launched that year.', 2020],
+  [2021.87, 'November 2021', 'A Russian missile test destroys Cosmos 1408. All but 4 of its 1,806 cataloged pieces have since reentered.', 2022],
+  [2024.42, 'June 2024', 'Payloads in orbit outnumber debris for the first time since 1961. After a short dip in September, they stay ahead from October on.', 2025],
+  [2025.3, '2025', '4,506 payloads are launched, the most in any year.', 2026],
+];
 const R_KM = 6378.137, MU = 398600.4418;
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -2560,6 +2575,22 @@ function setupScroll(D) {
   const reSec = $('[data-globe="reentry"]'), ownSec = $('[data-globe="owner"]');
   const replay = $('#replay'), replayK = $('#replay-k'), replayD = $('#replay-d'), replayKeys = $('#replay-keys');
   const Y0 = 1957.75;
+  // Scroll progress through the time machine to a year. The year holds still for a
+  // short stretch at each note's date (TM_NOTES), so the note can be read while the
+  // big year shows the year it is about; the rest of the scroll runs at an even pace.
+  const HOLD = 0.028, holds = TM_NOTES.map((n) => Math.min(NOW, n[0] + 0.003));
+  const run = (1 - HOLD * holds.length) / (NOW - Y0);
+  const tmYearAt = (p) => {
+    let pos = 0, from = Y0;
+    for (const d of holds) {
+      const seg = (d - from) * run;
+      if (p < pos + seg) return from + (p - pos) / run;
+      pos += seg;
+      if (p < pos + HOLD) return d;
+      pos += HOLD; from = d;
+    }
+    return Math.min(NOW, from + (p - pos) / run);
+  };
   // Camera keyframes and the scroll range of the time machine, measured from the layout
   let growthY = 0, tmTop = 0, tmEnd = 1;
   const measure = () => {
@@ -2594,7 +2625,7 @@ function setupScroll(D) {
         yearTarget = NOW + (Y0 - NOW) * smooth(p); yearRate = 16;
         emit('rewind', { progress: p });
       } else if (y >= tmTop && (y <= tmEnd || stateName === 'timeline')) {
-        yearTarget = Y0 + (NOW - Y0) * clamp01((y - tmTop) / (tmEnd - tmTop)); yearRate = 16;
+        yearTarget = tmYearAt(clamp01((y - tmTop) / (tmEnd - tmTop))); yearRate = 16;
       } else if (stateName === 'reentry') {
         // the reentry section replays January 2024 to today as it scrolls past
         const r = reSec.getBoundingClientRect(), p = clamp01((mid - r.top) / r.height);
@@ -2649,19 +2680,8 @@ function setupScroll(D) {
   const earthIdx = []; for (let i = 0; i < D.n; i++) { const c = D.center[i]; if (c === 'EA' || /^\d+$/.test(c)) earthIdx.push(i); }
   const yearEl = $('#tm-year'), hudO = $('#hud-orbit'), hudP = $('#hud-pay'), hudD = $('#hud-deb'), hudOk = $('#hud-orbit-k'), hudPk = $('#hud-pay-k');
   const payByYear = Object.fromEntries(REP.by_year.years.map((y, i) => [y, REP.by_year.Payload[i]]));
-  const annots = [
-    [1957.76, 'October 1957', 'Sputnik 1 and the rocket stage that carried it up are entries 2 and 1 in the catalog.'],
-    [1958.2, 'March 1958', 'Vanguard 1 is launched. It is the oldest object still in orbit.'],
-    [1965, '1960s', 'The United States and the Soviet Union launch 1,023 of the 1,052 payloads of the decade.'],
-    [1975, '1970s', 'The Soviet Union launches 1,037 of the decade\'s 1,415 payloads.'],
-    [1990, '1990s', 'The number of owners launching payloads rises from 26 in the 1980s to 50.'],
-    [2007.03, 'January 2007', 'A Chinese missile test destroys the Fengyun 1C weather satellite. The catalog holds 3,534 pieces from it.'],
-    [2009.11, 'February 2009', 'Iridium 33 and Cosmos 2251 collide, leaving 2,372 cataloged pieces.'],
-    [2019.37, 'May 2019', 'The first Starlink satellites go up; 120 are launched that year.'],
-    [2021.87, 'November 2021', 'A Russian missile test destroys Cosmos 1408. All but 4 of its 1,806 cataloged pieces have since reentered.'],
-    [2024.42, 'June 2024', 'Payloads in orbit outnumber debris for the first time since 1961. After a short dip in September, they stay ahead from October on.'],
-    [2025.3, '2025', '4,506 payloads are launched, the most in any year.'],
-  ];
+  // each note shows from its date to the end of its year (or its decade), matching the big year
+  const annots = TM_NOTES;
   const box = $('#tm-annot');
   annots.forEach(([, w, t]) => { const a = document.createElement('div'); a.className = 'a'; a.innerHTML = `<div class="when">${w}</div><p>${t}</p>`; box.appendChild(a); });
   const aEls = $$('.a', box);
@@ -2693,7 +2713,7 @@ function setupScroll(D) {
     hudO.textContent = fmt(o); hudP.textContent = fmt(pn); hudD.textContent = fmt(dn);
     hudOk.textContent = o === 1 ? 'object' : 'objects'; hudPk.textContent = pn === 1 ? 'payload' : 'payloads';
     charts.tm.set?.(yr);
-    let k = -1; if (inTm) annots.forEach(([ay], j) => { if (yr >= ay) k = j; });
+    let k = -1; if (inTm) annots.forEach(([ay, , , until], j) => { if (yr >= ay && yr < until) k = j; });
     showAnnot(k);
     if (yi !== lastYearInt) {
       const n = payByYear[yi] || 0;
