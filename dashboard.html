@@ -1195,7 +1195,7 @@ function initScatter() {
         y -= moving * 0.02 * sign(aA.x - aA.y);
         gl_Position = vec4(x, y, 0.0, 1.0);
         float isF = 1.0 - step(0.5, abs(aG - uFocus));
-        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.07, 2.2, isF), uFocusAmt);
+        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.07, 1.6, isF), uFocusAmt);
         vC = vec4(mix(aC0, aC1, t), a * f);
         gl_PointSize = uPR * (2.3 + 2.0 * moving + 1.0 * isF * uFocusAmt);
       }`,
@@ -1418,7 +1418,7 @@ function initGlobe(landImg) {
         else if (aA.x < 0.5 && aA.y > 0.5) { float s = 1.0 - pow(1.0 - te, 3.0); p = dir * mix(1.0, r, s); alpha = smoothstep(0.0, 0.2, te); }
         vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
         float isF = 1.0 - step(0.5, abs(aG - uFocus));
-        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.08, 1.8, isF), uFocusAmt);
+        float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.08, 1.2, isF), uFocusAmt);
         vec3 col = mix(mix(aC0, aC1, te), vec3(1.0, 0.28, 0.03), burn);
         vC = vec4(col, alpha * f);
         gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR) * (1.0 + burn * 0.8 + isF * uFocusAmt * 0.6);
