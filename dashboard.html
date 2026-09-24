@@ -102,7 +102,7 @@ button { background: none; border: 0; }
 .odo .na { font-size: .42em; color: var(--ink-3); font-weight: 400; }
 
 /* filters */
-.filters { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1.15fr 1.55fr 1.35fr auto; gap: 0; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: sticky; top: 64px; z-index: 60; }
+.filters { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1.15fr 1.55fr 1.35fr auto; gap: 0; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: relative; z-index: 61; }
 .f { padding: 12px 16px 14px; border-right: 1px solid var(--line); position: relative; min-width: 0; }
 .f:last-child { border-right: 0; }
 .f-l { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-3); margin-bottom: 8px; letter-spacing: .02em; }
@@ -170,7 +170,14 @@ button { background: none; border: 0; }
 .kpi .dl.flat svg { transform: rotate(90deg); opacity: .5; }
 
 /* switches */
-.switches { display: flex; flex-wrap: wrap; gap: 16px 34px; align-items: center; margin-bottom: 14px; }
+/* the measure and breakdown switches stay under the nav while the charts scroll */
+.switches { position: sticky; top: 64px; z-index: 60; display: flex; flex-wrap: nowrap; gap: 16px 30px; align-items: center; margin: 0 calc(-1 * clamp(18px, 3vw, 44px)) 14px; padding: 9px clamp(18px, 3vw, 44px); border-bottom: 1px solid transparent; transition: background .35s, border-color .35s; }
+.switches > div { display: flex; align-items: center; flex: none; }
+.switches.stuck { background: color-mix(in oklab, var(--bg) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom-color: var(--line); }
+.sw-sum { flex: 1 1 0; min-width: 0; display: flex; justify-content: flex-end; align-items: center; gap: 12px; opacity: 0; transform: translateY(-4px); transition: opacity .35s, transform .35s; pointer-events: none; }
+.switches.stuck .sw-sum { opacity: 1; transform: none; pointer-events: auto; }
+.sw-sum span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
+.sw-sum span b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .seg-l { font-size: 13px; color: var(--ink-3); margin-right: 10px; }
 .seg { display: inline-flex; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; position: relative; }
 .seg button { position: relative; z-index: 1; height: 30px; padding: 0 13px; border-radius: 999px; font-size: 13px; color: var(--ink-2); transition: color .3s; white-space: nowrap; }
@@ -190,6 +197,11 @@ button { background: none; border: 0; }
 .card-t { font-weight: 650; font-size: 15px; color: var(--ink); }
 .card-n { font-size: 12.5px; color: var(--ink-3); text-align: right; }
 .card-n button { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+#ch-heat .ya text { font-size: 13px; fill: var(--ink-2); font-variation-settings: "wdth" 94; }
+#ch-heat .xa text { font-size: 12.5px; }
+.heat-n { display: flex; align-items: center; gap: 22px; }
+.heat-key { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.heat-key i { display: block; width: 130px; height: 8px; border-radius: 2px; }
 .legend { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-bottom: 8px; font-size: 12.5px; color: var(--ink-2); min-height: 18px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; transition: opacity .3s, color .3s; }
 .legend span:hover { color: var(--ink); }
@@ -210,6 +222,9 @@ button { background: none; border: 0; }
 .brush .selection { fill: var(--glow); fill-opacity: .06; stroke: var(--glow); stroke-opacity: .7; shape-rendering: crispEdges; }
 .brush .overlay, .brush .selection, .brush .handle { cursor: none !important; }
 .brush .handle { fill: var(--glow); fill-opacity: .0; }
+.box-mask { fill: #040716; fill-opacity: .62; pointer-events: none; transition: opacity .3s; }
+#ch-scatter .brush .selection { stroke-width: 1.4; stroke-opacity: .95; filter: drop-shadow(0 0 5px var(--glow)); }
+.box-badge { font: 600 12.5px var(--font-display); font-variation-settings: "wdth" 92; fill: var(--ink); pointer-events: none; transition: opacity .3s; }
 /* linked highlighting: everything outside the focused group fades */
 .dim { opacity: .13 !important; }
 svg .dim { opacity: .1 !important; }
@@ -264,7 +279,8 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 #loading { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg); font: italic 400 18px var(--font-text); color: var(--ink-2); transition: opacity .45s; }
 
 @media (max-width: 1300px) {
-  .filters { grid-template-columns: repeat(3, 1fr); position: relative; top: 0; }
+  .filters { grid-template-columns: repeat(3, 1fr); }
+  .switches { flex-wrap: wrap; position: relative; top: 0; } .sw-sum { display: none; }
   .f { border-bottom: 1px solid var(--line); }
   .c-8, .c-4, .c-6 { grid-column: span 12; }
   .kpis { grid-template-columns: repeat(2, 1fr); }
@@ -340,6 +356,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
   <div class="switches">
     <div><span class="seg-l">Measure</span><div class="seg" id="seg-measure"></div></div>
     <div><span class="seg-l">Break down by</span><div class="seg" id="seg-by"></div></div>
+    <div class="sw-sum"><span id="sw-sum"></span><button class="btn-s magnetic" id="sw-edit">Edit filters</button></div>
   </div>
 
   <div class="grid">
@@ -363,7 +380,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
       <div class="chart" id="ch-bars"></div>
     </div>
     <div class="card c-12"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t" id="t-heat"></div><div class="card-n">By launch decade. Click a cell to filter to it</div></div>
+      <div class="card-h"><div class="card-t" id="t-heat"></div><div class="card-n heat-n"><span class="heat-key" id="heat-key"></span><span>By launch decade. Click a cell to filter to it</span></div></div>
       <div class="chart" id="ch-heat"></div>
     </div>
     <div class="card c-12"><span class="reg-b"></span>
@@ -1046,6 +1063,18 @@ function segmented(el, items, get, set, kind) {
 }
 const syncMeasure = segmented($('#seg-measure'), MEASURES, () => S.measure, (v) => { S.measure = v; }, 'measure');
 const syncBy = segmented($('#seg-by'), BYS, () => S.by, (v) => { S.by = v; }, 'by');
+// the sticky switch bar carries a one-line summary of the filters, and a way back to them
+const swBar = $('.switches');
+function syncSummary(n) {
+  const pick = (k, nameOf, many) => (S[k].size === 0 ? null : S[k].size === 1 ? nameOf([...S[k]][0]) : `${S[k].size} ${many}`);
+  const parts = [S.y0 === S.y1 ? `${S.y0}` : `${S.y0} to ${S.y1}`,
+    pick('owner', OWNER_NAME, 'owners'), pick('site', SITE_NAME, 'sites'), pick('type', (v) => v, 'types'),
+    pick('regime', (v) => REGIMES[v], 'orbits'), pick('status', (v) => STATUSES[v], 'statuses'), S.box ? 'scatter box' : null].filter(Boolean);
+  $('#sw-sum').innerHTML = `<b>${fmt(n)}</b> objects, ${parts.join(', ')}`;
+}
+const stuckCheck = () => swBar.classList.toggle('stuck', swBar.getBoundingClientRect().top <= 65 && scrollY > 300);
+addEventListener('scroll', stuckCheck, { passive: true });
+$('#sw-edit').addEventListener('click', () => { blip(9); scrollTo({ top: Math.max(0, $('#filters').getBoundingClientRect().top + scrollY - 90), behavior: 'smooth' }); });
 
 function chips(el, items, key, dot) {
   el.innerHTML = items.map(([v, l]) => `<button class="chip" data-v="${v}">${dot ? `<i style="background:var(${dot(v)})"></i>` : ''}${l}</button>`).join('');
@@ -1079,7 +1108,7 @@ function dropdown(key) {
   };
   const label = () => {
     const n = S[key].size;
-    $('span', btn).textContent = n === 0 ? (key === 'owner' ? 'All owners' : 'All launch sites') : n === 1 ? nameOf([...S[key]][0]) : `${n} ${key === 'owner' ? 'owners' : 'sites'}`;
+    $('span', btn).textContent = n === 0 ? (key === 'owner' ? 'All owners' : 'All sites') : n === 1 ? nameOf([...S[key]][0]) : `${n} ${key === 'owner' ? 'owners' : 'sites'}`;
     $('.dd-count', host).textContent = n ? `${n} of ${codes.length}` : '';
   };
   btn.addEventListener('click', (e) => { e.stopPropagation(); const open = !panel.classList.contains('open'); closeDropdowns(); if (open) { panel.classList.add('open'); host.classList.add('dd-open'); draw(); search.focus(); } });
@@ -1091,6 +1120,17 @@ function dropdown(key) {
 }
 function closeDropdowns() { $$('.dd.open').forEach((p) => { p.classList.remove('open'); p.parentElement.classList.remove('dd-open'); }); }
 document.addEventListener('click', closeDropdowns);
+// a press outside an open list only closes it: the press and its click never reach the chart underneath
+let swallowClick = false;
+document.addEventListener('pointerdown', (e) => {
+  if (!document.querySelector('.dd.open') || e.target.closest?.('[data-dd]')) return;
+  closeDropdowns(); swallowClick = true; e.stopPropagation(); e.preventDefault();
+}, true);
+for (const t of ['pointerup', 'mousedown', 'mouseup', 'click']) document.addEventListener(t, (e) => {
+  if (!swallowClick) return;
+  e.stopPropagation(); e.preventDefault(); if (t === 'click') swallowClick = false;
+}, true);
+addEventListener('pointerdown', () => { if (!document.querySelector('.dd.open')) swallowClick = false; }, true);
 
 // Year range: two range inputs over a histogram of the whole catalog, stacked by type
 const yr0 = $('#yr0'), yr1 = $('#yr1');
@@ -1149,6 +1189,7 @@ function deltaLine(id, diff, unit, digits, eps) {
 function kpiNumbers(all) {
   const n = all.n;
   odo($('#showing-n'), fmt(n));
+  syncSummary(n);
   $('#hero-share').textContent = pct(n / D.n);
   odo($('#k-orbit'), fmt(all.orbit));
   $('#k-orbit-d').textContent = n ? `${pct(all.orbit / n)} of the view` : 'no objects in the view';
@@ -1367,6 +1408,7 @@ function chartTime(ctx, spec) {
   bg.raise();
   f.svg.on('pointermove.hover', (ev) => {
     const [mx, my] = d3.pointer(ev, f.g.node());
+    if (ev.buttons || TC.brushing) { hideTip(); hl.style('opacity', 0); return; }
     if (mx < 0 || mx > f.iw || my < -30 || my > f.ih) { hideTip(); hl.style('opacity', 0); setFocus(null); return; }
     const k = clamp(Math.floor(mx / x.step()), 0, YEARS.length - 1), r = rows[k];
     hl.attr('x1', x(r.y) + bw / 2).attr('x2', x(r.y) + bw / 2).style('opacity', 1);
@@ -1439,6 +1481,23 @@ function drill(g, spec) {
 }
 
 // Chart 3: heatmap of group by decade
+// Heatmap colors: counts are relative to the largest cell in the view (each cell prints its count);
+// every median uses a fixed domain that spans the whole catalog, so a color means the same value in any view
+const HEAT_DOMAIN = { orbit: [0, 1], peri: [150, 40000], inc: [0, 120], life: [0, 60] };
+function heatScale(vals) {
+  const interp = d3.interpolateLab(css('--seq-0'), css('--seq-2'));
+  if (S.measure === 'count') return d3.scaleSequentialSqrt(interp).domain([0, d3.max(vals) || 1]);
+  if (S.measure === 'peri') return d3.scaleSequentialLog(interp).domain(HEAT_DOMAIN.peri).clamp(true);
+  if (S.measure === 'life') return d3.scaleSequentialSqrt(interp).domain(HEAT_DOMAIN.life).clamp(true);
+  return d3.scaleSequential(interp).domain(HEAT_DOMAIN[S.measure]).clamp(true);
+}
+function heatKey(col) {
+  const [a, b] = col.domain(), m = M();
+  const lab = (v) => (S.measure === 'count' ? fmt(Math.round(v)) : S.measure === 'orbit' ? Math.round(v * 100) + '%' : S.measure === 'peri' ? (v >= 1000 ? fmt(v / 1000) + 'k km' : v + ' km') : S.measure === 'inc' ? v + ' deg' : v + ' yr');
+  const stops = d3.range(0, 1.0001, 0.1).map((t) => col(S.measure === 'peri' ? a * Math.pow(b / a, t) : S.measure === 'life' || S.measure === 'count' ? a + (b - a) * t * t : a + (b - a) * t));
+  $('#heat-key').innerHTML = `<span>${lab(a)}</span><i style="background:linear-gradient(90deg,${stops.join(',')})"></i><span>${lab(b)}${S.measure === 'count' || S.measure === 'orbit' ? '' : ' or more'}</span>`;
+  $('#heat-key').title = m.label;
+}
 function chartHeat(sel, spec) {
   const m = M(), keep = needIdx();
   $('#t-heat').textContent = `${m.label} by ${byLabel()} and decade`;
@@ -1448,14 +1507,15 @@ function chartHeat(sel, spec) {
   const order = spec.index.has('Other') ? spec.order : [...spec.order, 'Other'];
   const groups = order.filter((g) => decs.some((d) => cells.get(g + '|' + d)));
   const data = groups.flatMap((g, r) => decs.map((d, c) => { const a = cells.get(g + '|' + d); return { g, d, r, c, v: measureOf(a, S.measure), n: a?.n || 0 }; }));
-  const h = Math.max(150, groups.length * 38 + 30);
-  const f = frame('ch-heat', h, { t: 4, r: 4, b: 26, l: 200 });
-  const x = d3.scaleBand().domain(decs).range([0, f.iw]).padding(0.05);
+  const h = Math.max(150, groups.length * 40 + 30);
+  // the label column fits the longest label; cells never grow wider than a readable band
+  const lblW = clamp((d3.max(groups, (g) => Math.min(30, g.length)) || 8) * 7.6 + 30, 96, 250);
+  const f = frame('ch-heat', h, { t: 4, r: 4, b: 26, l: lblW });
+  const x = d3.scaleBand().domain(decs).range([0, Math.min(f.iw, decs.length * 200)]).padding(0.05);
   const y = d3.scaleBand().domain(groups).range([0, f.ih]).padding(0.1);
   const vals = data.map((d) => d.v).filter(isFinite);
-  const interp = d3.interpolateLab(css('--seq-0'), css('--seq-2'));
-  const colC = S.measure === 'count' ? d3.scaleSequentialSqrt(interp).domain([0, d3.max(vals) || 1])
-    : d3.scaleSequential(interp).domain(S.measure === 'orbit' ? [0, 1] : [d3.min(vals) ?? 0, d3.max(vals) || 1]);
+  const colC = heatScale(vals);
+  heatKey(colC);
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickFormat((d) => `${d}s`).tickSize(0).tickPadding(8)).select('.domain').remove();
   const ya = f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya');
   ya.transition(T()).call(d3.axisLeft(y).tickSize(0).tickPadding(12).tickFormat((g) => (g.length > 30 ? g.slice(0, 29) + '...' : g))).on('end', function () { d3.select(this).select('.domain').remove(); });
@@ -1487,7 +1547,9 @@ function chartHeat(sel, spec) {
 }
 
 // Chart 4: altitude and inclination, drawn with WebGL; a box brush filters, hover names the object and draws its orbit on the globe
-const SC = { dirty: false, until: 0 };
+const SC = { dirty: false, until: 0, lastObj: -1 };
+// drop the object under the pointer: the globe orbit, its label and the object event
+function clearObject() { if (SC.lastObj >= 0) { SC.lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } }
 const SC_H = 470, SC_M = { t: 8, r: 12, b: 28, l: 46 };
 const L0 = Math.log10(150), L1 = Math.log10(420000);
 function initScatter() {
@@ -1504,10 +1566,10 @@ function initScatter() {
   const aA = new THREE.BufferAttribute(A, 2), aC0 = new THREE.BufferAttribute(C0, 3), aC1 = new THREE.BufferAttribute(C1, 3), aG = new THREE.BufferAttribute(Gi, 1);
   [aA, aC0, aC1, aG].forEach((b) => b.setUsage(THREE.DynamicDrawUsage));
   geom.setAttribute('aA', aA); geom.setAttribute('aC0', aC0); geom.setAttribute('aC1', aC1); geom.setAttribute('aG', aG); geom.setAttribute('aD', new THREE.BufferAttribute(Dl, 1));
-  const U = { uMix: { value: 1 }, uFocus: { value: -1 }, uFocusAmt: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uL: { value: new THREE.Vector2(L0, L1) } };
+  const U = { uMix: { value: 1 }, uFocus: { value: -1 }, uFocusAmt: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uL: { value: new THREE.Vector2(L0, L1) }, uBoost: { value: 1 } };
   const mat = new THREE.ShaderMaterial({
     uniforms: U, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
-    vertexShader: `uniform float uMix, uFocus, uFocusAmt, uPR; uniform vec2 uL; attribute vec2 aP, aA; attribute vec3 aC0, aC1; attribute float aG, aD; varying vec4 vC;
+    vertexShader: `uniform float uMix, uFocus, uFocusAmt, uPR, uBoost; uniform vec2 uL; attribute vec2 aP, aA; attribute vec3 aC0, aC1; attribute float aG, aD; varying vec4 vC;
       void main(){
         float t = clamp((uMix - aD * 0.35) / 0.65, 0.0, 1.0); t = t * t * (3.0 - 2.0 * t);
         float a = mix(aA.x, aA.y, t);
@@ -1518,8 +1580,10 @@ function initScatter() {
         gl_Position = vec4(x, y, 0.0, 1.0);
         float isF = 1.0 - step(0.5, abs(aG - uFocus));
         float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.07, 1.6, isF), uFocusAmt);
-        vC = vec4(mix(aC0, aC1, t), a * f);
-        gl_PointSize = uPR * (2.3 + 2.0 * moving + 1.0 * isF * uFocusAmt);
+        // few objects in the view: larger and brighter points, so a handful still reads
+        float lit = step(0.5, a);
+        vC = vec4(mix(aC0, aC1, t), a * f * mix(1.0, uBoost, lit));
+        gl_PointSize = uPR * (2.3 * mix(1.0, sqrt(uBoost) * 1.3, lit) + 2.0 * moving + 1.0 * isF * uFocusAmt);
       }`,
     fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; float k = 1.0 - smoothstep(0.15, 0.5, d); gl_FragColor = vec4(vC.rgb * vC.a * k * 0.5, 1.0); }`,
   });
@@ -1582,40 +1646,57 @@ function chartScatter(spec) {
     }
   }
   SC.aA.needsUpdate = SC.aC0.needsUpdate = SC.aC1.needsUpdate = SC.aG.needsUpdate = true;
+  SC.U.uBoost.value = shown ? clamp(Math.sqrt(3000 / shown), 1, 4) : 1;
   SC.U.uMix.value = 0; gsap.to(SC.U.uMix, { value: 1, duration: 1.1, ease: 'none', overwrite: true });
   SC.until = performance.now() + 1300; SC.dirty = true; SC.qtDirty = true; SC.x = x; SC.y = y; SC.f = f;
-  // box brush
-  const brush = d3.brush().extent([[0, 0], [f.iw, f.ih]]).on('end', (ev) => {
-    if (SC.syncing || !ev.sourceEvent) return;
-    const s = ev.selection;
-    if (!s || Math.abs(s[1][0] - s[0][0]) < 4 || Math.abs(s[1][1] - s[0][1]) < 4) {
-      if (S.box) { S.box = null; emit('box', { box: null }); update(); }
-      else { SC.syncing = true; bg.call(brush.move, null); SC.syncing = false; }
-      return;
-    }
-    const r3 = (v) => +d3.format('.3~r')(v);
-    S.box = [r3(x.invert(s[0][0])), r3(x.invert(s[1][0])), +y.invert(s[1][1]).toFixed(1), +y.invert(s[0][1]).toFixed(1)];
-    emit('box', { box: S.box }); update();
-  });
+  // box brush; outside the box the plot is masked, the box gets a lit rim and a count
+  const boxMask = f.g.selectAll('path.box-mask').data([0]).join('path').attr('class', 'box-mask').attr('fill-rule', 'evenodd');
+  const drawMask = (s) => {
+    boxMask.attr('d', s ? `M0,0H${f.iw}V${f.ih}H0Z M${s[0][0]},${s[0][1]}V${s[1][1]}H${s[1][0]}V${s[0][1]}Z` : null).style('opacity', s ? 1 : 0);
+  };
+  const brush = d3.brush().extent([[0, 0], [f.iw, f.ih]])
+    .on('start', (ev) => { if (ev.sourceEvent) { hideTip(); clearObject(); badge.style('opacity', 0); } })
+    .on('brush', (ev) => { if (ev.sourceEvent) drawMask(ev.selection); })
+    .on('end', (ev) => {
+      if (SC.syncing || !ev.sourceEvent) return;
+      const s = ev.selection;
+      if (!s || Math.abs(s[1][0] - s[0][0]) < 4 || Math.abs(s[1][1] - s[0][1]) < 4) {
+        drawMask(null);
+        if (S.box) { S.box = null; emit('box', { box: null }); update(); }
+        else { SC.syncing = true; bg.call(brush.move, null); SC.syncing = false; }
+        return;
+      }
+      const r3 = (v) => +d3.format('.3~r')(v);
+      S.box = [r3(x.invert(s[0][0])), r3(x.invert(s[1][0])), +y.invert(s[1][1]).toFixed(1), +y.invert(s[0][1]).toFixed(1)];
+      emit('box', { box: S.box }); update();
+    });
   const bg = f.g.selectAll('g.brush').data([0]).join('g').attr('class', 'brush').call(brush);
-  SC.syncing = true; bg.call(brush.move, S.box ? [[x(S.box[0]), y(S.box[3])], [x(S.box[1]), y(S.box[2])]] : null); SC.syncing = false;
+  const sel0 = S.box ? [[x(S.box[0]), y(S.box[3])], [x(S.box[1]), y(S.box[2])]] : null;
+  SC.syncing = true; bg.call(brush.move, sel0); SC.syncing = false;
+  drawMask(sel0);
+  const badge = f.g.selectAll('text.box-badge').data([0]).join('text').attr('class', 'box-badge');
+  if (sel0) {
+    const bx = sel0[1][0] + 8 > f.iw - 120 ? sel0[0][0] : sel0[1][0] + 8, anchor = sel0[1][0] + 8 > f.iw - 120 ? 'end' : 'start';
+    badge.attr('x', anchor === 'end' ? bx - 8 : bx).attr('y', Math.max(14, sel0[0][1] + 12)).attr('text-anchor', anchor).text(`${fmt(shown)} in the box`).style('opacity', 1);
+  } else badge.style('opacity', 0);
   const ring = f.g.selectAll('circle.pick').data([0]).join('circle').attr('class', 'pick').attr('r', 7).attr('fill', 'none').attr('stroke', css('--pencil')).attr('stroke-width', 1.6).style('opacity', 0).raise();
-  let lastObj = -1;
+  // a redraw always drops the object under the pointer, so the globe never keeps a stale orbit
+  clearObject();
   f.svg.on('pointermove.hover', (ev) => {
     const [mx, my] = d3.pointer(ev, f.g.node());
-    if (ev.buttons) { hideTip(); ring.style('opacity', 0); return; }
+    if (ev.buttons) { hideTip(); ring.style('opacity', 0); clearObject(); return; }
     if (SC.qtDirty) {
       const pts = [];
       for (let k = 0; k < SC.n; k++) { const i = SC.idx[k]; if (VIS[i] === 7 || (VIS[i] === 3 && !S.box)) pts.push([x(D.alt[i]), y(D.inc[i]), i]); }
       SC.qt = d3.quadtree().x((d) => d[0]).y((d) => d[1]).addAll(pts); SC.qtDirty = false;
     }
     const p = mx >= 0 && my >= 0 && mx <= f.iw && my <= f.ih ? SC.qt.find(mx, my, 12) : null;
-    if (!p) { hideTip(); ring.style('opacity', 0); if (lastObj >= 0) { lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } return; }
+    if (!p) { hideTip(); ring.style('opacity', 0); clearObject(); return; }
     const i = p[2]; ring.attr('cx', p[0]).attr('cy', p[1]).style('opacity', 1);
     const g = spec.key(i);
     showTip(`<div class="t">${D.name[i]}</div>${row(spec.color(g), BYS.find((b) => b.id === S.by).label, g)}${row('', 'Owner', OWNER_NAME(D.owner[i]))}${row('', 'Launched', D.launchS[i])}${row('', 'Orbit', `${fmt(D.peri[i])} by ${fmt(D.apo[i])} km`)}${row('', 'Inclination', D.inc[i].toFixed(1) + ' deg')}<div class="note">${D.orb[i] ? 'Its orbit is drawn on the globe' : 'Reentered; the globe shows its last cataloged orbit'}</div>`, ev);
-    if (i !== lastObj) { lastObj = i; globeOrbit(i); emit('object', { norad: D.norad[i], name: D.name[i], type: ['Payload', 'Rocket body', 'Debris', 'Unknown'][D.type[i]], alt: D.alt[i] }); }
-  }).on('pointerleave.hover', () => { hideTip(); ring.style('opacity', 0); if (lastObj >= 0) { lastObj = -1; globeOrbit(-1); emit('object', { norad: null }); } });
+    if (i !== SC.lastObj) { SC.lastObj = i; globeOrbit(i); emit('object', { norad: D.norad[i], name: D.name[i], type: ['Payload', 'Rocket body', 'Debris', 'Unknown'][D.type[i]], alt: D.alt[i] }); }
+  }).on('pointerleave.hover', () => { hideTip(); ring.style('opacity', 0); clearObject(); });
   $('#n-scatter').innerHTML = S.box
     ? `Box: ${fmt(S.box[0])} to ${fmt(S.box[1])} km, ${S.box[2]} to ${S.box[3]} deg. <button id="box-clear">Clear box</button>`
     : 'Drag a box to filter. Mean altitude on a log scale';
@@ -1736,14 +1817,14 @@ function initGlobe(landImg) {
         float x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw; float y2 = y1 * ci, z2 = y1 * si;
         vec3 p = vec3(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO)); float r = length(p); vec3 dir = p / r;
         float alpha = mix(aA.x, aA.y, te), burn = 0.0;
-        if (aA.x > 0.5 && aA.y < 0.5) { float s = te; p = dir * mix(r, 0.99, s * s * s); burn = smoothstep(0.0, 0.3, s); alpha = 1.0 - smoothstep(0.75, 1.0, s); }
+        if (aA.x > 0.5 && aA.y < 0.5) { float s = te; p = dir * mix(r, 1.0, s * s * s); burn = smoothstep(0.0, 0.3, s); alpha = (1.0 - smoothstep(0.3, 0.85, s)) * mix(1.0, 0.45, burn); }
         else if (aA.x < 0.5 && aA.y > 0.5) { float s = 1.0 - pow(1.0 - te, 3.0); p = dir * mix(1.0, r, s); alpha = smoothstep(0.0, 0.2, te); }
         vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
         float isF = 1.0 - step(0.5, abs(aG - uFocus));
         float f = uFocus < 0.0 ? 1.0 : mix(1.0, mix(0.08, 1.2, isF), uFocusAmt);
-        vec3 col = mix(mix(aC0, aC1, te), vec3(1.0, 0.28, 0.03), burn);
+        vec3 col = mix(mix(aC0, aC1, te), vec3(0.85, 0.22, 0.03), burn);
         vC = vec4(col, alpha * f);
-        gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR) * (1.0 + burn * 0.8 + isF * uFocusAmt * 0.6);
+        gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR) * (1.0 + burn * 0.25 + isF * uFocusAmt * 0.6);
       }`,
     fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
       vec3 cc = pow(max(vC.rgb, 0.0), vec3(0.4545)); float a = pow(1.0 - smoothstep(0.0, 0.5, d), 1.5) * vC.a; gl_FragColor = vec4(cc * a * 1.2, a); }`,
@@ -1847,6 +1928,7 @@ function globeUpdate(spec) {
   G.aA.needsUpdate = G.aC0.needsUpdate = G.aC1.needsUpdate = G.aG.needsUpdate = true;
   G.U.uMix.value = 0; gsap.to(G.U.uMix, { value: 1, duration: 1.8, ease: 'none', overwrite: true });
   $('#globe-n').textContent = `${fmt(shown)} drawn`;
+  $('#globe-hint').style.visibility = shown ? '' : 'hidden';
   $('#globe-note').textContent = shown ? '' : 'No object in the current view is in Earth orbit with a cataloged perigee, apogee and inclination.';
   if (!G.userZoom) G.target = shown && far / shown > 0.5 ? 15 : shown && far / shown > 0.3 ? 9 : 4.9;
   const order = spec.order.filter((g, k) => present.has(k)); if (present.has(-1)) order.push('Other');
