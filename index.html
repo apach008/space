@@ -9,14 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
-<script>
-  // Theme before first paint, so the page never flashes the wrong one.
-  try { const t = localStorage.getItem('orbit-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-</script>
 <style>
 /* ===================================================================
-   Tokens. Night is the default; Plate is the light theme, drawn like
-   an astronomical survey plate: pale glass, ink dots, red pencil.
+   Tokens
    =================================================================== */
 :root {
   --font-display: "Anybody", "Arial Narrow", sans-serif;
@@ -51,35 +46,6 @@
   --blend-hero: difference;
   --scrim: linear-gradient(90deg, rgba(4, 7, 22, 0.86) 0%, rgba(4, 7, 22, 0.55) 38%, rgba(4, 7, 22, 0) 62%);
 }
-:root[data-theme="light"] {
-  --bg: #e6e8df;
-  --bg-2: #d9dcd0;
-  --ink: #10152b;
-  --ink-2: #3c4465;
-  --ink-3: #6b7391;
-  --line: rgba(16, 21, 43, 0.14);
-  --line-2: rgba(16, 21, 43, 0.3);
-  --panel: rgba(239, 240, 233, 0.78);
-  --panel-solid: #eff0e9;
-  --pencil: #c2253d;
-  --glow: #1f5fbf;
-
-  --c-pay: #1f6fd0;
-  --c-rb: #b86e00;
-  --c-deb: #cc2f6c;
-  --c-unk: #6a55d0;
-  --c-sl: #13875d;
-  --c-us: #1f6fd0;
-  --c-ru: #c9501c;
-  --c-cn: #13875d;
-  --c-else: #8a8f9e;
-  --c-gone: #c3c6bb;
-  --c-seq: #1f6fd0;
-
-  --grain-opacity: 0.14;
-  --blend-hero: multiply;
-  --scrim: linear-gradient(90deg, rgba(230, 232, 223, 0.9) 0%, rgba(230, 232, 223, 0.6) 38%, rgba(230, 232, 223, 0) 62%);
-}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { background: var(--bg); color: var(--ink); }
@@ -112,7 +78,7 @@ a, button { cursor: none; color: inherit; }
 .scrim { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--scrim); transition: opacity .8s; }
 
 /* ---------- Cursor ---------- */
-.cursor { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; }
+.cursor { position: fixed; left: 0; top: 0; z-index: 2100; pointer-events: none; }
 .cursor .dot { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); }
 .cursor .ring {
   position: absolute; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%;
@@ -150,7 +116,6 @@ a, button { cursor: none; color: inherit; }
 .replay.on { opacity: 1; }
 .replay span { display: block; font: 400 13px/1.3 var(--font-display); font-variation-settings: "wdth" 96; color: var(--ink-2); }
 .replay b { display: block; font: 300 44px/1.05 var(--font-display); font-variation-settings: "wdth" 72; color: #ffae5c; font-variant-numeric: tabular-nums; }
-:root[data-theme="light"] .replay b { color: #b8471a; }
 /* ---------- Loader ---------- */
 #loader {
   position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center;
@@ -170,6 +135,15 @@ a, button { cursor: none; color: inherit; }
 .ld-of { display: block; margin-top: 8px; font: 400 13px/1.3 var(--font-display); font-variation-settings: "wdth" 95; color: var(--ink-2); letter-spacing: .02em; }
 .ld-entry { position: absolute; left: 0; right: 0; top: calc(50% + 205px); text-align: center; font: 500 13px/1.5 var(--font-display); font-variation-settings: "wdth" 92; letter-spacing: .06em; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .ld-entry b { color: var(--ink); font-weight: 600; margin: 0 10px; }
+.ld-enter {
+  position: absolute; left: 50%; top: calc(50% + 240px); transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 12px; height: 54px; padding: 0 30px; border: 1px solid var(--line-2); border-radius: 999px;
+  background: none; color: var(--ink); font: 600 17px/1 var(--font-display); font-variation-settings: "wdth" 112; letter-spacing: .02em;
+  transition: opacity .6s, transform .6s cubic-bezier(.2,.8,.2,1), background .3s, color .3s, border-color .3s;
+}
+.ld-enter.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.ld-enter:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.ld-enter .eq i { background: currentColor; }
 .ld-msg { position: absolute; bottom: 9vh; left: 0; right: 0; text-align: center; font: italic 400 17px/1.4 var(--font-text); color: var(--ink-3); }
 
 /* ---------- Nav ---------- */
@@ -343,13 +317,10 @@ footer a { color: var(--ink-2); }
 }
 .to-dash:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
-/* ---------- View transition for the theme switch ---------- */
 .lbl-ring { padding-left: 34px; margin-top: -1px; }
 .lbl-ring::before { content: ""; position: absolute; left: -12px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border: 1px solid var(--pencil); border-radius: 50%; }
 .lbl-ring.big::before { left: -44px; width: 88px; height: 88px; margin-top: -44px; border-style: dashed; }
 .lbl-ring.big { padding-left: 50px; }
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-new(root) { z-index: 9999; }
 
 @media (max-width: 900px) {
   body { font-size: 17px; cursor: auto; }
@@ -381,6 +352,7 @@ footer a { color: var(--ink-2); }
     <div class="ld-core"><span class="ld-n" id="ld-n">0</span><span class="ld-of">of 70,745 cataloged objects</span></div>
   </div>
   <div class="ld-entry" id="ld-entry">&nbsp;</div>
+  <button class="ld-enter" id="ld-enter"><span class="eq"><i></i><i></i><i></i><i></i></span>Enter</button>
   <div class="ld-msg" id="ld-msg">Reading the satellite catalog</div>
 </div>
 
@@ -403,11 +375,7 @@ footer a { color: var(--ink-2); }
     <a class="magnetic" href="dashboard.html">Dashboard</a>
   </div>
   <div class="nav-tools">
-    <button class="nav-btn magnetic" id="theme-btn" title="Switch between night and plate themes">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
-      <span id="theme-label">Plate</span>
-    </button>
-    <button class="nav-btn magnetic" id="sound-btn" title="Sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound</span></button>
+    <button class="nav-btn magnetic" id="sound-btn" title="Turn sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound on</span></button>
   </div>
 </nav>
 
@@ -737,30 +705,13 @@ let ldRAF;
 /* =====================================================================
    3. Theme, sound, cursor
    ===================================================================== */
-const themeBtn = $('#theme-btn');
-function syncThemeLabel() { $('#theme-label').textContent = isLight() ? 'Night' : 'Plate'; }
-syncThemeLabel();
 const themeListeners = [];
-themeBtn.addEventListener('click', (e) => {
-  const next = isLight() ? 'dark' : 'light';
-  const apply = () => {
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('orbit-theme', next); } catch (err) {}
-    syncThemeLabel(); themeListeners.forEach((f) => f());
-  };
-  sound.blip(next === 'light' ? 660 : 440);
-  if (!document.startViewTransition) { apply(); return; }
-  const x = e.clientX, y = e.clientY;
-  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-  const vt = document.startViewTransition(apply);
-  vt.ready.then(() => {
-    document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-      { duration: 900, easing: 'cubic-bezier(.7,0,.2,1)', pseudoElement: '::view-transition-new(root)' });
-  });
-});
 
 // Sound: a quiet synthesized drone, plus one note per year on the timeline,
-// pitched by how many payloads went up that year. Off until asked for.
+// pitched by how many payloads went up that year. On by default; browsers
+// only allow audio after a click or key press, which the Enter button gives.
+let soundWanted = true;
+try { soundWanted = localStorage.getItem('orbit-sound') !== 'off'; } catch (e) {}
 const sound = {
   ctx: null, on: false, master: null, verb: null,
   init() {
@@ -787,13 +738,13 @@ const sound = {
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.6;
     const ng = ctx.createGain(); ng.gain.value = 0.012; ns.connect(bp); bp.connect(ng); ng.connect(this.master); ns.start();
   },
-  toggle() {
+  set(on) {
     if (!this.ctx) this.init();
-    this.on = !this.on; this.ctx.resume();
+    this.on = on; this.ctx.resume();
     const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t); this.master.gain.setTargetAtTime(this.on ? 0.55 : 0, t, 0.4);
-    document.body.classList.toggle('sound-on', this.on);
-    $('#sound-label').textContent = this.on ? 'Sound on' : 'Sound';
+    this.master.gain.cancelScheduledValues(t); this.master.gain.setTargetAtTime(on ? 0.55 : 0, t, 0.4);
+    syncSoundLabel(on);
+    try { localStorage.setItem('orbit-sound', on ? 'on' : 'off'); } catch (e) {}
   },
   pluck(freq, vel = 0.5) {
     if (!this.on) return;
@@ -807,7 +758,9 @@ const sound = {
   },
   blip(freq) { this.pluck(freq, 0.35); },
 };
-$('#sound-btn').addEventListener('click', () => sound.toggle());
+function syncSoundLabel(on) { document.body.classList.toggle('sound-on', on); $('#sound-label').textContent = on ? 'Sound on' : 'Sound off'; }
+syncSoundLabel(soundWanted);
+$('#sound-btn').addEventListener('click', () => { soundWanted = !(sound.ctx ? sound.on : soundWanted); sound.set(soundWanted); });
 const SCALE = [0, 2, 4, 7, 9];  // major pentatonic
 const noteFor = (k) => 196 * Math.pow(2, (SCALE[k % 5] + 12 * Math.floor(k / 5)) / 12);
 
@@ -1844,8 +1797,16 @@ function heroTitle() {
   // hold the loader long enough for the count to land
   await new Promise((r) => setTimeout(r, Math.max(0, 1900 - (performance.now() - t0))));
   $('#ld-msg').textContent = `${fmt(D.n)} objects read`;
-  await new Promise((r) => setTimeout(r, 350));
   cancelAnimationFrame(ldRAF); $('#ld-n').textContent = fmt(D.n);
+  // wait for Enter: the click is what lets the browser start the sound
+  const enter = $('#ld-enter'); enter.classList.add('show');
+  await new Promise((r) => {
+    const go = () => { removeEventListener('keydown', onKey); r(); };
+    const onKey = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+    enter.addEventListener('click', go, { once: true }); addEventListener('keydown', onKey);
+  });
+  if (soundWanted) sound.set(true);
+  enter.classList.remove('show');
   const first = stateName; stateName = null; goState(first);
   gsap.to('#loader', { clipPath: 'circle(0% at 50% 50%)', duration: 1.3, ease: 'expo.inOut', onComplete: () => $('#loader').remove() });
   heroTitle();

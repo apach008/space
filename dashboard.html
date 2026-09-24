@@ -9,9 +9,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
-<script>
-  try { const t = localStorage.getItem('orbit-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-</script>
 <style>
 /* ===== Shared tokens (same as index.html) ===== */
 :root {
@@ -27,18 +24,6 @@
   --s-other: #5d6687;
   --seq-0: #13204a; --seq-1: #3987e5; --seq-2: #cde2fb;
   --grain-opacity: 0.09;
-}
-:root[data-theme="light"] {
-  --bg: #e6e8df; --bg-2: #d9dcd0;
-  --ink: #10152b; --ink-2: #3c4465; --ink-3: #6b7391;
-  --line: rgba(16, 21, 43, 0.14); --line-2: rgba(16, 21, 43, 0.3);
-  --panel: rgba(239, 240, 233, 0.8); --panel-solid: #eff0e9;
-  --pencil: #c2253d; --glow: #1f5fbf;
-  --c-pay: #1f6fd0; --c-rb: #b86e00; --c-deb: #cc2f6c; --c-unk: #6a55d0;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
-  --s-other: #a2a6b3;
-  --seq-0: #e9ecf3; --seq-1: #86b6ef; --seq-2: #104281;
-  --grain-opacity: 0.14;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { background: var(--bg); color: var(--ink); }
@@ -84,8 +69,6 @@ button { background: none; border: 0; }
 .sound-on .eq i { animation: eq 1s ease-in-out infinite; }
 .sound-on .eq i:nth-child(2) { animation-delay: -.3s; } .sound-on .eq i:nth-child(3) { animation-delay: -.6s; } .sound-on .eq i:nth-child(4) { animation-delay: -.15s; }
 @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 14px; } }
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-new(root) { z-index: 9999; }
 
 /* ===== Dashboard layout ===== */
 .page { padding: 34px clamp(18px, 3vw, 44px) 60px; max-width: 1840px; margin: 0 auto; position: relative; z-index: 2; }
@@ -246,11 +229,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
     <a class="magnetic" href="dashboard.html" aria-current="page">Dashboard</a>
   </div>
   <div class="nav-tools">
-    <button class="nav-btn magnetic" id="theme-btn" title="Switch between night and plate themes">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>
-      <span id="theme-label">Plate</span>
-    </button>
-    <button class="nav-btn magnetic" id="sound-btn" title="Sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound</span></button>
+    <button class="nav-btn magnetic" id="sound-btn" title="Turn sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound on</span></button>
   </div>
 </nav>
 
@@ -494,25 +473,24 @@ function measureOf(a, m) {
 }
 
 /* ================= UI: theme, sound, cursor ================= */
-function syncThemeLabel() { $('#theme-label').textContent = isLight() ? 'Night' : 'Plate'; }
-syncThemeLabel();
-$('#theme-btn').addEventListener('click', (e) => {
-  const next = isLight() ? 'dark' : 'light';
-  const apply = () => { document.documentElement.dataset.theme = next; try { localStorage.setItem('orbit-theme', next); } catch (err) {} syncThemeLabel(); render(true); globeTheme(); };
-  blip(next === 'light' ? 660 : 440);
-  if (!document.startViewTransition) { apply(); return; }
-  const x = e.clientX, y = e.clientY, r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-  document.startViewTransition(apply).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] }, { duration: 900, easing: 'cubic-bezier(.7,0,.2,1)', pseudoElement: '::view-transition-new(root)' }));
-});
-let actx = null, soundOn = false, master;
+// Sound is on by default. The audio context starts inside the first click,
+// since browsers only allow audio after one; every sound here follows a click.
+let actx = null, master, soundOn = true;
+try { soundOn = localStorage.getItem('orbit-sound') !== 'off'; } catch (e) {}
+function syncSoundLabel() { document.body.classList.toggle('sound-on', soundOn); $('#sound-label').textContent = soundOn ? 'Sound on' : 'Sound off'; }
+syncSoundLabel();
+function ensureAudio() {
+  if (!actx) { actx = new AudioContext(); master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination); }
+  actx.resume();
+}
 $('#sound-btn').addEventListener('click', () => {
-  if (!actx) { actx = new AudioContext(); master = actx.createGain(); master.gain.value = 0; master.connect(actx.destination); }
-  soundOn = !soundOn; actx.resume(); master.gain.setTargetAtTime(soundOn ? 0.5 : 0, actx.currentTime, 0.1);
-  document.body.classList.toggle('sound-on', soundOn); $('#sound-label').textContent = soundOn ? 'Sound on' : 'Sound';
+  soundOn = !soundOn; syncSoundLabel();
+  try { localStorage.setItem('orbit-sound', soundOn ? 'on' : 'off'); } catch (e) {}
   blip(520);
 });
 function blip(f, v = 0.3) {
   if (!soundOn) return;
+  ensureAudio();
   const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
   o.type = 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.5, t + 0.08);
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.1 * v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
@@ -942,7 +920,7 @@ function initGlobe(landImg) {
   };
   requestAnimationFrame(loop);
 }
-function globeTheme() { if (!G.U) return; G.U.uLight.value = isLight() ? 1 : 0; G.mat.blending = isLight() ? THREE.NormalBlending : THREE.AdditiveBlending; G.mat.needsUpdate = true; }
+
 function globeUpdate(spec) {
   if (!G.col) return;
   const arr = G.col.array, c = new THREE.Color(); let shown = 0; let far = 0;
