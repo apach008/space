@@ -1819,7 +1819,8 @@ function updateCamera(dt) {
   // altitude section: the reference rings follow the square-root height scale
   U.uSqrt.value = rig.sq;
   for (const [ring, h] of [[geoRing, 35786 / R_KM], [leoRing, 2000 / R_KM]]) ring.scale.setScalar((1 + h + (1.6 * Math.sqrt(h) - h) * rig.sq) / (1 + h));
-  const geoR = geoRing.scale.x * (1 + 35786 / R_KM); lblGeo.pos.set(geoR * 0.707, 0.35, geoR * 0.707);
+  // the ring's label sits at the ring's point nearest the camera, below the globe, clear of the text column
+  const geoR = geoRing.scale.x * (1 + 35786 / R_KM); lblGeo.pos.set(Math.sin(az) * geoR, 0, Math.cos(az) * geoR);
   // fast dollies smear the frame toward the globe; the Sun keeps its place relative to the camera
   const dl = Math.abs(ld - lastLd) / Math.max(dt, 1e-3); lastLd = ld;
   zoomDolly += (Math.min(0.1, dl * 0.03) - zoomDolly) * 0.15;
