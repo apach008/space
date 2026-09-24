@@ -1732,7 +1732,8 @@ function buildSatellites(D, REP) {
     fragmentShader: `
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT; varying float vA;
       void main(){
-        float a = pow(1.0 - vT, 1.7) * (0.06 + 0.94 * vCol.a) * (1.0 + vHot) * vA * (1.0 + 0.7 * vBurn);
+        // D3D11 line interpolation can push vT past 1.0; pow() of a negative base is NaN there, and bloom spreads it to a black screen
+        float a = pow(max(1.0 - vT, 0.0), 1.7) * (0.06 + 0.94 * vCol.a) * (1.0 + vHot) * vA * (1.0 + 0.7 * vBurn);
         // a burning streak runs from a white-hot head to a red tail
         vec3 fire = mix(vec3(1.0, 0.86, 0.55), vec3(1.0, 0.22, 0.04), smoothstep(0.0, 0.7, vT));
         vec3 c = mix(vCol.rgb, fire, vBurn * 0.95);
