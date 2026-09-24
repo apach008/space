@@ -201,7 +201,10 @@ section { position: relative; }
 }
 /* Where a title crosses the globe, the solid letters give way to an outlined copy, so the Earth shows through */
 .title-wrap, .close-wrap { position: relative; }
-.ghost { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; color: rgba(4, 7, 22, .8) !important; -webkit-text-stroke: 1.6px rgba(237, 240, 251, .96); }
+/* the outline is drawn with text shadows rather than a text stroke: a stroke also traces the overlapping
+   contours inside variable-font glyphs (the stray curves through the g), a shadow only follows the outer edge */
+.ghost { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; color: #040716 !important; opacity: .86;
+  text-shadow: 1.6px 0 0 #edf0fb, -1.6px 0 0 #edf0fb, 0 1.6px 0 #edf0fb, 0 -1.6px 0 #edf0fb, 1.13px 1.13px 0 #edf0fb, -1.13px 1.13px 0 #edf0fb, 1.13px -1.13px 0 #edf0fb, -1.13px -1.13px 0 #edf0fb; }
 .hero h1 .ln { display: block; overflow: hidden; padding-bottom: .02em; }
 .hero h1 .ch { display: inline-block; will-change: transform, font-variation-settings; }
 .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 26px 0 16px; font: 500 15px/1.3 var(--font-display); font-variation-settings: "wdth" 104; color: var(--ink-2); letter-spacing: .01em; }
@@ -239,7 +242,7 @@ section { position: relative; }
 
 .finding .col { position: relative; z-index: 1; }
 .finding.beyond-sec { min-height: 150vh; align-items: flex-start; padding-top: 6vh; }
-.close-wrap .ghost { color: rgba(237, 240, 251, .14) !important; -webkit-text-stroke: 2px rgba(237, 240, 251, .95); }
+.close-wrap .ghost { color: rgba(237, 240, 251, .14) !important; -webkit-text-stroke: 2px rgba(237, 240, 251, .95); text-shadow: none; opacity: 1; }
 .prose p { color: var(--ink-2); margin-bottom: 1em; max-width: 36rem; }
 .prose p strong { color: var(--ink); font-weight: 500; }
 /* finding columns scale with the window height, so heading, text and chart fit on one screen */
@@ -2684,7 +2687,9 @@ function setupScroll(D) {
     const yi = Math.floor(yr);
     yearEl.textContent = yi;
     let o = 0, pn = 0, dn = 0;
-    for (const i of earthIdx) { if (D.appear[i] <= yr && D.decay[i] > yr) { o++; if (D.type[i] === 0) pn++; else if (D.type[i] === 2) dn++; } }
+    // within a day of the snapshot the counts are the snapshot's own, so the timeline always ends on the numbers in the text
+    const yc = yr > NOW - 1 / 365 ? NOW : yr;
+    for (const i of earthIdx) { if (D.appear[i] <= yc && D.decay[i] > yc) { o++; if (D.type[i] === 0) pn++; else if (D.type[i] === 2) dn++; } }
     hudO.textContent = fmt(o); hudP.textContent = fmt(pn); hudD.textContent = fmt(dn);
     hudOk.textContent = o === 1 ? 'object' : 'objects'; hudPk.textContent = pn === 1 ? 'payload' : 'payloads';
     charts.tm.set?.(yr);
@@ -2886,6 +2891,10 @@ gsap.ticker.add(() => {
   // fonts change the text height; fit the charts again once they are in
   document.fonts?.ready.then(() => { renderCharts(); });
   ld.p = 1;
+  // draw every object once now, behind the loader: an object outside the view would otherwise have its
+  // shader built the first time it comes into view, and that stalls the scroll for half a second
+  const culled = []; scene.traverse((o) => { if (o.frustumCulled) { culled.push(o); o.frustumCulled = false; } });
+  composer.render(0); culled.forEach((o) => { o.frustumCulled = true; });
   requestAnimationFrame(frame);
   stateName = 'hero';   // the camera holds far out (the intro pose) until the loader leaves
   introRunning = true;

@@ -1518,7 +1518,8 @@ function chartTime(ctx, spec) {
   const rows = YEARS.map((yy, k) => { const o = { y: yy, k }; for (const g of groups) o[g] = measureOf(cells[k].get(g), S.measure); return o; });
   const x = d3.scaleBand().domain(YEARS).range([0, f.iw]).padding(0.18), bw = x.bandwidth();
   let y;
-  if (isCount) y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1) * 1.05]).nice();
+  // counts leave room above the tallest bar for a three-line debris label (name, pieces, year destroyed)
+  if (isCount) y = d3.scaleLinear().domain([0, (d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1) * 1.18]).nice();
   else if (S.measure === 'orbit') y = d3.scaleLinear().domain([0, 1]);
   // medians are drawn over every object's own value, so the axes span the whole catalog
   else if (S.measure === 'peri') y = d3.scaleLog().domain([100, 60000]).clamp(true);
