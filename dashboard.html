@@ -176,6 +176,7 @@ td { color: var(--ink-2); }
 td b { color: var(--ink); font-weight: 600; }
 td .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
 td .bar { display: inline-block; height: 4px; border-radius: 2px; background: var(--ink-3); vertical-align: middle; margin-left: 8px; opacity: .6; }
+td.empty-row { font: italic 400 16px var(--font-text); color: var(--ink-3); padding: 18px 12px; }
 tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1px solid var(--line-2); }
 .tbl-tools { display: flex; gap: 8px; }
 .btn-s { height: 30px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 12.5px; color: var(--ink-2); }
@@ -258,7 +259,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
 
   <div class="kpis">
     <div class="kpi"><span class="v" id="k-n">0</span><span class="k">objects</span><span class="d" id="k-n-d"></span></div>
-    <div class="kpi"><span class="v" id="k-orbit">0</span><span class="k">still in orbit</span><span class="d" id="k-orbit-d"></span></div>
+    <div class="kpi"><span class="v" id="k-orbit">0</span><span class="k">in Earth orbit</span><span class="d" id="k-orbit-d"></span></div>
     <div class="kpi"><span class="v" id="k-active">0</span><span class="k">active payloads</span><span class="d" id="k-active-d"></span></div>
     <div class="kpi"><span class="v" id="k-peri">0</span><span class="k">median perigee</span><span class="d" id="k-peri-d"></span></div>
     <div class="kpi"><span class="v" id="k-life">0</span><span class="k">median years in orbit</span><span class="d" id="k-life-d"></span></div>
@@ -276,7 +277,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
       <div class="chart" id="ch-time"></div>
     </div>
     <div class="card c-4"><span class="reg-b"></span>
-      <div class="card-h"><div class="card-t">Objects in the view that are still in Earth orbit</div><div class="card-n" id="globe-n"></div></div>
+      <div class="card-h"><div class="card-t">Objects in the view that are in Earth orbit</div><div class="card-n" id="globe-n"></div></div>
       <div class="legend" id="lg-globe"></div>
       <div id="globe-wrap"><canvas id="globe"></canvas><div id="globe-note"></div></div>
     </div>
@@ -300,7 +301,7 @@ tfoot td { font-weight: 600; color: var(--ink); border-bottom: 0; border-top: 1p
   </div>
 
   <div class="foot">
-    <p>Data: CelesTrak SATCAT, downloaded September 23, 2026. One row is one cataloged object. Launch year is the year in the launch date column, except that the 416 payloads released from the International Space Station, which carry the station's 1998 launch date, are placed in the year they entered the catalog. Still in orbit means no decay date. Active payloads have operational status +, P, B, S or X. Perigee and inclination come from the latest cataloged orbit and are left out of medians where the catalog has none. Years in orbit run from the launch date to the decay date, or to September 23, 2026 for objects still up. On the globe, orbital planes and positions along each orbit are assigned at random, since the catalog does not record them.</p>
+    <p>Data: CelesTrak SATCAT, downloaded September 23, 2026. One row is one cataloged object. Launch year is the year in the launch date column, except that the 416 payloads released from the International Space Station, which carry the station's 1998 launch date, are placed in the year they entered the catalog. In Earth orbit means no decay date and an orbit centered on Earth (objects docked to the space station included), the same definition as the report. Active payloads have operational status +, P, B, S or X. Perigee and inclination come from the latest cataloged orbit and are left out of medians where the catalog has none. Years in orbit run from the launch date to the decay date, or to September 23, 2026 for objects still up. The globe draws the objects in Earth orbit that have a cataloged perigee, apogee and inclination; orbital planes and positions along each orbit are assigned at random, since the catalog does not record them.</p>
     <span><a href="index.html">Back to the report</a></span>
   </div>
 </div>
@@ -320,7 +321,6 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = d3.format(',');
 const NOW = 2026 + 265 / 365;
 const R_KM = 6378.137, MU = 398600.4418;
-const isLight = () => document.documentElement.dataset.theme === 'light';
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 /* ================= Data ================= */
@@ -362,7 +362,7 @@ async function load() {
   const col = Object.fromEntries(lines[0].split(',').map((h, i) => [h, i]));
   const n = lines.length - 1;
   D = { n, norad: new Int32Array(n), name: new Array(n), owner: new Array(n), site: new Array(n), type: new Uint8Array(n),
-        year: new Int16Array(n), launchS: new Array(n), launch: new Float32Array(n), decay: new Float32Array(n), status: new Array(n),
+        year: new Int16Array(n), launchS: new Array(n), launch: new Float64Array(n), decay: new Float64Array(n), status: new Array(n),
         regime: new Array(n), peri: new Float32Array(n), apo: new Float32Array(n), inc: new Float32Array(n), life: new Float32Array(n),
         inOrbit: new Uint8Array(n), earth: new Uint8Array(n), starlink: new Uint8Array(n) };
   for (let i = 0; i < n; i++) {
@@ -387,7 +387,7 @@ async function load() {
 /* ================= State ================= */
 const MEASURES = [
   { id: 'count', label: 'Objects', fmt: (v) => fmt(Math.round(v)), axis: d3.format(',') },
-  { id: 'orbit', label: 'Share still in orbit', fmt: (v) => (v * 100).toFixed(1) + '%', axis: d3.format('.0%') },
+  { id: 'orbit', label: 'Share in Earth orbit', fmt: (v) => pct(v), axis: d3.format('.0%') },
   { id: 'peri', label: 'Median perigee', fmt: (v) => fmt(Math.round(v)) + ' km', axis: (v) => fmt(v) },
   { id: 'inc', label: 'Median inclination', fmt: (v) => v.toFixed(1) + ' deg', axis: (v) => v + '' },
   { id: 'life', label: 'Median years in orbit', fmt: (v) => v.toFixed(1) + ' yr', axis: (v) => v + '' },
@@ -405,10 +405,17 @@ function stateToHash() {
 }
 function hashToState() {
   const p = new URLSearchParams(location.hash.slice(1));
-  if (p.get('y')) { const [a, b] = p.get('y').split('-').map(Number); if (a && b) { S.y0 = a; S.y1 = b; } }
+  if (p.get('y')) {
+    const [a, b] = p.get('y').split('-').map(Number);
+    if (Number.isFinite(a) && Number.isFinite(b)) {
+      const c = (v) => Math.min(2026, Math.max(1957, Math.round(v)));
+      S.y0 = Math.min(c(a), c(b)); S.y1 = Math.max(c(a), c(b));
+    }
+  }
   if (p.get('m') && MEASURES.some((m) => m.id === p.get('m'))) S.measure = p.get('m');
   if (p.get('b') && BYS.some((m) => m.id === p.get('b'))) S.by = p.get('b');
-  for (const k of ['owner', 'site', 'type', 'regime', 'status']) if (p.get(k)) S[k] = new Set(p.get(k).split('|'));
+  const known = { type: (v) => TYPES.includes(v), regime: (v) => v in REGIMES, status: (v) => v in STATUSES, owner: (v) => v in OWN_RANK, site: (v) => v in SITE_RANK };
+  for (const k of ['owner', 'site', 'type', 'regime', 'status']) if (p.get(k)) S[k] = new Set(p.get(k).split('|').filter(known[k]));
 }
 
 /* ================= Palettes: color follows the entity ================= */
@@ -454,11 +461,12 @@ function passes(i, skip) {
   return true;
 }
 function select() { const out = []; for (let i = 0; i < D.n; i++) if (passes(i)) out.push(i); return out; }
+function pct(x) { return x > 0 && x < 0.001 ? '<0.1%' : x < 1 && x >= 0.9995 ? '>99.9%' : (x * 100).toFixed(1) + '%'; }
 function median(arr) { if (!arr.length) return NaN; const a = Float64Array.from(arr).sort(); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
 // Accumulator: everything a measure needs for one group
 function acc() { return { n: 0, orbit: 0, active: 0, peri: [], inc: [], life: [] }; }
 function add(a, i) {
-  a.n++; if (D.inOrbit[i]) a.orbit++; if (D.status[i] === 'A') a.active++;
+  a.n++; if (D.inOrbit[i] && D.earth[i]) a.orbit++; if (D.status[i] === 'A') a.active++;
   if (isFinite(D.peri[i])) a.peri.push(D.peri[i]); if (isFinite(D.inc[i])) a.inc.push(D.inc[i]); a.life.push(D.life[i]);
 }
 function measureOf(a, m) {
@@ -472,7 +480,7 @@ function measureOf(a, m) {
   }
 }
 
-/* ================= UI: theme, sound, cursor ================= */
+/* ================= UI: sound, cursor ================= */
 // Sound is on by default. The audio context starts inside the first click,
 // since browsers only allow audio after one; every sound here follows a click.
 let actx = null, master, soundOn = true;
@@ -618,11 +626,11 @@ function tweenNum(id, v, f) {
 function kpis(all) {
   const n = all.n;
   tweenNum('k-n', n, (v) => fmt(Math.round(v)));
-  $('#k-n-d').textContent = `${(n / D.n * 100).toFixed(1)}% of the catalog`;
+  $('#k-n-d').textContent = `${pct(n / D.n)} of the catalog`;
   tweenNum('k-orbit', all.orbit, (v) => fmt(Math.round(v)));
-  $('#k-orbit-d').textContent = n ? `${(all.orbit / n * 100).toFixed(1)}% of the view` : '';
+  $('#k-orbit-d').textContent = n ? `${pct(all.orbit / n)} of the view` : '';
   tweenNum('k-active', all.active, (v) => fmt(Math.round(v)));
-  $('#k-active-d').textContent = n ? `${(all.active / n * 100).toFixed(1)}% of the view` : '';
+  $('#k-active-d').textContent = n ? `${pct(all.active / n)} of the view` : '';
   const p = measureOf(all, 'peri'); tweenNum('k-peri', p, (v) => `${fmt(Math.round(v))}<small>km</small>`);
   $('#k-peri-d').textContent = `${fmt(all.peri.length)} objects with an orbit`;
   const l = measureOf(all, 'life'); tweenNum('k-life', l, (v) => `${v.toFixed(1)}<small>yr</small>`);
@@ -641,6 +649,11 @@ function frame(id, h, m) {
 }
 function legend(id, spec, order) {
   $(id).innerHTML = order.map((g) => `<span><i style="background:${spec.color(g)}"></i>${g}</span>`).join('');
+}
+// A centered note inside a chart; an empty string removes it
+function emptyNote(f, text) {
+  f.g.selectAll('text.empty').data(text ? [text] : []).join('text').attr('class', 'empty').attr('text-anchor', 'middle')
+    .attr('x', f.iw / 2).attr('y', f.ih / 2).text((d) => d).raise();
 }
 const T = () => d3.transition().duration(550).ease(d3.easeCubicOut);
 const M = () => MEASURES.find((m) => m.id === S.measure);
@@ -661,8 +674,9 @@ function chartTime(sel, spec) {
   if (isCount) ymax = d3.max(rows, (r) => d3.sum(groups, (g) => r[g] || 0)) || 1;
   else ymax = d3.max(rows, (r) => d3.max(groups, (g) => (isFinite(r[g]) ? r[g] : 0))) || 1;
   const y = d3.scaleLinear().domain([0, S.measure === 'orbit' ? 1 : ymax * 1.05]).nice().range([f.ih, 0]);
-  f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').transition(T()).call(d3.axisLeft(y).ticks(5).tickSize(-f.iw).tickFormat(''));
-  f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').transition(T()).call(d3.axisLeft(y).ticks(5).tickSize(0).tickPadding(8).tickFormat(m.axis)).on('end', function () { d3.select(this).select('.domain').remove(); });
+  const tv = isCount ? y.ticks(5).filter(Number.isInteger) : y.ticks(5);
+  f.g.selectAll('g.gridl').data([0]).join('g').attr('class', 'gridl').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(-f.iw).tickFormat(''));
+  f.g.selectAll('g.ya').data([0]).join('g').attr('class', 'axis ya').transition(T()).call(d3.axisLeft(y).tickValues(tv).tickSize(0).tickPadding(8).tickFormat(m.axis)).on('end', function () { d3.select(this).select('.domain').remove(); });
   const step = Math.ceil(years.length / 14);
   f.g.selectAll('g.xa').data([0]).join('g').attr('class', 'axis xa').attr('transform', `translate(0,${f.ih})`)
     .call(d3.axisBottom(x).tickValues(years.filter((v, i) => (years.length <= 14 ? true : v % (step >= 5 ? 10 : 5) === 0))).tickSize(0).tickPadding(8)).select('.domain').remove();
@@ -695,6 +709,7 @@ function chartTime(sel, spec) {
     .on('pointerleave', () => { hideTip(); hl.style('opacity', 0); })
     .on('click', (ev, r) => { S.y0 = r.y; S.y1 = r.y; blip(800); update(); });
   legend('#lg-time', spec, groups.filter((g) => rows.some((r) => isFinite(r[g]) && r[g])));
+  emptyNote(f, !sel.length ? 'No objects match the filters' : rows.some((r) => groups.some((g) => isFinite(r[g]))) ? '' : 'Fewer than 3 values in every year');
 }
 
 // Chart 2: measure by group, horizontal bars
@@ -717,6 +732,7 @@ function chartBars(groupAcc, spec) {
     .on('pointermove', (ev, d) => showTip(`<div class="t">${d.g}</div>${row(spec.color(d.g), m.label, isFinite(d.v) ? m.fmt(d.v) : 'fewer than 3 values')}${row('', 'Objects', fmt(d.n))}<div style="margin-top:4px;color:var(--ink-3)">${d.g === 'Other' ? '' : 'Click to filter to this group'}</div>`, ev))
     .on('pointerleave', hideTip)
     .on('click', (ev, d) => { hideTip(); drill(d.g, spec); });
+  emptyNote(f, data.length ? '' : 'No objects match the filters');
 }
 function drill(g, spec) {
   if (g === 'Other') return;
@@ -757,8 +773,7 @@ function chartHeat(sel, spec) {
     .attr('fill', (d) => { if (!isFinite(d.v)) return 'transparent'; const c = d3.lab(colC(d.v)); return c.l > 55 ? '#10152b' : '#f4f6ff'; })
     .style('font', `500 ${Math.min(12, x.bandwidth() / 3.2)}px Anybody`).text((d) => (isFinite(d.v) && d.n && x.bandwidth() > 22 ? short(d.v) : ''));
   cell.select('rect').on('pointermove', (ev, d) => showTip(`<div class="t">${d.g}, ${d.d}s</div>${row('', m.label, isFinite(d.v) ? m.fmt(d.v) : 'no data')}${row('', 'Objects', fmt(d.n))}`, ev)).on('pointerleave', hideTip);
-  if (!data.length) f.g.selectAll('text.empty').data([0]).join('text').attr('class', 'empty').attr('x', f.iw / 2 - 60).attr('y', f.ih / 2).text('No objects match the filters');
-  else f.g.selectAll('text.empty').remove();
+  emptyNote(f, data.length ? '' : 'No objects match the filters');
 }
 
 // Chart 4: altitude and inclination scatter on canvas, with a quadtree for hover
@@ -781,10 +796,10 @@ function chartScatter(sel, spec) {
     const alt = (D.peri[i] + D.apo[i]) / 2; if (alt < 150) continue;
     const g = spec.key(i); let a = byGroup.get(g); if (!a) byGroup.set(g, a = []); a.push(i);
   }
-  ctx.globalCompositeOperation = isLight() ? 'multiply' : 'lighter';
+  ctx.globalCompositeOperation = 'lighter';
   const order = [...byGroup.keys()].sort((a, b) => byGroup.get(b).length - byGroup.get(a).length);
   for (const g of order) {
-    const c = d3.color(spec.color(g)); c.opacity = isLight() ? 0.3 : 0.22; ctx.fillStyle = c.formatRgb();
+    const c = d3.color(spec.color(g)); c.opacity = 0.22; ctx.fillStyle = c.formatRgb();
     for (const i of byGroup.get(g)) {
       const px = x((D.peri[i] + D.apo[i]) / 2), py = y(D.inc[i]);
       ctx.fillRect(px - 1, py - 1, 2, 2); scatterPts.push([px, py, i, g]);
@@ -799,6 +814,7 @@ function chartScatter(sel, spec) {
     const i = p[2]; ring.attr('cx', p[0]).attr('cy', p[1]).style('opacity', 1);
     showTip(`<div class="t">${D.name[i]}</div>${row(spec.color(p[3]), S.by === 'type' ? 'Type' : BYS.find((b) => b.id === S.by).label, p[3])}${row('', 'Owner', OWNER_NAME(D.owner[i]))}${row('', 'Launched', D.launchS[i])}${row('', 'Orbit', `${fmt(D.peri[i])} by ${fmt(D.apo[i])} km`)}${row('', 'Inclination', D.inc[i].toFixed(1) + ' deg')}`, ev);
   }).on('pointerleave', () => { hideTip(); ring.style('opacity', 0); });
+  emptyNote(f, scatterPts.length ? '' : sel.length ? 'No object in the view has a cataloged Earth orbit' : 'No objects match the filters');
   legend('#lg-scatter', spec, order.slice(0, 8).sort((a, b) => spec.order.indexOf(a) - spec.order.indexOf(b)));
 }
 
@@ -807,8 +823,8 @@ let sortKey = 'n', sortDir = -1, lastTable = [];
 function table(groupAcc, all, spec) {
   $('#t-table').textContent = `The numbers behind the view, by ${byLabel()}`;
   const cols = [
-    ['g', BYS.find((b) => b.id === S.by).label], ['n', 'Objects'], ['share', 'Share of view'], ['orbit', 'Still in orbit'],
-    ['orbitPct', 'Share in orbit'], ['active', 'Active payloads'], ['peri', 'Median perigee, km'], ['inc', 'Median inclination, deg'], ['life', 'Median years in orbit'],
+    ['g', BYS.find((b) => b.id === S.by).label], ['n', 'Objects'], ['share', 'Share of view'], ['orbit', 'In Earth orbit'],
+    ['orbitPct', 'Share in Earth orbit'], ['active', 'Active payloads'], ['peri', 'Median perigee, km'], ['inc', 'Median inclination, deg'], ['life', 'Median years in orbit'],
   ];
   const rowOf = (g, a) => ({ g, n: a.n, share: a.n / (all.n || 1), orbit: a.orbit, orbitPct: a.orbit / a.n, active: a.active, peri: measureOf(a, 'peri'), inc: measureOf(a, 'inc'), life: measureOf(a, 'life') });
   let rows = spec.order.filter((g) => groupAcc.get(g)?.n).map((g) => rowOf(g, groupAcc.get(g)));
@@ -820,21 +836,25 @@ function table(groupAcc, all, spec) {
     if (k === 'g') return `<span class="sw" style="background:${spec.color(v)}"></span>${v}`;
     if (!isFinite(v)) return '<span style="color:var(--ink-3)">n/a</span>';
     if (k === 'n') return `<b>${fmt(v)}</b><span class="bar" style="width:${Math.round(v / maxN * 60)}px"></span>`;
-    if (k === 'share' || k === 'orbitPct') return (v * 100).toFixed(1) + '%';
+    if (k === 'share' || k === 'orbitPct') return pct(v);
     if (k === 'peri') return fmt(Math.round(v));
     if (k === 'inc' || k === 'life') return v.toFixed(1);
     return fmt(v);
   };
+  const emptyRow = rows.length ? '' : `<tr><td colspan="${cols.length}" class="empty-row">No objects match the filters</td></tr>`;
   const tbl = $('#tbl');
   tbl.innerHTML = `<thead><tr>${cols.map(([k, l]) => `<th class="${k === sortKey ? 'sorted' : ''}"><button data-k="${k}">${l}<span class="arr">${k === sortKey ? (sortDir < 0 ? 'v' : '^') : ''}</span></button></th>`).join('')}</tr></thead>
-    <tbody>${rows.map((r) => `<tr>${cols.map(([k]) => `<td>${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${emptyRow}${rows.map((r) => `<tr>${cols.map(([k]) => `<td>${cell(k, r)}</td>`).join('')}</tr>`).join('')}</tbody>
     ${lastTable.total ? `<tfoot><tr>${cols.map(([k]) => `<td>${k === 'g' ? 'All objects in the view' : k === 'n' ? fmt(lastTable.total.n) : cell(k, lastTable.total).replace(/<span class="bar"[^>]*><\/span>/, '')}</td>`).join('')}</tr></tfoot>` : ''}`;
   $$('th button', tbl).forEach((b) => b.addEventListener('click', () => { const k = b.dataset.k; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === 'g' ? 1 : -1; } blip(640); table(groupAcc, all, spec); }));
 }
 $('#dl').addEventListener('click', () => {
   const { cols, rows, total } = lastTable;
   const esc = (v) => (typeof v === 'string' && /[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  const out = [cols.map((c) => c[1]).join(','), ...[...rows, ...(total ? [total] : [])].map((r) => cols.map(([k]) => esc(isFinite(r[k]) || k === 'g' ? (typeof r[k] === 'number' ? +r[k].toFixed(4) : r[k]) : '')).join(','))].join('\n');
+  const isPct = (k) => k === 'share' || k === 'orbitPct';
+  const head = cols.map(([k, l]) => esc(isPct(k) ? `${l} (%)` : l));
+  const val = (r, k) => { const v = r[k]; if (k === 'g') return esc(v); if (!isFinite(v)) return ''; return isPct(k) ? +(v * 100).toFixed(2) : +v.toFixed(4); };
+  const out = [head.join(','), ...[...rows, ...(total ? [total] : [])].map((r) => cols.map(([k]) => val(r, k)).join(','))].join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out], { type: 'text/csv' })); a.download = `orbit_view_by_${S.by}.csv`; a.click();
   blip(900);
 });
@@ -847,12 +867,12 @@ function initGlobe(landImg) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 500);
-  const U = { uTime: { value: 0 }, uLight: { value: isLight() ? 1 : 0 }, uPR: { value: renderer.getPixelRatio() }, uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() } };
+  const U = { uTime: { value: 0 }, uPR: { value: renderer.getPixelRatio() }, uSun: { value: new THREE.Vector3(0.75, 0.32, 0.58).normalize() } };
   const tex = new THREE.Texture(landImg); tex.needsUpdate = true; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   const earthMat = new THREE.ShaderMaterial({
     uniforms: Object.assign({ uLand: { value: tex } }, U),
     vertexShader: `varying vec3 vObjN; varying vec3 vN; varying vec3 vWP; void main(){ vObjN = normal; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-    fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uLight; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
+    fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
       void main(){ vec3 n = normalize(vObjN); float lat = asin(clamp(n.y, -1.0, 1.0)); float lon = atan(n.x, n.z);
         float rows = 90.0; float cell = 3.14159265 / rows; float ri = floor((lat + 1.5707963) / cell); float latc = -1.5707963 + (ri + 0.5) * cell;
         float cols = max(6.0, floor(2.0 * rows * cos(latc))); float cw = 6.2831853 / cols; float ci = floor((lon + 3.14159265) / cw); float lonc = -3.14159265 + (ci + 0.5) * cw;
@@ -861,9 +881,7 @@ function initGlobe(landImg) {
         float isLand = step(0.5, land) * (1.0 - smoothstep(0.34 - aa, 0.34 + aa, d));
         vec3 N = normalize(vN); vec3 V = normalize(cameraPosition - vWP); float day = smoothstep(-0.2, 0.45, dot(N, uSun)); float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
         vec3 col = mix(vec3(0.004, 0.008, 0.03), vec3(0.01, 0.025, 0.08), day) + isLand * mix(vec3(0.03, 0.03, 0.05), vec3(0.14, 0.22, 0.5), day) + vec3(0.1, 0.25, 0.8) * fres * 0.6;
-        vec3 paper = vec3(0.86, 0.87, 0.83) * (0.82 + 0.18 * day); vec3 ink = vec3(0.012, 0.016, 0.045);
-        vec3 pc = mix(mix(paper, ink, isLand * 0.85), ink, smoothstep(0.5, 0.95, fres));
-        gl_FragColor = vec4(mix(pow(col, vec3(0.4545)), pow(pc, vec3(0.4545)), uLight), 1.0); }`,
+        gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.0); }`,
   });
   const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 72), earthMat); scene.add(earth);
   // points for every object with an Earth orbit; visibility and color come from the view
@@ -880,7 +898,7 @@ function initGlobe(landImg) {
   geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
   geom.setAttribute('aOrb', new THREE.BufferAttribute(orb, 4)); geom.setAttribute('aOrb2', new THREE.BufferAttribute(orb2, 4)); geom.setAttribute('aCol', col);
   const mat = new THREE.ShaderMaterial({
-    uniforms: U, transparent: true, depthWrite: false, blending: isLight() ? THREE.NormalBlending : THREE.AdditiveBlending,
+    uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: `uniform float uTime; uniform float uPR; attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec4 aCol; varying vec4 vC;
       void main(){ if (aCol.a < 0.01) { gl_Position = vec4(2.0); gl_PointSize = 0.0; return; }
         float a = aOrb.x, e = aOrb.y, inc = aOrb.z, raan = aOrb.w, argp = aOrb2.x; float M = mod(aOrb2.y + aOrb2.z * uTime, 6.2831853); float E = M + e * sin(M);
@@ -889,16 +907,15 @@ function initGlobe(landImg) {
         float x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw; float y2 = y1 * ci, z2 = y1 * si;
         vec4 mv = modelViewMatrix * vec4(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO), 1.0); gl_Position = projectionMatrix * mv;
         vC = aCol; gl_PointSize = clamp(2.2 * uPR * 7.0 / -mv.z, 1.0 * uPR, 7.0 * uPR); }`,
-    fragmentShader: `uniform float uLight; varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
+    fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
       vec3 cc = pow(vC.rgb, vec3(0.4545));
-      if (uLight > 0.5) gl_FragColor = vec4(cc, (1.0 - smoothstep(0.3, 0.5, d)) * 0.8);
-      else { float a = pow(1.0 - smoothstep(0.0, 0.5, d), 1.5); gl_FragColor = vec4(cc * a * 1.2, a); } }`,
+      float a = pow(1.0 - smoothstep(0.0, 0.5, d), 1.5); gl_FragColor = vec4(cc * a * 1.2, a); }`,
   });
   const pts = new THREE.Points(geom, mat); pts.frustumCulled = false; scene.add(pts);
   const halo = new THREE.Mesh(new THREE.SphereGeometry(1.08, 64, 48), new THREE.ShaderMaterial({
     uniforms: U, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: `varying vec3 vN; varying vec3 vWP; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-    fragmentShader: `uniform float uLight; varying vec3 vN; varying vec3 vWP; void main(){ if (uLight > 0.5) discard; float r = dot(normalize(vN), normalize(cameraPosition - vWP)); float i = pow(smoothstep(0.0, 0.62, r), 2.2) * smoothstep(1.0, 0.55, r); gl_FragColor = vec4(vec3(0.2, 0.45, 1.0) * i * 0.8, i); }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vWP; void main(){ float r = dot(normalize(vN), normalize(cameraPosition - vWP)); float i = pow(smoothstep(0.0, 0.62, r), 2.2) * smoothstep(1.0, 0.55, r); gl_FragColor = vec4(vec3(0.2, 0.45, 1.0) * i * 0.8, i); }`,
   }));
   scene.add(halo);
   Object.assign(G, { renderer, scene, camera, U, earth, idx, col, mat, dist: 4.2, azim: 0.6, elev: 0.35, vaz: 0, vel: 0 });
@@ -931,8 +948,8 @@ function globeUpdate(spec) {
     c.set(hex); arr.set([c.r, c.g, c.b, 1], k * 4); shown++; if (D.apo[i] > 12000) far++;
   });
   G.col.needsUpdate = true;
-  $('#globe-n').textContent = `${fmt(shown)} objects`;
-  $('#globe-note').textContent = shown ? '' : 'No object in the current view is still in Earth orbit.';
+  $('#globe-n').textContent = `${fmt(shown)} with a cataloged orbit`;
+  $('#globe-note').textContent = shown ? '' : 'No object in the current view has a cataloged Earth orbit.';
   const target = shown && far / shown > 0.5 ? 24 : shown && far / shown > 0.3 ? 12 : 4.2;
   gsap.to(G, { dist: target, duration: 1.6, ease: 'power3.inOut', overwrite: 'auto' });
   const order = spec.order.filter((g) => cache.has(g));
@@ -942,7 +959,7 @@ function globeUpdate(spec) {
 /* ================= Update ================= */
 let raf = 0;
 function update() { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => render()); }
-function render(themeOnly) {
+function render() {
   const sel = select();
   const spec = groupSpec(S.by, sel);
   const all = acc(); const groupAcc = new Map();
@@ -970,6 +987,7 @@ let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(
   const img = new Image(); img.src = URL.createObjectURL(new Blob([landBytes], { type: 'image/png' })); await img.decode();
   initGlobe(img);
   render();
+  document.fonts.ready.then(() => { syncMeasure(); syncBy(); });
   $('#loading').style.opacity = 0; setTimeout(() => $('#loading').remove(), 700);
   window.__ready = true;
 })().catch((e) => { console.error(e); $('#loading').textContent = 'The page could not read its data: ' + e.message; });
