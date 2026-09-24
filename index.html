@@ -99,7 +99,7 @@ a, button { cursor: none; color: inherit; }
 .probe .lead { position: absolute; left: 0; top: 0; overflow: visible; width: 1px; height: 1px; }
 .probe .lead line { stroke: var(--pencil); stroke-width: 1; opacity: .8; }
 .probe .card {
-  position: absolute; left: 22px; top: -8px; width: 262px; padding: 10px 12px 11px;
+  position: absolute; left: 22px; top: -8px; width: 318px; padding: 10px 12px 11px;
   background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--line); border-left: 2px solid var(--pencil);
 }
@@ -201,7 +201,7 @@ section { position: relative; }
 }
 /* Where a title crosses the globe, the solid letters give way to an outlined copy, so the Earth shows through */
 .title-wrap, .close-wrap { position: relative; }
-.ghost { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; color: transparent !important; -webkit-text-stroke: 1.4px rgba(237, 240, 251, .92); }
+.ghost { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; color: rgba(4, 7, 22, .8) !important; -webkit-text-stroke: 1.6px rgba(237, 240, 251, .96); }
 .hero h1 .ln { display: block; overflow: hidden; padding-bottom: .02em; }
 .hero h1 .ch { display: inline-block; will-change: transform, font-variation-settings; }
 .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 26px 0 16px; font: 500 15px/1.3 var(--font-display); font-variation-settings: "wdth" 104; color: var(--ink-2); letter-spacing: .01em; }
@@ -228,32 +228,25 @@ section { position: relative; }
 
 /* ---------- Finding sections ---------- */
 .finding { min-height: 100vh; display: flex; align-items: center; padding-top: 16vh; padding-bottom: 16vh; }
-.finding .col { width: min(640px, 46vw); }
+.finding .col { width: min(680px, 46vw); }
 .finding.right .col { margin-left: auto; }
 .finding h2 {
   font-family: var(--font-display); font-weight: 650; font-variation-settings: "wdth" 104;
-  font-size: clamp(32px, 3.05vw, 54px); line-height: 1.02; letter-spacing: -.02em; margin-bottom: 26px;
+  font-size: clamp(30px, min(3.05vw, 5vh), 54px); line-height: 1.02; letter-spacing: -.02em; margin-bottom: clamp(14px, 2.4vh, 26px);
   text-wrap: balance;
 }
 .finding h2 .hc { font-variation-settings: "wdth" var(--wd, 104), "wght" var(--wg, 650); }
 
-/* Full-bleed numerals set behind a section, on the globe side */
-.bignum {
-  position: absolute; top: 50%; right: -1.5vw; z-index: 0; pointer-events: none; white-space: nowrap;
-  font-family: var(--font-display); font-size: clamp(220px, 31vw, 600px); line-height: .8; letter-spacing: -.05em;
-  color: rgba(237, 240, 251, .07); -webkit-text-stroke: 1.2px rgba(237, 240, 251, .55);
-  mix-blend-mode: difference; transform: translateY(-50%);
-}
-.bignum.l { right: auto; left: -1.5vw; }
-.bignum .c { display: inline-block; font-variation-settings: "wdth" var(--wd, 100), "wght" var(--wg, 300); }
 .finding .col { position: relative; z-index: 1; }
-.finding.beyond-sec { min-height: 170vh; align-items: flex-start; padding-top: 22vh; }
-.beyond-sec .bignum { top: 62vh; }
+.finding.beyond-sec { min-height: 150vh; align-items: flex-start; padding-top: 6vh; }
+.close-wrap .ghost { color: rgba(237, 240, 251, .14) !important; -webkit-text-stroke: 2px rgba(237, 240, 251, .95); }
 .prose p { color: var(--ink-2); margin-bottom: 1em; max-width: 36rem; }
 .prose p strong { color: var(--ink); font-weight: 500; }
+/* finding columns scale with the window height, so heading, text and chart fit on one screen */
+.finding .col p { font-size: clamp(16px, 1.78vh, 19px); line-height: 1.58; margin-bottom: .8em; max-width: none; }
 
 .panel {
-  position: relative; margin-top: 30px; padding: 20px 20px 14px;
+  position: relative; margin-top: clamp(14px, 2.6vh, 30px); padding: 18px 20px 12px;
   background: var(--panel); backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid var(--line);
 }
@@ -316,16 +309,24 @@ section { position: relative; }
 .tm-annot .a { position: absolute; left: 0; top: 0; padding-left: 16px; border-left: 2px solid var(--pencil); opacity: 0; }
 .tm-annot .when { font: 600 13px/1.2 var(--font-display); font-variation-settings: "wdth" 100; color: var(--pencil); letter-spacing: .02em; margin-bottom: 6px; }
 .tm-annot p { font: 400 18px/1.5 var(--font-text); color: var(--ink); }
-.tm-chart { position: absolute; left: clamp(20px, 6vw, 110px); right: clamp(20px, 6vw, 110px); bottom: 5vh; }
+/* the chart keeps to the text side, so the globe's lower half stays clear */
+.tm-chart { position: absolute; left: clamp(20px, 6vw, 110px); width: min(780px, 44vw); bottom: 4.5vh; }
 .tm-chart .panel { margin: 0; padding: 14px 18px 8px; }
+.chart .ev-tick { stroke: var(--ink-3); stroke-width: 1; }
+.chart .ev-lbl { font: 500 10.5px var(--font-display); font-variation-settings: "wdth" 88; fill: var(--ink-3); transition: fill .3s; }
+.chart .ev.on .ev-tick { stroke: var(--pencil); }
+.chart .ev.on .ev-lbl { fill: var(--pencil); }
+.chart .head-lbl { font: 600 12px var(--font-display); font-variation-settings: "wdth" 90; fill: var(--pencil); font-variant-numeric: tabular-nums; }
+.chart .part-lbl { font: 400 10.5px var(--font-display); font-variation-settings: "wdth" 88; fill: var(--ink-3); }
 
 /* ---------- Notes (about the data) ---------- */
-.notes-sec { padding-top: 18vh; padding-bottom: 10vh; }
+.notes-sec { padding-top: 10vh; padding-bottom: 10vh; }
 .notes { background: var(--panel); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); padding: clamp(24px, 4vw, 60px); position: relative; }
 .notes h2 { font: 650 clamp(32px, 3vw, 50px)/1.05 var(--font-display); font-variation-settings: "wdth" 104; letter-spacing: -.02em; margin-bottom: 30px; }
 .notes .cols { columns: 2 380px; column-gap: 56px; }
 .notes h3 { font: 600 17px/1.3 var(--font-display); font-variation-settings: "wdth" 98; color: var(--ink); margin: 0 0 8px; break-after: avoid; }
 .notes p, .notes li { font-size: 17px; line-height: 1.6; color: var(--ink-2); }
+.notes p + p { margin-top: .8em; }
 .notes .blk { break-inside: avoid; margin-bottom: 26px; }
 .notes ul { padding-left: 1.1em; }
 .notes li { margin-bottom: 6px; }
@@ -337,6 +338,8 @@ section { position: relative; }
 .close-num {
   font-family: var(--font-display); font-size: clamp(150px, 21.5vw, 420px); line-height: .78; letter-spacing: -.045em;
   color: var(--ink); white-space: nowrap; margin-left: -.03em; font-variant-numeric: tabular-nums;
+  /* the digits' ink rises above a .78 line box; the padding keeps all of it inside the box the globe mask covers */
+  padding: .26em 0 .18em; margin-top: -.26em; margin-bottom: -.18em;
 }
 .close-num .c { display: inline-block; font-variation-settings: "wdth" var(--wd, 125), "wght" var(--wg, 700); }
 .close-k { margin-top: 22px; max-width: 44rem; font: 400 clamp(18px, 1.4vw, 22px)/1.5 var(--font-text); color: var(--ink-2); }
@@ -352,14 +355,12 @@ footer a { color: var(--ink-2); }
 }
 .to-dash:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
-.lbl-ring { padding-left: 34px; margin-top: -1px; }
-.lbl-ring::before { content: ""; position: absolute; left: -12px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border: 1px solid var(--pencil); border-radius: 50%; }
-.lbl-ring.big::before { left: -44px; width: 88px; height: 88px; margin-top: -44px; border-style: dashed; }
-.lbl-ring.big { padding-left: 50px; }
-.lbl-ring.flip { padding-left: 0; padding-right: 34px; }
-.lbl-ring.flip::before { left: auto; right: -12px; }
-.lbl-ring.big.flip { padding-right: 50px; }
-.lbl-ring.big.flip::before { right: -44px; }
+/* a ring around a body on the globe, sized each frame from its projected radius (--r) */
+.lbl-ring { --r: 11px; padding-left: calc(var(--r) + 14px); margin-top: -1px; }
+.lbl-ring::before { content: ""; position: absolute; left: calc(-1 * var(--r)); top: 50%; width: calc(2 * var(--r)); height: calc(2 * var(--r)); margin-top: calc(-1 * var(--r)); border: 1px solid var(--pencil); border-radius: 50%; }
+.lbl-ring.dash::before { border-style: dashed; }
+.lbl-ring.flip { padding-left: 0; padding-right: calc(var(--r) + 14px); }
+.lbl-ring.flip::before { left: auto; right: calc(-1 * var(--r)); }
 
 @media (max-width: 900px) {
   body { font-size: 17px; cursor: auto; }
@@ -372,7 +373,6 @@ footer a { color: var(--ink-2); }
   .tm-annot { width: calc(100% - 40px); }
   .nav { gap: 10px; } .brand span { display: none; }
   .scrim, .scrim.r { background: color-mix(in oklab, var(--bg) 55%, transparent); }
-  .bignum { display: none; }
 }
 </style>
 <script type="importmap">
@@ -454,8 +454,8 @@ footer a { color: var(--ink-2); }
     <div class="tm-stage">
       <div class="tm-year" id="tm-year">2026</div>
       <div class="hud">
-        <div><b id="hud-orbit">34,831</b>objects in Earth orbit</div>
-        <div><b id="hud-pay">19,956</b><span class="sw" style="background:var(--c-pay)"></span>payloads</div>
+        <div><b id="hud-orbit">34,831</b><span id="hud-orbit-k">objects</span> in Earth orbit</div>
+        <div><b id="hud-pay">19,956</b><span class="sw" style="background:var(--c-pay)"></span><span id="hud-pay-k">payloads</span></div>
         <div><b id="hud-deb">12,521</b><span class="sw" style="background:var(--c-deb)"></span>debris</div>
       </div>
       <div class="tm-annot" id="tm-annot"></div>
@@ -471,7 +471,6 @@ footer a { color: var(--ink-2); }
 
   <!-- ============================== 2. STARLINK ============================== -->
   <section class="finding wrap" data-globe="starlink">
-    <div class="bignum" aria-hidden="true">65%</div>
     <div class="col prose">
       <h2>Starlink satellites are 65% of the payloads working today</h2>
       <p>SpaceX has launched <strong>12,863 Starlink satellites</strong> since May 2019. Of these, 11,107 are listed as active, which is 64.9% of the 17,112 active payloads in the catalog, and 1,754 have already reentered. Starlink accounts for 66.3% of all payloads launched from 2019 on.</p>
@@ -531,7 +530,7 @@ footer a { color: var(--ink-2); }
     <div class="col prose">
       <h2>84% of the objects in orbit are below 2,000 km, in two crowded bands</h2>
       <p>Of the 34,500 objects in Earth orbit with a known orbit, <strong>28,996 (84.0%)</strong> circle below 2,000 km. The busiest band is 450 to 500 km, with 9,963 objects, of which 9,198 are Starlink satellites. A second band, from 700 to 900 km, holds 5,652 objects, and 4,665 of them are debris; this is where the Fengyun 1C test and the 2009 collision took place.</p>
-      <p>Farther out, 1,755 objects have a perigee of 35,000 km or more. Of the 1,741 among them on near-circular orbits, 1,512 have a mean altitude within 500 km of the geosynchronous altitude of 35,786 km, the ring drawn around the globe. At that altitude an orbit takes one day, so a satellite over the equator stays above the same point on the ground.</p>
+      <p>Farther out, 1,755 objects have a perigee of 35,000 km or more. Of the 1,741 among them on near-circular orbits, 1,512 have a mean altitude within 500 km of the geosynchronous altitude of 35,786 km, the ring drawn around the globe. At that altitude an orbit takes one day, so a satellite over the equator stays above the same point on the ground. Here the globe draws heights on a square-root scale, so the low shells separate.</p>
       <div class="panel"><span class="reg-b"></span>
         <div class="chart-head"><div class="chart-title">Objects below 2,000 km, by mean altitude</div><div class="chart-note">25 km bands</div></div>
         <div class="chart-legend"><span><i style="background:var(--c-pay)"></i>Payloads</span><span><i style="background:var(--c-rb)"></i>Rocket bodies</span><span><i style="background:var(--c-deb)"></i>Debris</span><span><i style="background:var(--c-unk)"></i>Unknown</span></div>
@@ -582,7 +581,6 @@ footer a { color: var(--ink-2); }
 
   <!-- ============================== 10. BEYOND ============================== -->
   <section class="finding wrap beyond-sec" data-globe="beyond">
-    <div class="bignum" aria-hidden="true">411</div>
     <div class="col prose">
       <h2>411 objects left Earth orbit for the Moon, the Sun and the planets</h2>
       <p>The catalog also keeps the objects that escaped. <strong>202</strong> now circle the Sun, 109 of them rocket stages and 90 of them payloads. 102 went to the Moon, where 54 crashed, 11 landed and 37 went into orbit. 31 went to Mars and 29 to Venus, and five are on paths out of the solar system: Pioneer 10 and 11, Voyager 1 and 2, and one Falcon 9 upper stage.</p>
@@ -614,7 +612,7 @@ footer a { color: var(--ink-2); }
         </ul></div>
         <div class="blk"><h3>Payloads released from the space station</h3><p>The catalog gives the 416 small satellites released from the International Space Station the station's own launch date, November 20, 1998. In the yearly and decade counts of payloads they are counted in the year they entered the catalog instead, which is close to the year they were released. Every other object is counted in its launch year.</p></div>
         <div class="blk"><h3>Rates and shares</h3><p>Every percentage is a count divided by the count of the group named in the same sentence, for example Starlink active payloads divided by all active payloads. The owner shares divide each owner's payloads by all payloads launched in that decade. Medians are taken over the objects in the group. 2026 is a partial year: launches run through September 21 and reentries through September 23.</p></div>
-        <div class="blk"><h3>How the globe is drawn</h3><p>Every object is drawn on an ellipse with its cataloged apogee, perigee and inclination, and moves at the speed that orbit implies, sped up 60 times. The catalog does not record which way each orbit's plane points or where the object is along it, so those two angles are assigned at random for each object. The shells, bands and tilts on the globe are real; the position of any single object is not. Pointing at an object shows its catalog entry.</p><p>On the timeline and in the breakup section, the pieces of each of the ten largest breakups start out together and spread along their orbits over the following months. This shows how a debris cloud disperses, not where the pieces were. The points around the Moon are placed at random: those for objects that crashed or landed sit on its surface, the rest circle it.</p></div>
+        <div class="blk"><h3>How the globe is drawn</h3><p>Every object is drawn on an ellipse with its cataloged apogee, perigee and inclination, and moves at the speed that orbit implies, sped up 60 times. The catalog does not record which way each orbit's plane points or where the object is along it, so those two angles are assigned at random for each object. The one exception is Starlink: the satellites from one launch are drawn in one shared orbital plane, spaced evenly along it. The shells, bands and tilts on the globe are real; the position of any single object is not. Pointing at an object shows its catalog entry. In the altitude section heights are drawn on a square-root scale, and in the age section at 2.5 times their true scale.</p><p>On the timeline and in the breakup section, the pieces of each of the ten largest breakups start out together, burst outward and spread along their orbits over the following months. This shows how a debris cloud disperses, not where the pieces were. The points around the Moon are placed at random: those for objects that crashed or landed sit on its surface, the rest circle it.</p></div>
         <div class="blk"><h3>Files</h3><p>The raw catalog, the code tables and the scripts that turn them into this page are in the project repository, and <code>prepare_data.py</code> prints every number quoted above.</p>
           <a class="to-dash magnetic" href="dashboard.html">Open the dashboard</a></div>
       </div>
@@ -1063,8 +1061,9 @@ $('#sound-btn').addEventListener('click', () => { soundWanted = !(sound.ctx ? so
 
 // Cursor with inertia, and magnetic nav buttons on a spring
 const cursor = $('#cursor'), cDot = $('.dot', cursor), cRing = $('.ring', cursor);
-const mouse = { x: -999, y: -999, rx: -999, ry: -999, nx: 0, ny: 0 };
+const mouse = { x: -999, y: -999, rx: -999, ry: -999, nx: 0, ny: 0, t: -1e9 };
 addEventListener('pointermove', (e) => {
+  if (Math.abs(e.clientX - mouse.x) + Math.abs(e.clientY - mouse.y) > 0.5) mouse.t = performance.now();
   mouse.x = e.clientX; mouse.y = e.clientY;
   mouse.nx = e.clientX / innerWidth * 2 - 1; mouse.ny = e.clientY / innerHeight * 2 - 1;
 });
@@ -1124,6 +1123,9 @@ const U = {
   uFar: { value: 0 },              // 0 near the Earth, 1 when the camera is out at the Moon
   uHi: { value: 0 }, uHiKind: { value: 0 }, uHiLo: { value: 0 }, uHiHi: { value: 0 },   // chart hover highlight
   uMoonA: { value: 0 },
+  uSqrt: { value: 0 },             // altitude section: heights drawn on a square-root scale, so the low shells separate
+  uDens: { value: 1 },             // fades the crowded low orbits as the camera pulls back, so they never burn out to white
+  uCutN: { value: new THREE.Vector3(0, 0, 1) },   // age section: the normal of the cut through the Earth, set from the camera
 };
 const SUN_VIEW = new THREE.Vector3(-0.8, 0.42, 0.42).normalize();
 
@@ -1187,9 +1189,30 @@ const earthMat = new THREE.ShaderMaterial({
   extensions: { derivatives: true },
   vertexShader: `varying vec3 vObjN; varying vec3 vN; varying vec3 vWP;
     void main(){ vObjN = normal; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uTime; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP; ${NOISE}
+  side: THREE.DoubleSide,
+  fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uTime; uniform float uCut; uniform vec3 uCutN; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP; ${NOISE}
     float h21(vec2 p){ return fract(sin(dot(p, vec2(41.37, 289.13))) * 43758.5453); }
     void main(){
+      // age section: the Earth is cut open along a plane through its centre. The part in front of the plane is removed;
+      // where the removed part was, the inside of the far half shows, drawn as the flat cut face with the core,
+      // the outer core and the mantle in rings (the radii of the boundaries are to scale)
+      if (uCut > 0.001) {
+        float off = mix(1.02, 0.0, uCut);
+        if (dot(vWP, uCutN) > off) discard;
+        if (!gl_FrontFacing) {
+          vec3 D = normalize(vWP - cameraPosition);
+          float t = (off - dot(cameraPosition, uCutN)) / dot(D, uCutN);
+          vec3 X = cameraPosition + t * D; float r = length(X);
+          float ln = max(fwidth(r) * 1.3, 0.003);
+          float edge = (1.0 - smoothstep(0.0, ln, abs(r - 0.192))) + (1.0 - smoothstep(0.0, ln, abs(r - 0.546))) + (1.0 - smoothstep(0.0, ln, abs(r - 0.896))) * 0.55;
+          vec3 face = r < 0.192 ? vec3(0.16, 0.1, 0.07) : r < 0.546 ? vec3(0.09, 0.055, 0.05) : mix(vec3(0.05, 0.04, 0.07), vec3(0.025, 0.035, 0.08), smoothstep(0.55, 0.99, r));
+          face *= 0.82 + 0.36 * fbm(vec2(atan(X.y, X.x) * 2.0, r * 9.0) + 2.0);
+          face += vec3(1.0, 0.55, 0.3) * 0.12 * smoothstep(0.32, 0.0, r);     // warmth toward the centre
+          face += vec3(0.45, 0.55, 0.85) * 0.34 * clamp(edge, 0.0, 1.0);      // the boundaries between layers
+          face += vec3(0.5, 0.65, 1.0) * 0.45 * smoothstep(0.97, 0.998, r);    // the crust along the rim
+          gl_FragColor = vec4(face, 1.0); return;
+        }
+      }
       vec3 n = normalize(vObjN);
       float lat = asin(clamp(n.y, -1.0, 1.0));
       float lon = atan(n.x, n.z);
@@ -1208,8 +1231,11 @@ const earthMat = new THREE.ShaderMaterial({
       float band = exp(-pow((ndl - 0.03) / 0.12, 2.0));          // the terminator
       float night = 1.0 - smoothstep(-0.22, 0.06, ndl);
       float fres = pow(1.0 - max(dot(N, V), 0.0), 2.6);
-      vec3 ocean = mix(vec3(0.0008, 0.0016, 0.006), vec3(0.006, 0.022, 0.07), day);
+      vec3 ocean = mix(vec3(0.0012, 0.0024, 0.008), vec3(0.009, 0.03, 0.088), day);
       vec3 col = ocean + isLand * mix(vec3(0.01, 0.011, 0.02), vec3(0.12, 0.2, 0.46), day);
+      col += (1.0 - step(0.5, land)) * dotm * vec3(0.012, 0.028, 0.07) * (0.35 + 0.65 * day);   // faint dots over the sea
+      // sea ice around the North Pole, so the pole-on view shows a cap rather than a hole
+      col += (1.0 - step(0.5, land)) * dotm * smoothstep(1.33, 1.42, latc) * vec3(0.06, 0.1, 0.22) * (0.3 + 0.7 * day);
       // warm light scattered along the terminator
       col += vec3(1.0, 0.4, 0.14) * band * (0.035 + 0.11 * isLand);
       // night-side lights: a share of the land dots, clustered by noise, fewer toward the poles
@@ -1218,9 +1244,9 @@ const earthMat = new THREE.ShaderMaterial({
       float core = 1.0 - smoothstep(0.16 - aa, 0.26 + aa, d);
       float tw = 0.8 + 0.2 * sin(uTime * 0.003 + h21(vec2(ci, ri)) * 40.0);
       col += vec3(1.0, 0.6, 0.26) * 1.25 * lit * core * night * step(0.5, land) * tw;
-      // sun glint on the oceans
-      vec3 H = normalize(uSun + V);
-      col += vec3(1.0, 0.84, 0.62) * (pow(max(dot(N, H), 0.0), 320.0) * 0.22 + pow(max(dot(N, H), 0.0), 24.0) * 0.025) * (1.0 - isLand) * day;
+      // sun glint on the oceans: a small, soft highlight kept below the bloom threshold
+      vec3 H = normalize(uSun + V); float ndh = max(dot(N, H), 0.0);
+      col += vec3(1.0, 0.86, 0.66) * (pow(ndh, 1600.0) * 0.07 + pow(ndh, 110.0) * 0.012) * (1.0 - isLand) * day;
       // limb: blue on the day side, warm where the terminator meets the edge
       col += mix(vec3(0.03, 0.07, 0.25), vec3(0.12, 0.3, 0.85), day) * fres * (0.1 + 0.62 * day);
       col += vec3(1.0, 0.42, 0.16) * fres * band * 0.45;
@@ -1261,12 +1287,41 @@ const moonDir = new THREE.Vector3(-0.72, 0.1, -0.69).normalize();
 const moonMat = new THREE.ShaderMaterial({
   uniforms: U,
   vertexShader: `varying vec3 vP; varying vec3 vN; varying vec3 vWP; void main(){ vP = position; vN = normalize(mat3(modelMatrix) * normal); vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-  fragmentShader: `uniform vec3 uSun; varying vec3 vP; varying vec3 vN; varying vec3 vWP; ${NOISE}
-    void main(){ vec3 p = normalize(vP); float n = fbm(p.xy * 3.0 + p.z * 2.0) * 0.6 + fbm(p.yz * 7.0) * 0.4;
-      float maria = smoothstep(0.45, 0.6, fbm(p.xz * 1.6 + 3.0));
-      float l = max(dot(normalize(vN), uSun), 0.0);
-      vec3 c = vec3(0.17, 0.172, 0.19) * (0.55 + 0.45 * n) * (1.0 - 0.35 * maria) * (0.03 + 0.97 * smoothstep(0.0, 0.6, l));
-      gl_FragColor = vec4(c, 1.0); }`,
+  // procedural surface in 3D (no seams): dark maria from low-frequency noise, craters with bowls and raised rims
+  // at three sizes, a normal bent by the crater heights, a soft terminator, earthshine and a cool rim light
+  fragmentShader: `uniform vec3 uSun; varying vec3 vP; varying vec3 vN; varying vec3 vWP;
+    float h31(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+    vec3 h33(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
+    float vn3(vec3 p){ vec3 i = floor(p), f = fract(p); vec3 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(h31(i), h31(i + vec3(1, 0, 0)), u.x), mix(h31(i + vec3(0, 1, 0)), h31(i + vec3(1, 1, 0)), u.x), u.y),
+                 mix(mix(h31(i + vec3(0, 0, 1)), h31(i + vec3(1, 0, 1)), u.x), mix(h31(i + vec3(0, 1, 1)), h31(i + vec3(1, 1, 1)), u.x), u.y), u.z); }
+    float fbm3(vec3 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a * vn3(p); p = p * 2.07 + 11.3; a *= 0.5; } return v; }
+    float craters(vec3 p){
+      vec3 i = floor(p), f = fract(p); float h = 0.0;
+      for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+        vec3 g = vec3(float(x), float(y), float(z)); vec3 o = h33(i + g);
+        float r = 0.16 + 0.3 * o.x * o.x, d = length(g + o - f) / r;
+        h += (d < 1.0 ? (d * d - 1.0) * 0.8 : 0.0) + 0.3 * exp(-pow((d - 1.0) * 5.0, 2.0));
+      }
+      return h;
+    }
+    float height(vec3 p){ return craters(p * 3.5) * 0.5 + craters(p * 9.0) * 0.24 + craters(p * 23.0) * 0.1 + fbm3(p * 14.0) * 0.1; }
+    void main(){
+      vec3 p = normalize(vP);
+      vec3 t1 = normalize(cross(p, abs(p.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0))), t2 = cross(p, t1);
+      float e = 0.0035, h0 = height(p);
+      float hx = height(normalize(p + t1 * e)), hy = height(normalize(p + t2 * e));
+      vec3 n = normalize(p - (t1 * (hx - h0) + t2 * (hy - h0)) / e * 0.014);
+      float mar = smoothstep(0.5, 0.62, fbm3(p * 1.6 + 4.0));
+      float alb = mix(0.17, 0.085, mar) * (0.86 + 0.28 * fbm3(p * 26.0)) * (1.0 + 0.12 * clamp(h0, -0.5, 0.5));
+      float ndlM = dot(p, uSun), ndl = dot(n, uSun);
+      float lit = smoothstep(-0.04, 0.22, ndl) * (0.55 + 0.45 * max(ndl, 0.0)) * smoothstep(-0.12, 0.08, ndlM);
+      vec3 V = normalize(cameraPosition - vWP);
+      float fres = pow(1.0 - max(dot(p, V), 0.0), 3.0);
+      vec3 c = alb * lit * vec3(1.0, 0.975, 0.94);
+      c += alb * 0.05 * (1.0 - smoothstep(-0.3, 0.05, ndlM)) * vec3(0.55, 0.7, 1.0);   // earthshine on the night side
+      c += vec3(0.22, 0.32, 0.6) * fres * 0.14;                                         // cool rim light
+      gl_FragColor = vec4(min(c, vec3(0.2)), 1.0); }`,                                 // kept under the bloom threshold
 });
 const moon = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 64, 48), moonMat);
 moon.position.copy(moonDir).multiplyScalar(60.3); world.add(moon);
@@ -1315,16 +1370,18 @@ function buildMoonObjects(D) {
 
 // Label anchors projected into the DOM. A label that would run off the right edge flips to the left of its anchor.
 const labels = [];
-function worldLabel(text, pos) {
-  const el = document.createElement('div');
-  el.textContent = text;
-  el.style.cssText = 'position:fixed;left:0;top:0;z-index:3;pointer-events:none;font:500 13px/1 Anybody, sans-serif;font-variation-settings:"wdth" 96;color:var(--ink-2);letter-spacing:.02em;opacity:0;transition:opacity .6s;white-space:nowrap';
-  document.body.appendChild(el); const L = { el, pos, on: false, w: -1 }; labels.push(L); return L;
+// A label with `rad` gets a ring centred on its anchor, sized each frame to the body's projected radius.
+function worldLabel(text, pos, rad = 0) {
+  const el = document.createElement('div'), t = document.createElement('span');
+  t.textContent = text; el.appendChild(t);
+  el.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;font:500 13px/1 Anybody, sans-serif;font-variation-settings:"wdth" 96;color:var(--ink-2);letter-spacing:.02em;opacity:0;transition:opacity .6s;white-space:nowrap';
+  document.body.appendChild(el); const L = { el, t, pos, rad, on: false, tw: -1 }; labels.push(L); return L;
 }
-const lblMoon = worldLabel('The Moon and the objects sent to it', moon.position.clone().add(new THREE.Vector3(0, 0.36, 0)));
-lblMoon.el.classList.add('lbl-ring');
-const lblEarth = worldLabel('Earth and the 34,831 objects in its orbit', new THREE.Vector3(0, 0, 0));
-lblEarth.el.classList.add('lbl-ring', 'big');
+// the Moon's ring takes in the objects circling it (out to about 1.9 lunar radii)
+const lblMoon = worldLabel('The Moon and the objects sent to it', moon.position.clone(), 0.2727 * 2.0);
+lblMoon.el.classList.add('lbl-ring', 'dash');
+const lblEarth = worldLabel('Earth and the 34,831 objects in its orbit', new THREE.Vector3(0, 0, 0), 2.2);
+lblEarth.el.classList.add('lbl-ring', 'dash');
 const lblGeo = worldLabel('Geosynchronous altitude, 35,786 km', new THREE.Vector3((35786 + R_KM) / R_KM * 0.707, 0.35, (35786 + R_KM) / R_KM * 0.707));
 
 // ---------------------------------------------------------------------
@@ -1364,6 +1421,14 @@ function buildSatellites(D, REP) {
     // what the chart hover can select on: inclination, mean altitude, year entered, type
     key[k * 4] = D.inc[i]; key[k * 4 + 1] = (D.peri[i] + D.apo[i]) / 2; key[k * 4 + 2] = D.appear[i]; key[k * 4 + 3] = D.type[i];
   }
+  // Starlink: the satellites of one launch share one orbital plane and are spaced evenly along it,
+  // so the constellation is drawn as the lattice of planes it is, not as a random cloud
+  const slGroups = {};
+  for (let k = 0; k < n; k++) { const i = idx[k]; if (D.starlink[i] && D.type[i] === 0) (slGroups[D.intl[i].slice(0, 8)] ||= []).push(k); }
+  for (const ks of Object.values(slGroups)) {
+    const g0 = D.norad[idx[ks[0]]], raan = hash01(g0, 21) * Math.PI * 2, m0 = hash01(g0, 22) * Math.PI * 2;
+    ks.forEach((k, j) => { orb[k * 4 + 3] = raan; orb2[k * 4] = 0; orb2[k * 4 + 1] = m0 + (j / ks.length) * Math.PI * 2; });
+  }
   // Breakup clouds: while gathered, every piece of one of the ten largest breakups takes the
   // orbit angles of its group's first piece; spreading mixes each piece back to its own angles.
   const rep = new Int32Array(11).fill(-1), start = new Float64Array(11).fill(1e9);
@@ -1390,6 +1455,7 @@ function buildSatellites(D, REP) {
       uniform float uTime; uniform float uYear; uniform float uMix; uniform float uPR; uniform float uSize; uniform float uSink; uniform float uFlash;
       uniform float uTrail; uniform float uTrailLen; uniform float uBurst; uniform float uCut; uniform float uAltX; uniform float uFar;
       uniform float uHi; uniform float uHiKind; uniform float uHiLo; uniform float uHiHi;
+      uniform float uSqrt; uniform float uDens; uniform vec3 uCutN;
       attribute vec4 aOrb; attribute vec4 aOrb2; attribute vec2 aLife; attribute vec4 aColA; attribute vec4 aColB;
       attribute vec4 aKey; attribute vec2 aEv; attribute vec4 aBurst;
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vA;
@@ -1397,6 +1463,9 @@ function buildSatellites(D, REP) {
       float wrapA(float x){ return mod(x + 3.14159265, TAU) - 3.14159265; }
       // 1 for ordinary objects; for breakup pieces, how far the cloud has spread
       float spread(){ return aEv.x < 0.5 ? 1.0 : min(uBurst, smoothstep(0.0, 1.5, uYear - aEv.y)); }
+      vec3 blastDir(){ return normalize(vec3(fract(aOrb2.w * 13.7), fract(aOrb2.w * 71.3), fract(aOrb2.w * 37.9)) - 0.5 + 1e-4); }
+      // crowded low orbits fade as the camera pulls back; high orbits keep their brightness
+      float crowd(){ return mix(uDens, 1.0, smoothstep(1.4, 2.4, aOrb.x)); }
       vec3 kepler(float a, float e, float inc, float raan, float argp, float M){
         M = mod(M, TAU);
         float E = M + e * sin(M);
@@ -1419,9 +1488,11 @@ function buildSatellites(D, REP) {
           argp = aBurst.y + wrapA(aOrb2.x - aBurst.y) * k2;
         }
         vec3 p = kepler(aOrb.x, aOrb.y, aOrb.z, raan, argp, M - lag);
-        float r = length(p);
-        float ax = mix(1.0, uAltX, uCut);                      // heights exaggerated in the age section
-        float r2 = 1.0 + (r - 1.0) * ax; p *= r2 / r; r = r2;
+        float r = length(p), h = r - 1.0;
+        // heights exaggerated in the age section, drawn on a square-root scale in the altitude section
+        float r2 = 1.0 + mix(h * mix(1.0, uAltX, uCut), 1.6 * sqrt(max(h, 0.0)), uSqrt); p *= r2 / r; r = r2;
+        // a breakup: in its first moments every piece flies outward from the break point, then settles onto its orbit
+        if (s < 1.0) p += blastDir() * 0.15 * sin(3.14159265 * clamp(s / 0.42, 0.0, 1.0));
         // in the last months before reentry the object sinks toward the surface
         sink = uSink * (1.0 - smoothstep(0.0, 0.35, left));
         // on the timeline, new payloads and rocket stages rise from the ground to their orbit
@@ -1437,11 +1508,10 @@ function buildSatellites(D, REP) {
         float m = step(uHiLo, v) * (1.0 - step(uHiHi, v));
         return mix(1.0, m > 0.5 ? 1.3 : 0.06, uHi);
       }
-      // age section: keep a slab through the Earth's centre, facing the camera
-      float sliceFade(vec4 mv){
+      // age section: keep only a slab along the plane the Earth is cut open on
+      float sliceFade(vec3 p){
         if (uCut < 0.001) return 1.0;
-        float cz = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).z;
-        return mix(1.0, 1.0 - smoothstep(0.2, 0.3, abs(mv.z - cz)), uCut);
+        return mix(1.0, 1.0 - smoothstep(0.2, 0.3, abs(dot(p, uCutN))), uCut);
       }
       float hotness(float born, float s, float sel){
         float h = uFlash * exp(-born * 9.0) + (aEv.x > 0.5 ? (1.0 - smoothstep(0.0, 0.3, s)) * 0.6 : 0.0) + max(sel - 1.0, 0.0) * 0.5;
@@ -1459,9 +1529,11 @@ function buildSatellites(D, REP) {
         gl_Position = projectionMatrix * mv;
         vec4 col = mix(aColA, aColB, uMix);
         float sel = highlight();
-        vHot = hotness(born, s, sel);
+        // reentry: a flare as the sinking object meets the atmosphere
+        float flare = sink * smoothstep(1.14, 1.01, length(p));
+        vHot = min(hotness(born, s, sel) + flare * 1.4, 2.0);
         vCol = col;
-        vA = min(sel, 1.4) * sliceFade(mv) * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * crowd() * mix(1.0, 0.05, uFar) * smoothstep(0.0, 0.02, born);
         if (aEv.x > 0.5) vA *= mix(0.16, 1.0, smoothstep(0.0, 0.5, s));   // a gathered cloud would otherwise burn out to white
         float sz = uSize * uPR * (0.55 + 1.1 * col.a) * (1.0 + 2.2 * vHot + 1.2 * sink) * mix(1.0, 0.45, uFar);
         gl_PointSize = clamp(sz * 9.0 / -mv.z, 1.1 * uPR, 16.0 * uPR);
@@ -1501,21 +1573,25 @@ function buildSatellites(D, REP) {
         float born = uYear - aLife.x; float left = aLife.y - uYear;
         if (born < 0.0 || left <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
         float s = spread();
-        // arc length capped so fast perigee passes and high orbits do not draw long sweeps
-        float lagMax = min(uTrail, uTrailLen / aOrb.x * sqrt((1.0 - aOrb.y) / (1.0 + aOrb.y)));
+        // arc length capped so fast perigee passes and high orbits do not draw long sweeps;
+        // an object burning up on reentry draws a long fire streak instead
+        float burn = uSink * (1.0 - smoothstep(0.0, 0.35, left));
+        float lagMax = min(uTrail, uTrailLen / aOrb.x * sqrt((1.0 - aOrb.y) / (1.0 + aOrb.y))) * (1.0 + 3.5 * burn);
         float sink; vec3 p = orbitPos(aT * lagMax, s, born, left, sink); vBurn = sink;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
         vCol = mix(aColA, aColB, uMix);
         float sel = highlight();
         vHot = hotness(born, s, sel); vT = aT;
-        vA = min(sel, 1.4) * sliceFade(mv) * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
+        vA = min(sel, 1.4) * sliceFade(p) * crowd() * crowd() * mix(1.0, 0.02, uFar) * smoothstep(0.0, 0.02, born);
       }`,
     fragmentShader: `
       varying vec4 vCol; varying float vHot; varying float vBurn; varying float vT; varying float vA;
       void main(){
-        float a = pow(1.0 - vT, 1.7) * (0.06 + 0.94 * vCol.a) * (1.0 + vHot) * vA;
-        vec3 c = mix(vCol.rgb, vec3(1.0, 0.45, 0.12), vBurn * 0.9);
+        float a = pow(1.0 - vT, 1.7) * (0.06 + 0.94 * vCol.a) * (1.0 + vHot) * vA * (1.0 + 0.7 * vBurn);
+        // a burning streak runs from a white-hot head to a red tail
+        vec3 fire = mix(vec3(1.0, 0.86, 0.55), vec3(1.0, 0.22, 0.04), smoothstep(0.0, 0.7, vT));
+        vec3 c = mix(vCol.rgb, fire, vBurn * 0.95);
         gl_FragColor = vec4(c * a * 0.7, a * 0.7);
       }`,
   });
@@ -1540,7 +1616,7 @@ function modeColor(mode, k, P) {
     case 'events': { const e = SAT.evIdx[k]; if (!e) return [P.dim, 0.05]; const g = EVENT_GROUP[e]; return [g === undefined ? P.ev[4] : P.ev[g], 1]; }
     case 'owner': return [[P.us, P.ru, P.cn, P.other][SAT.og[k]], SAT.og[k] === 3 ? 0.45 : 0.9];
     case 'regime': { const rg = D.regime[i]; return rg === 'G' ? [P.rb, 1] : rg === 'M' ? [P.sl, 1] : rg === 'H' ? [P.deb, 0.9] : [P.pay, 0.55]; }
-    case 'incl': { const x = D.inc[i]; const hit = (x >= 43 && x < 44) || (x >= 53 && x < 54) || (x >= 97 && x < 99); return hit ? [x > 90 ? P.rb : P.sl, 1] : [P.dim, 0.07]; }
+    case 'incl': { const x = D.inc[i]; const hit = (x >= 43 && x < 44) || (x >= 53 && x < 54) || (x >= 97 && x < 99); return hit ? [x > 90 ? P.rb : P.sl, 0.72] : [P.dim, 0.12]; }
     case 'reentry': { const dy = D.decay[i]; return dy >= 2024 && dy < 1e5 ? [P.ember, 1] : [P.dim, 0.22]; }
     case 'age': { const f = Math.min(Math.max((NOW - D.appear[i]) / 40, 0), 1); return ['#seq' + f.toFixed(3), 0.35 + 0.65 * f]; }
     default: return [typeHex, 0.8];
@@ -1578,8 +1654,9 @@ function setMode(mode, instant = false) {
 // pose follows the scroll position between the sections' keyframes, so the camera moves
 // with the reader's scroll instead of on a clock. Drag with inertia and pointer parallax sit on top.
 // ---------------------------------------------------------------------
-const rig = { ld: Math.log(16), elev: 0.9, azim: 0.6, film: 0, tx: 0, ty: 0, tz: 0, spin: 0.018, cut: 0, timeScale: 60 };
-const pose = { ld: Math.log(4.9), elev: 0.3, film: 0.5, tx: 0, ty: 0, tz: 0, spin: 0.02, cut: 0 };
+const rig = { ld: Math.log(16), elev: 0.9, azim: 0.6, film: 0, tx: 0, ty: 0, tz: 0, spin: 0.018, cut: 0, sq: 0, timeScale: 60 };
+const pose = { ld: Math.log(4.9), elev: 0.3, film: 0.5, tx: 0, ty: 0, tz: 0, spin: 0.02, cut: 0, sq: 0 };
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const intro = { k: 0, ld: Math.log(16), elev: 0.9, zoom: 0 };   // the fly-in after Enter blends from this pose
 const drag = { on: false, vx: 0, vy: 0, lx: 0, ly: 0, az: 0, el: 0 };
 const par = { x: 0, y: 0 };
@@ -1589,18 +1666,20 @@ const STATES = {
   hero:     { dist: 4.9, elev: 0.3, film: 0.5, mode: 'type', year: NOW, spin: 0.02 },
   growth:   { dist: 4.4, elev: 0.26, film: 0.42, mode: 'type', year: null, spin: 0.02, sink: 1 },
   timeline: { dist: 4.1, elev: 0.3, film: 0.36, mode: 'type', year: null, spin: 0.03, flash: 1, sink: 1 },
-  starlink: { dist: 3.0, elev: 0.42, film: 0.45, mode: 'starlink', year: NOW, spin: 0.02 },
+  starlink: { dist: 3.7, elev: 0.5, film: 0.45, mode: 'starlink', year: NOW, spin: 0.02 },
   paydeb:   { dist: 3.5, elev: 0.18, film: 0.52, side: -1, mode: 'paydeb', year: NOW, spin: 0.02 },
   events:   { dist: 3.2, elev: -0.25, film: 0.45, mode: 'events', year: NOW, spin: 0.02 },
   owner:    { dist: 4.3, elev: 0.35, film: 0.52, side: -1, mode: 'owner', year: null, spin: 0.02 },
-  altitude: { dist: 21, elev: 0.5, film: 0.42, mode: 'regime', year: NOW, spin: 0.012, rings: 1 },
-  incl:     { dist: 4.6, elev: 1.45, film: 0.52, side: -1, mode: 'incl', year: NOW, spin: 0.03 },
+  altitude: { dist: 13.5, elev: 0.5, film: 0.42, mode: 'regime', year: NOW, spin: 0.012, rings: 1, sqrt: 1 },
+  incl:     { dist: 4.6, elev: 1.3, film: 0.52, side: -1, mode: 'incl', year: NOW, spin: 0.03 },
   age:      { dist: 6.4, elev: 0.12, film: 0.45, mode: 'age', year: NOW, spin: 0.02, cut: 1 },
   reentry:  { dist: 3.6, elev: 0.3, film: 0.52, side: -1, mode: 'reentry', year: null, spin: 0.02, sink: 1 },
+  depart:   { dist: 15, elev: 0.42, film: 0.34, spin: 0.012 },   // a camera pose only: pulled straight back from the Earth, before turning to the Moon
   beyond:   { dist: 118, elev: 0.55, film: 0.36, mode: 'type', year: NOW, spin: 0.004, moon: 1, target: moonDir.clone().multiplyScalar(28) },
   moon:     { dist: 2.9, elev: 0.3, film: 0.42, spin: 0.05, target: moon.position.clone() },   // a camera pose only, reached late in the beyond section
-  notes:    { dist: 26, elev: 0.45, film: 0.0, mode: 'type', year: NOW, spin: 0.01 },
-  close:    { dist: 8.4, elev: 0.38, film: 0.0, mode: 'type', year: NOW, spin: 0.03, target: new THREE.Vector3(0, -0.72, 0) },
+  // the notes are read with the Moon behind them; the closing view then flies home
+  notes:    { dist: 3.4, elev: 0.22, film: 0.0, mode: 'type', year: NOW, spin: 0.03, moon: 1, quiet: 1, target: moon.position.clone() },
+  close:    { dist: 9.2, elev: 0.38, film: 0.0, mode: 'type', year: NOW, spin: 0.03, target: new THREE.Vector3(0, -1.25, 0) },
 };
 let stateName = null;
 let yearTarget = NOW, yearRate = 3;   // the globe's year chases this target; the rate sets how fast
@@ -1613,7 +1692,7 @@ function goState(name) {
   [geoRing.material, leoRing.material].forEach((m) => gsap.to(m, { opacity: st.rings ? 0.75 : 0, duration: 1.2, overwrite: 'auto' }));
   gsap.to(moonOrbit.material, { opacity: st.moon ? 0.45 : 0, duration: 1.5, overwrite: 'auto' });
   gsap.to(U.uMoonA, { value: st.moon ? 1 : 0, duration: 1.5, overwrite: 'auto' });
-  lblMoon.on = !!st.moon; lblEarth.on = !!st.moon; lblGeo.on = !!st.rings;
+  lblMoon.on = !!st.moon && !st.quiet; lblEarth.on = !!st.moon && !st.quiet; lblGeo.on = !!st.rings;
   setMode(st.mode);
   const side = st.side || 1;
   $('#scrim').style.opacity = side < 0 || name === 'notes' || name === 'close' ? 0 : name === 'hero' || name === 'timeline' ? 0.6 : 1;
@@ -1630,7 +1709,7 @@ const pa = {}, pb = {};
 function statePose(name, o) {
   const st = STATES[name], tg = st.target;
   o.ld = Math.log(st.dist); o.elev = st.elev; o.film = (wide() ? st.film : 0) * (st.side || 1);
-  o.tx = tg ? tg.x : 0; o.ty = tg ? tg.y : 0; o.tz = tg ? tg.z : 0; o.spin = st.spin; o.cut = st.cut || 0;
+  o.tx = tg ? tg.x : 0; o.ty = tg ? tg.y : 0; o.tz = tg ? tg.z : 0; o.spin = st.spin; o.cut = st.cut || 0; o.sq = st.sqrt || 0;
 }
 function poseAt(y) {
   if (!KEYS.length) return;
@@ -1639,7 +1718,10 @@ function poseAt(y) {
   const t = B.y > A.y ? clamp01((y - A.y) / (B.y - A.y)) : 0;
   const e = smooth(clamp01((t - 0.15) / 0.7));   // hold near each keyframe, travel in between
   statePose(A.s, pa); statePose(B.s, pb);
-  for (const f in pa) pose[f] = pa[f] + (pb[f] - pa[f]) * e;
+  // the aim leads when moving in (turn to the new subject, then approach) and trails when moving out
+  // (pull back, then turn), so a long flight never passes through a frame with nothing in it
+  const et = pb.ld < pa.ld ? 1 - Math.pow(1 - e, 3) : Math.pow(e, 3);
+  for (const f in pa) pose[f] = pa[f] + (pb[f] - pa[f]) * (f === 'tx' || f === 'ty' || f === 'tz' ? et : e);
 }
 
 // Breakups: a ring of light where a cloud forms, a bloom pulse and a short camera shake
@@ -1666,6 +1748,15 @@ function impact(g, detail) {
   shockwave(g, new THREE.Color(GLOBE_PAL.dark.ev[EVENT_GROUP[g] ?? 4]));
   shake.amp = Math.max(shake.amp, detail.source === 'timeline' ? 1 : 0.55);
   gsap.fromTo(bloom, { strength: BLOOM + 0.55 }, { strength: BLOOM, duration: 1.4, ease: 'power2.out', overwrite: true });
+  if (detail.source === 'timeline') {
+    // on the timeline a big breakup stops the clock for a moment: the orbits slow almost to a halt and pick up again,
+    // the image splits into its colors, and the year flares in the breakup's color
+    gsap.fromTo(rig, { timeScale: 4 }, { timeScale: 60, duration: 2.4, ease: 'power2.in', overwrite: 'auto' });
+    gsap.fromTo(finalPass.uniforms.uCA, { value: 0.028 }, { value: 0.0035, duration: 1.6, ease: 'expo.out', overwrite: true });
+    const hex = GLOBE_PAL.dark.ev[EVENT_GROUP[g] ?? 4];
+    gsap.fromTo('#tm-year', { color: hex, textShadow: `0 0 48px ${hex}` }, { color: css('--ink'), textShadow: '0 0 0px rgba(0,0,0,0)', duration: 1.8, ease: 'power2.out', overwrite: true });
+    gsap.fromTo('#tm-year', { x: -10 }, { x: 0, duration: 0.9, ease: 'elastic.out(1, 0.35)' });
+  }
   emit('burst', detail);
 }
 // In the breakup section the four highlighted clouds gather to a point and spread out again
@@ -1722,6 +1813,13 @@ function updateCamera(dt) {
   camera.updateProjectionMatrix();
   U.uCut.value = rig.cut;
   U.uFar.value = THREE.MathUtils.smoothstep(camera.position.length(), 25, 90);
+  U.uDens.value = Math.min(1, Math.max(0.05, Math.pow(5.0 / camera.position.length(), 1.3)));
+  // the cut through the Earth faces the camera at an angle, so both the cut face and the far half's surface show
+  U.uCutN.value.copy(camera.position).normalize().applyAxisAngle(Y_AXIS, 0.75);
+  // altitude section: the reference rings follow the square-root height scale
+  U.uSqrt.value = rig.sq;
+  for (const [ring, h] of [[geoRing, 35786 / R_KM], [leoRing, 2000 / R_KM]]) ring.scale.setScalar((1 + h + (1.6 * Math.sqrt(h) - h) * rig.sq) / (1 + h));
+  const geoR = geoRing.scale.x * (1 + 35786 / R_KM); lblGeo.pos.set(geoR * 0.707, 0.35, geoR * 0.707);
   // fast dollies smear the frame toward the globe; the Sun keeps its place relative to the camera
   const dl = Math.abs(ld - lastLd) / Math.max(dt, 1e-3); lastLd = ld;
   zoomDolly += (Math.min(0.1, dl * 0.03) - zoomDolly) * 0.15;
@@ -1775,7 +1873,7 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight; U.uRes.value.set(innerWidth, innerHeight);
   bloom.resolution.set(innerWidth / 2, innerHeight / 2);
-  labels.forEach((L) => { L.w = -1; });
+  labels.forEach((L) => { L.tw = -1; });
 });
 
 // ---------------------------------------------------------------------
@@ -1793,10 +1891,11 @@ const sstep = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t 
 function satPos(k, out) {
   const o = SAT.orb, o2 = SAT.orb2, b = SAT.bst, T = U.uTime.value;
   const a = o[k * 4], e = o[k * 4 + 1], inc = o[k * 4 + 2];
-  let raan = o[k * 4 + 3], argp = o2[k * 4], M = o2[k * 4 + 1] + o2[k * 4 + 2] * T;
+  let raan = o[k * 4 + 3], argp = o2[k * 4], M = o2[k * 4 + 1] + o2[k * 4 + 2] * T, blast = 0;
   if (SAT.ev[k * 2]) {
     const s = Math.min(U.uBurst.value, sstep(0, 1.5, U.uYear.value - SAT.ev[k * 2 + 1]));
     if (s < 1) {
+      blast = 0.15 * Math.sin(Math.PI * clamp01(s / 0.42));
       const Ms = b[k * 4 + 2] + b[k * 4 + 3] * T, k2 = sstep(0.35, 1, s);
       M = Ms + wrapA(M - Ms) * sstep(0, 0.6, s);
       raan = b[k * 4] + wrapA(raan - b[k * 4]) * k2; argp = b[k * 4 + 1] + wrapA(argp - b[k * 4 + 1]) * k2;
@@ -1809,8 +1908,13 @@ function satPos(k, out) {
   const cw = Math.cos(argp), sw = Math.sin(argp), ci = Math.cos(inc), si = Math.sin(inc), cO = Math.cos(raan), sO = Math.sin(raan);
   const x1 = xp * cw - yp * sw, y1 = xp * sw + yp * cw, y2 = y1 * ci, z2 = y1 * si;
   out.set(x1 * cO - y2 * sO, z2, -(x1 * sO + y2 * cO));
-  const ax = 1 + (U.uAltX.value - 1) * U.uCut.value;
-  if (ax !== 1) { const r = out.length(); out.multiplyScalar((1 + (r - 1) * ax) / r); }
+  const ax = 1 + (U.uAltX.value - 1) * U.uCut.value, sq = U.uSqrt.value;
+  if (ax !== 1 || sq > 0) { const r = out.length(), h = r - 1; out.multiplyScalar((1 + h * ax + (1.6 * Math.sqrt(Math.max(h, 0)) - h * ax) * sq) / r); }
+  if (blast) {
+    const w = o2[k * 4 + 3], f = (x) => x - Math.floor(x);
+    const bx = f(w * 13.7) - 0.5 + 1e-4, by = f(w * 71.3) - 0.5 + 1e-4, bz = f(w * 37.9) - 0.5 + 1e-4, bl = Math.hypot(bx, by, bz);
+    out.x += bx / bl * blast; out.y += by / bl * blast; out.z += bz / bl * blast;
+  }
   const left = SAT.life[k * 2 + 1] - U.uYear.value;
   const sink = U.uSink.value * (1 - THREE.MathUtils.smoothstep(left, 0, 0.35));
   if (sink > 0) out.multiplyScalar(THREE.MathUtils.lerp(1, 1 / out.length(), sink * 0.985));
@@ -1823,6 +1927,14 @@ function occluded(p) {
   if (disc < 0) return false; const t = -b - Math.sqrt(disc); return t > 0 && t < L;
 }
 const sp = new THREE.Vector3(), vz = new THREE.Vector3();
+// Text that sits over the canvas without taking the pointer: pointing there never picks an object
+// wide display lines are tested by the boxes of their letters, not by their full-width blocks
+const TEXT_BOXES = '.readouts, .tm-year, .hud, .tm-annot, .tm-chart, .close-k, .replay, .finding .col, .notes, .hero-summary, .hero-meta > span, .scroll-cue, #hero-title .ch, #close-num .c';
+function overText() {
+  const hit = (r) => mouse.x >= r.left - 8 && mouse.x <= r.right + 8 && mouse.y >= r.top - 8 && mouse.y <= r.bottom + 8;
+  for (const el of document.querySelectorAll(TEXT_BOXES)) if (hit(el.getBoundingClientRect())) return true;
+  return false;
+}
 function pick() {
   if (!SAT || drag.on || U.uFar.value > 0.4) return -1;
   const el = document.elementFromPoint(mouse.x, mouse.y);
@@ -1834,12 +1946,14 @@ function pick() {
     const d = ((sp.x * 0.5 + 0.5) * innerWidth - mouse.x) ** 2 + ((-sp.y * 0.5 + 0.5) * innerHeight - mouse.y) ** 2;
     if (!hid && sp.z < 1 && d < 1600) return probeK;
   }
-  const cut = U.uCut.value > 0.5, cz = cut ? vz.set(0, 0, 0).applyMatrix4(camera.matrixWorldInverse).z : 0;
+  // a new object is found only when the pointer itself moved lately, and never under text
+  if (performance.now() - mouse.t > 450 || overText()) return -1;
+  const cut = U.uCut.value > 0.5, cn = U.uCutN.value;
   for (let k = 0; k < SAT.n; k++) {
     if (SAT.life[k * 2] > y || SAT.life[k * 2 + 1] <= y) continue;
     if (SAT.colB.array[k * 4 + 3] < 0.2 && U.uMix.value > 0.5) continue;
     satPos(k, sp);
-    if (cut && Math.abs(vz.copy(sp).applyMatrix4(camera.matrixWorldInverse).z - cz) > 0.25) continue;
+    if (cut && Math.abs(sp.dot(cn)) > 0.25) continue;
     sp.project(camera);
     if (sp.z > 1) continue;
     const sx = (sp.x * 0.5 + 0.5) * innerWidth, sy = (-sp.y * 0.5 + 0.5) * innerHeight;
@@ -1918,18 +2032,25 @@ function frame(now) {
   if (SAT && now > pickAt) {
     pickAt = now + 70;
     const onCanvas = document.elementFromPoint(mouse.x, mouse.y) === canvas;
-    cursor.classList.toggle('show-label', onCanvas && probeK < 0 && U.uFar.value < 0.4);
+    cursor.classList.toggle('show-label', onCanvas && probeK < 0 && U.uFar.value < 0.4 && !overText());
     showProbe(pick());
   }
   trackProbe(now);
+  const pxPerUnit = innerHeight / 2 / Math.tan(camera.fov * Math.PI / 360);
   for (const L of labels) {
     sp.copy(L.pos).project(camera);
-    if (L.w < 0 && L.on) L.w = L.el.offsetWidth;
+    if (L.tw < 0 && L.on) L.tw = L.t.offsetWidth;
     const x = (sp.x * 0.5 + 0.5) * innerWidth, y = (-sp.y * 0.5 + 0.5) * innerHeight - 7;
-    const flip = L.w > 0 && x + L.w + 16 > innerWidth;
+    let r = 0;
+    if (L.rad) {
+      r = Math.max(11, L.rad / Math.max(camera.position.distanceTo(L.pos), 1e-3) * pxPerUnit);
+      L.el.style.setProperty('--r', `${r.toFixed(1)}px`);
+    }
+    const w = L.tw + (L.rad ? r + 14 : 0);
+    const flip = L.tw > 0 && x + w + 16 > innerWidth;
     L.el.classList.toggle('flip', flip);
-    L.el.style.opacity = L.on && sp.z < 1 ? 1 : 0;
-    L.el.style.transform = `translate(${flip ? x - L.w : x}px, ${y}px)`;
+    L.el.style.opacity = L.on && sp.z < 1 && x > 8 && x < innerWidth - 8 && y > 70 && y < innerHeight - 8 ? 1 : 0;
+    L.el.style.transform = `translate(${flip ? x - w : x}px, ${y}px)`;
   }
   composer.render(dt);
   requestAnimationFrame(frame);
@@ -1954,11 +2075,12 @@ let REP;
 const played = new Set();
 
 function frameSvg(id, h, m) {
+  h = Math.round(Math.max(Math.min(h, 150), h - (FIT[id] || 0)));
   const el = document.getElementById(id); el.innerHTML = '';
   const w = el.clientWidth || 600;
   const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`).attr('height', h);
   const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
-  return { el, svg, g, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b };
+  return { el, svg, g, w, h, m, iw: w - m.l - m.r, ih: h - m.t - m.b };
 }
 function yGrid(g, y, iw, ticks = 4, f = d3.format(',')) {
   g.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(ticks).tickSize(-iw).tickFormat(''));
@@ -1986,14 +2108,17 @@ const leave = () => { hideTip(); hiOff(); };
 // 1. Payloads per year, the growth section
 charts.growth = () => {
   const d = REP.by_year.years.map((y, i) => ({ y, v: REP.by_year.Payload[i] }));
-  const f = frameSvg('c-growth', 230, { t: 14, r: 4, b: 24, l: 44 });
+  const f = frameSvg('c-growth', 230, { t: 14, r: 50, b: 24, l: 44 });
   const x = d3.scaleBand().domain(d.map((e) => e.y)).range([0, f.iw]).padding(0.18);
   const y = d3.scaleLinear().domain([0, 4700]).range([f.ih, 0]);
   yGrid(f.g, y, f.iw, 4);
   f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`)
     .call(d3.axisBottom(x).tickValues(d.map((e) => e.y).filter((v) => v % 10 === 0 || v === 2026)).tickSize(0).tickPadding(8)).select('.domain').remove();
+  const cP = css('--c-pay'), hP = hatch(f, cP, 'p');
   f.g.selectAll('path.b').data(d).join('path').attr('class', 'b grow')
-    .attr('d', (e) => roundTopBar(x(e.y), y(e.v), x.bandwidth(), f.ih - y(e.v), 2)).attr('fill', (e) => (e.y >= 2020 ? css('--c-pay') : '#2d5f9c'));
+    .attr('d', (e) => roundTopBar(x(e.y), y(e.v), x.bandwidth(), f.ih - y(e.v), 2)).attr('fill', (e) => (e.y === PART_YEAR ? hP : e.y >= 2020 ? cP : '#2d5f9c'))
+    .attr('stroke', (e) => (e.y === PART_YEAR ? cP : 'none'));
+  partLabel(f, x(PART_YEAR) + x.bandwidth() + 4, y(d[d.length - 1].v) + 4, 'to Sep 21');
   f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y) - 1).attr('width', x.bandwidth() + 2)
     .attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
@@ -2005,10 +2130,11 @@ charts.growth = () => {
 charts.tm = () => {
   const S = REP.in_orbit; const d = S.years.map((y, i) => ({ y, Payload: S.Payload[i], 'Rocket body': S['Rocket body'][i], Debris: S.Debris[i], Unknown: S.Unknown[i] }));
   const L = 48;
-  const f = frameSvg('c-tm', Math.max(96, Math.min(132, innerHeight * 0.13)), { t: 6, r: 6, b: 22, l: L });
+  const f = frameSvg('c-tm', Math.round(Math.max(150, Math.min(236, innerHeight * 0.21))), { t: 30, r: 10, b: 22, l: L });
   const x = d3.scaleLinear().domain([1957.75, NOW]).range([0, f.iw]);
   const y = d3.scaleLinear().domain([0, 36000]).range([f.ih, 0]);
-  yGrid(f.g, y, f.iw, 2);
+  f.g.append('g').attr('class', 'grid').call(d3.axisLeft(y).tickValues([10000, 20000, 30000]).tickSize(-f.iw).tickFormat(''));
+  f.g.append('g').attr('class', 'axis').call(d3.axisLeft(y).tickValues([0, 10000, 20000, 30000]).tickSize(0).tickPadding(8).tickFormat(d3.format(','))).select('.domain').remove();
   f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickValues([1960, 1970, 1980, 1990, 2000, 2010, 2020]).tickFormat(d3.format('d')).tickSize(0).tickPadding(8)).select('.domain').remove();
   const cols = typeColor();
   const area = d3.area().x((e) => x(e.data.y)).y0((e) => y(e[0])).y1((e) => y(e[1])).curve(d3.curveMonotoneX);
@@ -2017,10 +2143,23 @@ charts.tm = () => {
   const clip = f.svg.append('clipPath').attr('id', 'clip-tm').append('rect').attr('x', 0).attr('y', 0).attr('height', f.h).attr('width', 0);
   f.g.append('g').attr('clip-path', 'url(#clip-tm)').selectAll('path').data(st).join('path').attr('d', area).attr('fill', (s, i) => cols[i])
     .attr('stroke', css('--panel-solid')).attr('stroke-width', 0.8);
+  // the events the notes on the left describe, marked on the time axis in two staggered rows; each lights up once passed
+  const marks = f.g.selectAll('g.ev').data(TM_MARKS).join('g').attr('class', 'ev');
+  marks.append('line').attr('class', 'ev-tick').attr('x1', (m) => x(m[0])).attr('x2', (m) => x(m[0])).attr('y1', (m) => (m[2] ? -14 : -3)).attr('y2', f.ih).attr('stroke-dasharray', '2 3');
+  marks.append('text').attr('class', 'ev-lbl').attr('x', (m) => x(m[0]) + (m[0] < 1960 ? -2 : 0)).attr('y', (m) => (m[2] ? -18 : -7))
+    .attr('text-anchor', (m) => (m[0] < 1960 ? 'start' : 'middle')).text((m) => m[1]);
+  const total = d3.scaleLinear().domain(d.map((e) => e.y)).range(d.map((e) => e.Payload + e['Rocket body'] + e.Debris + e.Unknown)).clamp(true);
   const cur = f.g.append('line').attr('class', 'anno-line').attr('y1', -2).attr('y2', f.ih);
-  charts.tm.set = (yr) => { const cx = x(Math.min(NOW, Math.max(1957.75, yr))); clip.attr('width', Math.max(0, cx)); cur.attr('x1', cx).attr('x2', cx); };
+  const dot = f.g.append('circle').attr('r', 3.5).attr('fill', css('--pencil'));
+  charts.tm.set = (yr) => {
+    const t = Math.min(NOW, Math.max(1957.75, yr)), cx = x(t);
+    clip.attr('width', Math.max(0, cx)); cur.attr('x1', cx).attr('x2', cx); dot.attr('cx', cx).attr('cy', y(total(t)));
+    marks.classed('on', (m) => t >= m[0]);
+  };
   charts.tm.set(U.uYear.value);
 };
+// year, label, row (1 = upper)
+const TM_MARKS = [[1957.76, 'Sputnik 1', 0], [2007.03, 'Fengyun 1C', 1], [2009.11, 'Collision', 0], [2019.37, 'First Starlink', 1], [2021.87, 'Cosmos 1408', 0]];
 
 // 2. Starlink vs other payloads, stacked bars
 charts.starlink = () => {
@@ -2030,10 +2169,15 @@ charts.starlink = () => {
   const y = d3.scaleLinear().domain([0, 4800]).range([f.ih, 0]);
   yGrid(f.g, y, f.iw, 4);
   f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickSize(0).tickPadding(8)).select('.domain').remove();
-  const cO = css('--c-pay'), cS = css('--c-sl');
+  const cO = css('--c-pay'), cS = css('--c-sl'), hO = hatch(f, cO, 'o'), hS = hatch(f, cS, 's');
+  const part = (e, a, b) => (e.y === PART_YEAR ? a : b);
   const g = f.g.selectAll('g.yr').data(d).join('g').attr('class', 'yr');
-  g.append('rect').attr('class', 'grow').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', (e) => y(e.ot)).attr('height', (e) => f.ih - y(e.ot)).attr('fill', cO);
-  g.append('path').attr('class', 'grow').attr('d', (e) => e.sl ? roundTopBar(x(e.y), y(e.ot + e.sl), x.bandwidth(), y(e.ot) - y(e.ot + e.sl) - 2, 3) : '').attr('fill', cS);
+  g.append('rect').attr('class', 'grow').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', (e) => y(e.ot)).attr('height', (e) => f.ih - y(e.ot))
+    .attr('fill', (e) => part(e, hO, cO)).attr('stroke', (e) => part(e, cO, 'none'));
+  g.append('path').attr('class', 'grow').attr('d', (e) => e.sl ? roundTopBar(x(e.y), y(e.ot + e.sl), x.bandwidth(), y(e.ot) - y(e.ot + e.sl) - 2, 3) : '')
+    .attr('fill', (e) => part(e, hS, cS)).attr('stroke', (e) => part(e, cS, 'none'));
+  const last = d[d.length - 1];
+  partLabel(f, x(PART_YEAR) + x.bandwidth() / 2, y(last.ot + last.sl) - 7, 'to Sep 21', 'middle');
   f.g.append('text').attr('class', 'lbl-strong').attr('x', x(2025) + x.bandwidth() / 2).attr('y', y(4506) - 8).attr('text-anchor', 'middle').text('4,506');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
     .on('pointermove', (ev, e) => { showTip(`<div class="t">${e.y}</div>${row(cS, 'Starlink', fmt(e.sl))}${row(cO, 'Other payloads', fmt(e.ot))}${row('', 'Starlink share', (e.sl / (e.sl + e.ot) * 100).toFixed(1) + '%')}`, ev); hiOn(3, e.y, e.y + 1); })
@@ -2207,14 +2351,19 @@ charts.age = () => {
 // 9. Reentries per year by type
 charts.reentry = () => {
   const R = REP.reentries; const d = R.years.map((y, i) => ({ y, Payload: R.Payload[i], 'Rocket body': R['Rocket body'][i], Debris: R.Debris[i], Unknown: R.Unknown[i], Starlink: R.Starlink[i] })).filter((e) => e.y >= 1990);
-  const f = frameSvg('c-reentry', 250, { t: 10, r: 6, b: 24, l: 44 });
+  const f = frameSvg('c-reentry', 250, { t: 10, r: 50, b: 24, l: 44 });
   const x = d3.scaleBand().domain(d.map((e) => e.y)).range([0, f.iw]).padding(0.2);
   const y = d3.scaleLinear().domain([0, 2600]).range([f.ih, 0]);
   yGrid(f.g, y, f.iw, 4);
   f.g.append('g').attr('class', 'axis').attr('transform', `translate(0,${f.ih})`).call(d3.axisBottom(x).tickValues(d.map((e) => e.y).filter((v) => v % 5 === 0)).tickSize(0).tickPadding(8)).select('.domain').remove();
-  const cols = typeColor(); const st = d3.stack().keys(TYPE_KEYS)(d);
-  f.g.selectAll('g.s').data(st).join('g').attr('fill', (s, i) => cols[i]).selectAll('rect').data((s) => s).join('rect').attr('class', 'grow')
-    .attr('x', (e) => x(e.data.y)).attr('width', x.bandwidth()).attr('y', (e) => y(e[1])).attr('height', (e) => Math.max(0, y(e[0]) - y(e[1]) - (e[1] > e[0] ? 1 : 0)));
+  const cols = typeColor(); const st = d3.stack().keys(TYPE_KEYS)(d); const hs = cols.map((c, i) => hatch(f, c, i));
+  f.g.selectAll('g.s').data(st).join('g').attr('fill', (s, i) => cols[i]).each(function (s, i) {
+    d3.select(this).selectAll('rect').data(s).join('rect').attr('class', 'grow')
+      .attr('x', (e) => x(e.data.y)).attr('width', x.bandwidth()).attr('y', (e) => y(e[1])).attr('height', (e) => Math.max(0, y(e[0]) - y(e[1]) - (e[1] > e[0] ? 1 : 0)))
+      .attr('fill', (e) => (e.data.y === PART_YEAR ? hs[i] : null)).attr('stroke', (e) => (e.data.y === PART_YEAR && e[1] > e[0] ? cols[i] : null)).attr('stroke-width', 0.8);
+  });
+  const lastR = st[st.length - 1][st[0].length - 1];
+  partLabel(f, x(PART_YEAR) + x.bandwidth() + 4, y(lastR[1]) + 4, 'to Sep 23');
   f.g.append('text').attr('class', 'anno').attr('x', x(2022) - 6).attr('y', y(2530)).attr('text-anchor', 'end').text('2022, after the Cosmos 1408 test');
   f.g.selectAll('rect.hit').data(d).join('rect').attr('class', 'hit').attr('x', (e) => x(e.y)).attr('width', x.bandwidth()).attr('y', 0).attr('height', f.ih).attr('fill', 'transparent')
     .on('pointermove', (ev, e) => showTip(`<div class="t">Reentered in ${e.y}</div>${TYPE_KEYS.map((k, i) => row(cols[i], k, fmt(e[k]))).join('')}${row('', 'of which Starlink', fmt(e.Starlink))}`, ev)).on('pointerleave', hideTip);
@@ -2235,27 +2384,54 @@ charts.beyond = () => {
   animateGrowX(f, 'beyond');
 };
 
+// Bars grow from the chart's baseline. GSAP reads an SVG element's transformOrigin relative to its own bounding box, so
+// each segment gets the baseline as an offset from its box: every segment of a stacked bar scales about the same line
+// and the stack grows as one piece. The delay follows the bar's position, not its order in the document.
 function animateGrow(f, key) {
-  const sel = d3.select(f.el).selectAll('.grow');
+  const nodes = d3.select(f.el).selectAll('.grow').nodes();
   if (played.has(key)) return;
-  sel.each(function () { this.style.transformBox = 'fill-box'; this.style.transformOrigin = '50% 100%'; this.style.transform = 'scaleY(0)'; });
+  const boxes = nodes.map((n) => n.getBBox());
+  nodes.forEach((n, i) => gsap.set(n, { scaleY: 0, transformOrigin: `50% ${f.ih - boxes[i].y}px` }));
   charts[key].play = () => {
     played.add(key);
-    sel.each(function (d, i) { gsap.to(this, { scaleY: 1, duration: 1.1, ease: 'expo.out', delay: Math.min(i * 0.012, 0.7), clearProps: 'transform' }); });
+    nodes.forEach((n, i) => gsap.to(n, { scaleY: 1, duration: 1.1, ease: 'expo.out', delay: Math.min(0.7, boxes[i].x / Math.max(1, f.iw) * 0.7) }));
   };
 }
 function animateGrowX(f, key) {
-  const sel = d3.select(f.el).selectAll('.growx');
+  const nodes = d3.select(f.el).selectAll('.growx').nodes();
   if (played.has(key)) return;
-  sel.each(function () { this.style.transformBox = 'fill-box'; this.style.transformOrigin = '0% 50%'; this.style.transform = 'scaleX(0)'; });
+  const boxes = nodes.map((n) => n.getBBox());
+  nodes.forEach((n, i) => gsap.set(n, { scaleX: 0, transformOrigin: `${-boxes[i].x}px 50%` }));
   charts[key].play = () => {
     played.add(key);
-    sel.each(function (d, i) { gsap.to(this, { scaleX: 1, duration: 1.2, ease: 'expo.out', delay: (i % 12) * 0.06, clearProps: 'transform' }); });
+    nodes.forEach((n) => { const r = n.getBoundingClientRect(), top = f.el.getBoundingClientRect().top; gsap.to(n, { scaleX: 1, duration: 1.2, ease: 'expo.out', delay: Math.min(0.66, (r.top - top) / Math.max(1, f.h) * 0.66) }); });
   };
 }
+// the partial last year: hatched bars with an outline, and a small note next to them
+const PART_YEAR = 2026;
+function hatch(f, color, key) {
+  const id = `hatch-${f.el.id}-${key}`;
+  const p = f.svg.append('defs').append('pattern').attr('id', id).attr('patternUnits', 'userSpaceOnUse').attr('width', 4.5).attr('height', 4.5).attr('patternTransform', 'rotate(45)');
+  p.append('rect').attr('width', 4.5).attr('height', 4.5).attr('fill', color).attr('opacity', 0.25);
+  p.append('rect').attr('width', 1.8).attr('height', 4.5).attr('fill', color);
+  return `url(#${id})`;
+}
+function partLabel(f, x, y, text, anchor = 'start') { f.g.append('text').attr('class', 'part-lbl').attr('x', x).attr('y', y).attr('text-anchor', anchor).text(text); }
+// Each finding's heading, text and chart must fit between the nav and the bottom of the window.
+// After drawing, any overflow is taken off that section's chart (down to a floor) and the chart is drawn again.
+const FIT = {}, FIT_MARGIN = 118;
 function renderCharts() {
   if (!REP) return;
-  for (const k of ['growth', 'tm', 'starlink', 'inorbit', 'breakups', 'owners', 'altitude', 'incl', 'age', 'reentry', 'beyond']) charts[k]();
+  for (const k in FIT) delete FIT[k];
+  const keys = ['growth', 'tm', 'starlink', 'inorbit', 'breakups', 'owners', 'altitude', 'incl', 'age', 'reentry', 'beyond'];
+  for (const k of keys) charts[k]();
+  for (let pass = 0; pass < 2; pass++) {
+    for (const col of $$('.finding .col')) {
+      const ch = $('.chart', col); if (!ch) continue;
+      const over = col.offsetHeight - (innerHeight - FIT_MARGIN);
+      if (over > 0) { FIT[ch.id] = (FIT[ch.id] || 0) + over + 2; charts[ch.id.slice(2)](); }
+    }
+  }
 }
 let rsz; addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(renderCharts, 200); });
 
@@ -2277,10 +2453,14 @@ function setupScroll(D) {
     const vh = innerHeight, maxY = document.documentElement.scrollHeight - vh, out = [];
     for (const sec of secs) {
       const name = sec.dataset.globe, top = sec.getBoundingClientRect().top + scrollY, h = sec.offsetHeight;
-      const c = Math.min(maxY, Math.max(0, top + h / 2 - vh / 2));
+      // the section sits 32 px below centre at its keyframe, so a column that fits under the nav is shown whole
+      const c = Math.min(maxY, Math.max(0, top + h / 2 - vh / 2 - 32));
       if (name === 'hero') out.push({ y: 0, s: 'hero' });
       else if (name === 'timeline') { tmTop = top; tmEnd = top + h - vh; out.push({ y: tmTop, s: 'timeline' }, { y: tmEnd, s: 'timeline' }); }
-      else if (name === 'beyond') out.push({ y: top + h * 0.3 - vh / 2, s: 'beyond' }, { y: Math.min(maxY, top + h * 0.8 - vh / 2), s: 'moon' });
+      // leaving for the Moon: first pull straight back from the Earth, then turn out to the Moon and close in on it
+      else if (name === 'beyond') out.push({ y: top - vh * 0.55, s: 'depart' }, { y: top + h * 0.3 - vh / 2, s: 'beyond' }, { y: Math.min(maxY, top + h * 0.78 - vh / 2), s: 'moon' });
+      // the notes are read beside the Moon; by their end the camera has pulled back to see the Earth and the Moon together
+      else if (name === 'notes') out.push({ y: top + vh * 0.1, s: 'notes' }, { y: Math.max(top + vh * 0.2, top + h - vh * 0.9), s: 'beyond' });
       else { out.push({ y: c, s: name }); if (name === 'growth') growthY = c; }
     }
     KEYS = out.sort((a, b) => a.y - b.y);
@@ -2312,7 +2492,9 @@ function setupScroll(D) {
         yearTarget = 1962 + (NOW - 1962) * smooth(clamp01((p - 0.12) / 0.7)); yearRate = 5;
       } else if (stateName === 'hero' || stateName === 'growth') { yearTarget = NOW; yearRate = 4; }
     }
-    const rOn = stateName === 'reentry' || stateName === 'owner';
+    // the replay readout leaves before the next section's heading comes up under it
+    const rSec = stateName === 'reentry' ? reSec : stateName === 'owner' ? ownSec : null;
+    const rOn = !!rSec && rSec.getBoundingClientRect().bottom > innerHeight * 1.04;
     replay.classList.toggle('on', rOn);
     if (rOn && replay.dataset.s !== stateName) {
       replay.dataset.s = stateName;
@@ -2337,13 +2519,7 @@ function setupScroll(D) {
       .from(st.chars, { yPercent: 115, duration: 1.0, ease: 'expo.out', stagger: 0.011 }, 0)
       .to(st.chars, { '--wd': 104, '--wg': 650, duration: 1.5, ease: 'expo.out', stagger: 0.011 }, 0.06);
   });
-  // Full-bleed numerals: width, weight and height follow the scroll through the section
   const splitChars = (el) => { const t = el.textContent; el.textContent = ''; return [...t].map((ch) => { const s = document.createElement('span'); s.className = 'c'; s.textContent = ch; el.appendChild(s); return s; }); };
-  $$('.bignum').forEach((el) => {
-    const text = el.textContent, cs = splitChars(el), sec = el.closest('section');
-    gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 0.8, onEnter: () => emit('reveal', { what: 'numeral', text }) } })
-      .fromTo(cs, { '--wd': 55, '--wg': 100, yPercent: 40 }, { '--wd': 125, '--wg': 900, yPercent: -40, stagger: 0.14, ease: 'none', duration: 1 });
-  });
   // Closing numeral rises into place as the page ends
   const closeEl = $('#close-num'), closeCs = splitChars(closeEl);
   const closeGhost = closeEl.cloneNode(true); closeGhost.removeAttribute('id'); closeGhost.classList.add('ghost'); closeGhost.setAttribute('aria-hidden', 'true');
@@ -2358,7 +2534,7 @@ function setupScroll(D) {
 
   // The time machine: the year on the globe drives the big year, the counts, the notes and the chart
   const earthIdx = []; for (let i = 0; i < D.n; i++) { const c = D.center[i]; if (c === 'EA' || /^\d+$/.test(c)) earthIdx.push(i); }
-  const yearEl = $('#tm-year'), hudO = $('#hud-orbit'), hudP = $('#hud-pay'), hudD = $('#hud-deb');
+  const yearEl = $('#tm-year'), hudO = $('#hud-orbit'), hudP = $('#hud-pay'), hudD = $('#hud-deb'), hudOk = $('#hud-orbit-k'), hudPk = $('#hud-pay-k');
   const payByYear = Object.fromEntries(REP.by_year.years.map((y, i) => [y, REP.by_year.Payload[i]]));
   const annots = [
     [1957.76, 'October 1957', 'Sputnik 1 and the rocket stage that carried it up are entries 2 and 1 in the catalog.'],
@@ -2400,6 +2576,7 @@ function setupScroll(D) {
     let o = 0, pn = 0, dn = 0;
     for (const i of earthIdx) { if (D.appear[i] <= yr && D.decay[i] > yr) { o++; if (D.type[i] === 0) pn++; else if (D.type[i] === 2) dn++; } }
     hudO.textContent = fmt(o); hudP.textContent = fmt(pn); hudD.textContent = fmt(dn);
+    hudOk.textContent = o === 1 ? 'object' : 'objects'; hudPk.textContent = pn === 1 ? 'payload' : 'payloads';
     charts.tm.set?.(yr);
     let k = -1; if (inTm) annots.forEach(([ay], j) => { if (yr >= ay) k = j; });
     showAnnot(k);
@@ -2563,10 +2740,12 @@ gsap.ticker.add(() => {
   buildSatellites(D, REP);
   buildMoonObjects(D);
   soundTables(D);
-  lblMoon.el.textContent = `The Moon and the ${REP.beyond['The Moon']} objects sent to it`; lblMoon.w = -1;
+  lblMoon.t.textContent = `The Moon and the ${REP.beyond['The Moon']} objects sent to it`; lblMoon.tw = -1;
   setMode('type', true); currentMode = 'type';
   writeMode('type', SAT.colA);
   renderCharts();
+  // fonts change the text height; fit the charts again once they are in
+  document.fonts?.ready.then(() => { renderCharts(); });
   ld.p = 1;
   requestAnimationFrame(frame);
   stateName = 'hero';   // the camera holds far out (the intro pose) until the loader leaves
