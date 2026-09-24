@@ -552,6 +552,11 @@ site.to_csv(DATA / "satcat_site.csv", index=False, lineterminator="\n")
 report["breakup_ids"] = [e["launch_id"] for e in report["breakups"]]
 report["owner_names"] = {c: n for c, n in df[["owner", "owner_name"]].drop_duplicates().values}
 report["site_names"] = {c: n for c, n in df[["launch_site", "site_name"]].drop_duplicates().values}
+# For the objects sent to the Moon, CelesTrak's orbit type says whether each one struck
+# the surface (IMP), landed (LAN) or went into lunar orbit (ORB); the report's Moon cards use it.
+moon = df[df.orbit_center == "MO"]
+report["moon_kind"] = {str(k): v for k, v in moon[["norad_cat_id", "orbit_type"]].values}
+print("\nMOON OBJECTS BY ORBIT TYPE", moon.orbit_type.value_counts().to_dict())
 (DATA / "report_numbers.json").write_text(json.dumps(report, indent=1), newline="\n")
 print(f"\nWrote data/satcat_site.csv ({len(site):,} rows, {site.shape[1]} columns)")
 

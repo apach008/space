@@ -26,7 +26,7 @@ and the site is live at https://apach008.github.io/space/.
 | `data/launch_site_codes.csv` | CelesTrak's launch site codes and what they stand for. |
 | `data/ne_50m_land.geojson` | Natural Earth 1:50m land outlines, used only to draw the continents on the globes. |
 | `data/satcat_site.csv` | Built by `prepare_data.py`: the 17 columns both pages use, one row per object, including the orbit regime and the estimated date each object entered the catalog. |
-| `data/report_numbers.json` | Built by `prepare_data.py`: the yearly, decade and altitude tables behind the report charts. |
+| `data/report_numbers.json` | Built by `prepare_data.py`: the yearly, decade and altitude tables behind the report charts, and for each object sent to the Moon whether it struck the surface, landed or went into lunar orbit (CelesTrak's orbit type), which the report shows when you point at it. |
 | `data/land_mask.png` | Built by `prepare_data.py`: a 1024 by 512 land and sea mask the globe shaders read. |
 | `.gitattributes`, `.gitignore` | Keep line endings consistent and keep scratch files out of the repository. |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are, without running Jekyll. |
