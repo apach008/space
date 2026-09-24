@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Everything in Orbit</title>
+<title>Earth's Orbit</title>
 <meta name="description" content="A scrolling report on the public satellite catalog: 70,745 objects launched from 1957 to 2026, where they are and who put them there.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23040716%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274.5%27 fill=%27%23edf0fb%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27none%27 stroke=%27%23edf0fb%27 stroke-width=%271.4%27/%3E%3Ccircle cx=%2724%27 cy=%278.4%27 r=%272.6%27 fill=%27%23ff7a8a%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -411,22 +411,22 @@ footer a { color: var(--ink-2); }
 <nav class="nav">
   <a class="brand magnetic" href="index.html">
     <svg viewBox="0 0 30 30"><circle class="o-planet" cx="15" cy="15" r="4.2"/><ellipse class="o-ring" cx="15" cy="15" rx="13" ry="13"/><circle class="o-sat" cx="15" cy="2" r="2.4"/></svg>
-    <span>Everything in Orbit</span>
+    <span>Earth's Orbit</span>
   </a>
   <div class="nav-links">
     <a class="magnetic" href="index.html" aria-current="page">Report</a>
     <a class="magnetic" href="dashboard.html">Dashboard</a>
   </div>
   <div class="nav-tools">
-    <button class="nav-btn magnetic" id="sound-btn" title="Turn sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound on</span></button>
+    <button class="nav-btn magnetic" id="sound-btn" title="Turn sound on or off"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="sound-label">Sound off</span></button>
   </div>
 </nav>
 
 <main>
   <!-- ============================== HERO ============================== -->
   <section class="hero wrap" data-globe="hero">
-    <div class="title-wrap"><h1 id="hero-title"><span class="ln">Everything</span><span class="ln">in orbit</span></h1></div>
-    <div class="hero-meta"><span>The public satellite catalog, <b>October 1957 to September 2026</b></span><span>By <b>Alejandro Pacheco</b></span></div>
+    <div class="title-wrap"><h1 id="hero-title"><span class="ln">Earth's</span><span class="ln">orbit</span></h1></div>
+    <div class="hero-meta"><span>The public satellite catalog, <b>October 1957 to September 2026</b></span></div>
     <p class="hero-summary prose">
       The U.S. Space Force keeps a catalog of every object it tracks in orbit around Earth, and CelesTrak publishes it as a single public file. It lists <strong>70,745 objects</strong> launched since Sputnik: 27,788 payloads, 6,902 spent rocket bodies, 35,889 pieces of debris and 166 objects nobody has identified, and about half of them have since fallen back into the atmosphere. The report below follows how the catalog grew, who owns the objects and where they sit. Two thirds of all payloads ever launched went up after 2019, most of them Starlink satellites, and in June 2024 payloads in orbit outnumbered debris for the first time since 1961. They have stayed ahead since October 2024.
     </p>
@@ -630,7 +630,7 @@ footer a { color: var(--ink-2); }
 </main>
 
 <footer>
-  <span>Everything in Orbit. Report and dashboard by Alejandro Pacheco.</span>
+  <span>Earth's Orbit.</span>
   <span>Data: CelesTrak SATCAT, snapshot of September 23, 2026.</span>
 </footer>
 
@@ -921,7 +921,7 @@ function orbitSound(opt = {}) {
     E.on = on;
     if (on && !ctx) init();
     out();
-    try { localStorage.setItem('orbit-sound', on ? 'on' : 'off'); } catch (e) {}
+    try { localStorage.setItem('orbit-sound-choice', on ? 'on' : 'off'); } catch (e) {}
     opt.onLabel?.(on);
   };
   // any scroll, pointer or key activity: the bed comes back up if it had settled
@@ -1170,11 +1170,11 @@ function orbitSound(opt = {}) {
   E.ui = (k = 7) => { if (!E.live()) return; bell(penta(k, 62), 0.04, T(), 0, { dur: 0.35, ratio: 2, index: 0.4, send: 0.3 }); };
   return E;
 }   // end of orbitSound
-// Sound is on by default; browsers only allow audio after a click or key
-// press, which the Enter button gives. The mute choice is shared with the dashboard.
+// Sound is off until the reader turns it on with the sound button. The choice is shared with the
+// dashboard; a reader who turned it on gets it again after Enter, which gives the click browsers need.
 // The label says "Sound on" only while sound is playing; before the browser lets it start, it asks for a click.
-let soundWanted = true;
-try { soundWanted = localStorage.getItem('orbit-sound') !== 'off'; } catch (e) {}
+let soundWanted = false;
+try { soundWanted = localStorage.getItem('orbit-sound-choice') === 'on'; } catch (e) {}
 const sound = orbitSound({ level: 1.16, onLabel: () => syncSoundLabel(), onState: () => syncSoundLabel() });
 function syncSoundLabel() {
   const playing = sound.running();

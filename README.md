@@ -1,4 +1,4 @@
-# Everything in Orbit
+# Earth's Orbit
 
 A two-page website about the public satellite catalog: every object that has
 been tracked in orbit around Earth, from Sputnik in October 1957 to September
