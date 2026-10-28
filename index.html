@@ -1000,7 +1000,7 @@ function orbitSound(opt = {}) {
       o.start(when); o.stop(when + dur + 0.05); o.onended = () => { E.bodies--; g.disconnect(); s.disconnect(); };
     });
   }
-  // a band of noise that rises and falls while its centre sweeps from f0 to f1
+  // a band of noise that rises and falls while its center sweeps from f0 to f1
   function whoosh(when, dur, f0, f1, q, vel, x = 0) {
     if (E.grains >= 48) return;
     E.grains++;
@@ -1320,7 +1320,7 @@ const earthMat = new THREE.ShaderMaterial({
   fragmentShader: `uniform sampler2D uLand; uniform vec3 uSun; uniform float uTime; uniform float uCut; uniform vec3 uCutN; varying vec3 vObjN; varying vec3 vN; varying vec3 vWP; ${NOISE}
     float h21(vec2 p){ return fract(sin(dot(p, vec2(41.37, 289.13))) * 43758.5453); }
     void main(){
-      // age section: the Earth is cut open along a plane through its centre. The part in front of the plane is removed;
+      // age section: the Earth is cut open along a plane through its center. The part in front of the plane is removed;
       // where the removed part was, the inside of the far half shows, drawn as the flat cut face with the core,
       // the outer core and the mantle in rings (the radii of the boundaries are to scale)
       if (uCut > 0.001) {
@@ -1334,7 +1334,7 @@ const earthMat = new THREE.ShaderMaterial({
           float edge = (1.0 - smoothstep(0.0, ln, abs(r - 0.192))) + (1.0 - smoothstep(0.0, ln, abs(r - 0.546))) + (1.0 - smoothstep(0.0, ln, abs(r - 0.896))) * 0.55;
           vec3 face = r < 0.192 ? vec3(0.16, 0.1, 0.07) : r < 0.546 ? vec3(0.09, 0.055, 0.05) : mix(vec3(0.05, 0.04, 0.07), vec3(0.025, 0.035, 0.08), smoothstep(0.55, 0.99, r));
           face *= 0.82 + 0.36 * fbm(vec2(atan(X.y, X.x) * 2.0, r * 9.0) + 2.0);
-          face += vec3(1.0, 0.55, 0.3) * 0.12 * smoothstep(0.32, 0.0, r);     // warmth toward the centre
+          face += vec3(1.0, 0.55, 0.3) * 0.12 * smoothstep(0.32, 0.0, r);     // warmth toward the center
           face += vec3(0.45, 0.55, 0.85) * 0.34 * clamp(edge, 0.0, 1.0);      // the boundaries between layers
           face += vec3(0.5, 0.65, 1.0) * 0.45 * smoothstep(0.97, 0.998, r);    // the crust along the rim
           gl_FragColor = vec4(face, 1.0); return;
@@ -1497,7 +1497,7 @@ function buildMoonObjects(D) {
 
 // Label anchors projected into the DOM. A label that would run off the right edge flips to the left of its anchor.
 const labels = [];
-// A label with `rad` gets a ring centred on its anchor, sized each frame to the body's projected radius.
+// A label with `rad` gets a ring centered on its anchor, sized each frame to the body's projected radius.
 function worldLabel(text, pos, rad = 0) {
   const el = document.createElement('div'), t = document.createElement('span');
   t.textContent = text; el.appendChild(t);
@@ -2023,7 +2023,7 @@ const finalPass = new ShaderPass({
       c *= 1.0 - r2 * 0.7;
       gl_FragColor = vec4(c, 1.0); }`,
 });
-// ShaderPass clones its uniforms; point the shared ones back so time and the globe centre reach the pass
+// ShaderPass clones its uniforms; point the shared ones back so time and the globe center reach the pass
 finalPass.uniforms.uTime = U.uTime; finalPass.uniforms.uZC.value = globeUV;
 composer.addPass(finalPass);
 
@@ -2136,7 +2136,7 @@ function pick() {
   const el = document.elementFromPoint(mouse.x, mouse.y);
   if (el !== canvas) return -1;
   let best = -1, bd = 144; const y = Math.fround(U.uYear.value);
-  // keep the locked object while the pointer stays near it, so a dense shell does not flicker between neighbours
+  // keep the locked object while the pointer stays near it, so a dense shell does not flicker between neighbors
   if (probeK >= 0 && !isMoonK(probeK) && SAT.life[probeK * 2 + 1] > y) {
     satPos(probeK, sp); const hid = occluded(sp.clone()); sp.project(camera);
     const d = ((sp.x * 0.5 + 0.5) * innerWidth - mouse.x) ** 2 + ((-sp.y * 0.5 + 0.5) * innerHeight - mouse.y) ** 2;
@@ -2705,7 +2705,7 @@ function setupScroll(D) {
     const vh = innerHeight, maxY = document.documentElement.scrollHeight - vh, out = [];
     for (const sec of secs) {
       const name = sec.dataset.globe, top = sec.getBoundingClientRect().top + scrollY, h = sec.offsetHeight;
-      // the section sits 32 px below centre at its keyframe, so a column that fits under the nav is shown whole
+      // the section sits 32 px below center at its keyframe, so a column that fits under the nav is shown whole
       const c = Math.min(maxY, Math.max(0, top + h / 2 - vh / 2 - 32));
       if (name === 'hero') out.push({ y: 0, s: 'hero' });
       else if (name === 'timeline') { tmTop = top; tmEnd = top + h - vh; out.push({ y: tmTop, s: 'timeline' }, { y: tmEnd, s: 'timeline' }); }
@@ -3049,7 +3049,7 @@ gsap.ticker.add(() => {
   enter.classList.remove('show');
   const first = stateName; stateName = null; goState(first);
   // The fly-in: the camera dives from far out while the catalog assembles from October 1957 to today,
-  // each new object rising from the ground, and the loader opens as an iris centred on the globe
+  // each new object rising from the ground, and the loader opens as an iris centered on the globe
   U.uYear.value = 1957.8; yearTarget = NOW; yearRate = 0.85;
   gsap.fromTo(U.uFlash, { value: 1 }, { value: 0, duration: 2.5, delay: 2.8, overwrite: true });
   gsap.to(intro, { k: 1, duration: 3.0, ease: 'expo.inOut' });

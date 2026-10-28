@@ -912,7 +912,7 @@ function orbitSound(opt = {}) {
       o.start(when); o.stop(when + dur + 0.05); o.onended = () => { E.bodies--; g.disconnect(); s.disconnect(); };
     });
   }
-  // a band of noise that rises and falls while its centre sweeps from f0 to f1
+  // a band of noise that rises and falls while its center sweeps from f0 to f1
   function whoosh(when, dur, f0, f1, q, vel, x = 0) {
     if (E.grains >= 48) return;
     E.grains++;
