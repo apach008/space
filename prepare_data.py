@@ -11,7 +11,7 @@ between the DATA markers, so each page runs on its own when opened from
 disk. The numbers written in the report text are typed by hand from the
 tables this script prints.
 
-Needs pandas and Pillow.
+Needs pandas, numpy and Pillow.
 """
 import base64
 import gzip
@@ -58,9 +58,14 @@ SHORT_OWNER = {
     "SES": "SES", "EUTE": "Eutelsat", "O3B": "O3b", "ITSO": "Intelsat", "TBD": "Unassigned",
     "UNK": "Unknown owner", "GER": "Germany", "CA": "Canada", "SKOR": "South Korea",
     "ISRA": "Israel", "IT": "Italy", "BRAZ": "Brazil", "SPN": "Spain", "AUS": "Australia",
+    # codes in the catalog that CelesTrak's code table does not list
+    "JOR": "Jordan", "KWT": "Kuwait", "SVK": "Slovakia", "UGA": "Uganda",
 }
 owner_name = dict(zip(owners.code, owners.owner_name))
 df["owner_name"] = [SHORT_OWNER.get(c, owner_name.get(c, c)) for c in df.owner]
+unnamed = sorted(set(df.owner) - set(SHORT_OWNER) - set(owner_name))
+if unnamed:
+    print("Owner codes with no name (add them to SHORT_OWNER):", unnamed)
 
 SHORT_SITE = {
     "AFETR": "Cape Canaveral", "AFWTR": "Vandenberg", "TYMSC": "Baikonur",
@@ -142,7 +147,19 @@ guess = df.launch_date.where(df.launch_date >= df.cataloged - pd.Timedelta(days=
                              df.cataloged - pd.Timedelta(days=30))
 guess = guess.where(~(df.decayed & (guess > df.decay_date)), df.decay_date)
 df["appear"] = df.launch_date.where(~estimated, guess)
-late = df[df.appear > df.launch_date + pd.Timedelta(days=365)]
+# The pieces of a breakup are numbered after it, and the 30 days taken off above
+# must not move them before the breakup itself. Dates of the largest breakups
+# (the two Long March 6A stages broke up the day they were launched):
+BREAKUPS = {"1999-025": "2007-01-11", "1982-092": "2021-11-15", "1993-036": "2009-02-10",
+            "1997-051": "2009-02-10", "1994-029": "1996-06-03", "2006-026": "2008-03-14",
+            "1986-019": "1986-11-13", "1981-053": "1981-07-24"}
+# Pieces cataloged well before a breakup came from earlier, smaller events and keep their date.
+for lid, day in BREAKUPS.items():
+    day = pd.Timestamp(day)
+    numbered_after = df.cataloged >= day - pd.Timedelta(days=60)
+    early = (df.launch_id == lid) & (df.type == "Debris") & numbered_after & (df.appear < day)
+    df.loc[early, "appear"] = day
+late =df[df.appear > df.launch_date + pd.Timedelta(days=365)]
 print(f"\nObjects that enter the catalog more than a year after their launch date: {len(late):,} "
       f"({late.type.value_counts().to_dict()})")
 print(f"Estimated entries capped at the reentry date: {int((estimated & df.decayed & (df.appear == df.decay_date)).sum()):,}")
@@ -263,7 +280,8 @@ pay["owner_group"] = pay.owner_name.where(pay.owner_name.isin(big), "Everyone el
 own = pd.crosstab(pay.decade, pay.owner_group)[big + ["Everyone else"]]
 own_pct = (own.div(own.sum(axis=1), axis=0) * 100).round(1)
 print("\n[5] Payloads by decade and owner\n", own, "\n", own_pct)
-nown = pay.groupby("decade").owner.nunique()
+# TBD is CelesTrak's placeholder for an owner not yet assigned, not an owner
+nown = pay[pay.owner != "TBD"].groupby("decade").owner.nunique()
 print("Distinct owners launching payloads, by decade\n", nown.to_string())
 pay_nosl = pay[~pay.starlink]
 own_nosl = pd.crosstab(pay_nosl.decade, pay_nosl.owner_group)[big + ["Everyone else"]]
@@ -327,7 +345,9 @@ old = eo.sort_values("launch_date").head(5)[["object_name", "launch_date", "peri
 print("Oldest objects still in orbit\n", old)
 
 # 9. Reentries per year -----------------------------------------------------------------
-dec = df[df.decayed].copy()
+# Only objects that came down through Earth's atmosphere: the ones that struck
+# the Moon or a planet also carry a decay date.
+dec = df[df.decayed & ((df.orbit_center == "EA") | df.orbit_center.str.fullmatch(r"\d+"))].copy()
 dec["year"] = dec.decay_date.dt.year
 ree = pd.crosstab(dec.year, dec.type).reindex(columns=list(TYPE_NAMES.values()), fill_value=0)
 ree["Starlink"] = dec[dec.starlink].groupby("year").size().reindex(ree.index, fill_value=0)

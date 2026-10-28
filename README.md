@@ -1,8 +1,8 @@
 # Earth's Orbit
 
-A two-page website about the public satellite catalog: every object that has
-been tracked in orbit around Earth, from Sputnik in October 1957 to September
-2026. The report page (`index.html`) is a scrolling set of findings built
+A two-page website about the public satellite catalog: every object in it,
+from Sputnik in October 1957 to September 2026, nearly all of them launched
+into orbit around Earth. The report page (`index.html`) is a scrolling set of findings built
 around a WebGL globe that draws each of the 34,496 objects in Earth orbit that
 have a cataloged perigee, apogee and inclination. The dashboard page (`dashboard.html`) lets the reader
 filter all 70,745 objects and recomputes every number, chart and table row in
@@ -29,6 +29,7 @@ and the site is live at https://apach008.github.io/space/.
 | `data/report_numbers.json` | Built by `prepare_data.py`: the yearly, decade and altitude tables behind the report charts, and for each object sent to the Moon whether it struck the surface, landed or went into lunar orbit (CelesTrak's orbit type), which the report shows when you point at it. |
 | `data/land_mask.png` | Built by `prepare_data.py`: a 1024 by 512 land and sea mask the globe shaders read. |
 | `.gitattributes`, `.gitignore` | Keep line endings consistent and keep scratch files out of the repository. |
+| `og.jpg` | The 1200 by 630 picture that link previews show for both pages. |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are, without running Jekyll. |
 
 ## Where the data comes from
@@ -41,6 +42,11 @@ https://celestrak.org/satcat/launchsites.php. The land outlines are Natural
 Earth's public domain 1:50m land file from
 https://github.com/nvkelso/natural-earth-vector.
 
+The catalog and code tables are CelesTrak's, which asks that its data be
+credited when used; the catalog itself comes from the U.S. Space Force through
+Space-Track.org, whose terms apply to its data. Natural Earth's files are in the
+public domain.
+
 ## Viewing the site
 
 Open `index.html` in a browser. No server is needed, because the data is
@@ -49,14 +55,16 @@ stored inside each page as a compressed, base64-encoded copy of
 `DecompressionStream`. The pages load their libraries and fonts over the
 internet: three.js 0.186.0, GSAP 3.15.0 (with ScrollTrigger and SplitText),
 Lenis 1.3.26 and D3 7.9.0 from jsDelivr, and the Anybody and Newsreader
-fonts from Google Fonts. Both pages are designed for desktop screens.
+fonts from Google Fonts, so the pages need an internet connection. Both pages
+are designed for desktop screens.
 
 ## Rebuilding the data
 
     python fetch_data.py      # optional: replaces the snapshot with today's catalog
     python prepare_data.py    # rebuilds data/ and the data inside both pages
 
-The scripts need pandas, lxml and Pillow. After a new snapshot, the numbers
+`fetch_data.py` needs pandas and lxml; `prepare_data.py` needs pandas, numpy
+and Pillow. After a new snapshot, the numbers
 written in both pages have to be updated by hand from the section
 `NUMBERS QUOTED IN THE PAGES` that `prepare_data.py` prints.
 
@@ -69,7 +77,9 @@ the catalog on or before that date and had not reentered by then; an active
 payload is a payload with operational status +, P, B, S or X (two rocket
 bodies that carry + are not counted); a Starlink satellite is a payload whose
 name starts with STARLINK; mean altitude is the average of apogee and perigee;
-a near-circular orbit has an eccentricity below 0.25.
+a near-circular orbit has an eccentricity below 0.25; the reentries per year
+count only objects that came down through Earth's atmosphere, not the 109
+that ended on the Moon, a planet or an asteroid.
 
 Payloads and rocket bodies enter the catalog on their launch date. Debris
 carries the launch date of its parent, and the 416 payloads released from the
@@ -81,7 +91,8 @@ is a rolling median of their launch dates over 51 neighbors, then a running
 maximum so it never goes back in time as the numbers rise, then interpolated
 at each catalog number. An object enters on the later of its launch date and
 that estimate less 30 days (new objects often receive their numbers some days
-after they are first tracked), and never after its reentry date. The station
+after they are first tracked), and never after its reentry date. Debris from
+the largest breakups never enters before the breakup itself. The station
 payloads are counted in the year they entered the catalog instead of 1998.
 
 The globes draw each object on an ellipse with its cataloged apogee, perigee
